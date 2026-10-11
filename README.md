@@ -24,6 +24,18 @@
 **Bio & Hub:** [https://hopp.bio/siberegitim](https://hopp.bio/siberegitim)  
 **GitHub Repository:** [https://github.com/toprakahmetaydogmus/TZeroAlgorithm](https://github.com/toprakahmetaydogmus/TZeroAlgorithm)
 
+<p align="center">
+  <img src="assets/benchmark-demo.svg" alt="T-Zero AST Token Reduction Benchmark" width="100%" />
+</p>
+
+### ⚡ Visual Proof: Raw Ingestion vs. T-Zero AST Pruning (Reproducible)
+
+| Analysis Mode | Raw Context Volume | T-Zero Pruned Payload | Token Reduction Ratio | Cost Delta / Query |
+|:---|:---|:---|:---:|:---:|
+| **Full Repository Scan** | `166,996 tokens` | `8,465 tokens` | **-94.9%** | **-$0.3963 / query** |
+
+> Run it yourself offline ($0 cost): `python tzero.py --savings`
+
 ---
 
 # 🇬🇧 English
