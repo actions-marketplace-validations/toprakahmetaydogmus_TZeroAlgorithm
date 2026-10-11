@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.0.14] - 2026-10-11
+
+### Fixed & Enhanced
+
+- Updated NVIDIA NIM AI models list to active, verified models with `deepseek-ai/deepseek-v4.1-flash` as primary default.
+- Removed deprecated/sunsetted models that caused HTTP 410 Gone (`meta/llama-3.3-70b-instruct`, `mistralai/mistral-large-3-675b-instruct-2512`).
+- Added transparent auto-fallback to `deepseek-ai/deepseek-v4.1-flash` in `ContextGenerator` if a model endpoint returns HTTP 410.
+- Implemented automatic profile migration in `ConfigManager.load()` to seamlessly upgrade legacy profiles to active models.
+- Enhanced GUI error diagnostics with direct resolution tips for HTTP 403 API authorization and model end-of-life.
+
 ## [3.0.13] - 2026-10-11
 
 ### Fixed

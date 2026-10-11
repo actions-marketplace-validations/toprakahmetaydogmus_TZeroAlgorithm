@@ -25,7 +25,8 @@ class TestProviders(unittest.TestCase):
         self.assertEqual(p.name, "NVIDIA NIM")
         headers = p.get_headers("dummy-nv-key")
         self.assertEqual(headers["X-Nvidia-Api-Key"], "dummy-nv-key")
-        self.assertIn("meta/llama-3.3-70b-instruct", p.get_models())
+        self.assertIn("deepseek-ai/deepseek-v4.1-flash", p.get_models())
+        self.assertEqual(p.get_models()[0], "deepseek-ai/deepseek-v4.1-flash")
         self.assertTrue(p.get_endpoint_url(p.get_base_url()).endswith("/chat/completions"))
 
     def test_openai_provider(self):

@@ -621,7 +621,7 @@ class ConfigManager:
                 "default": {
                     "provider": "NVIDIA NIM",
                     "api_base": "https://integrate.api.nvidia.com/v1",
-                    "model": "meta/llama-3.3-70b-instruct",
+                    "model": "deepseek-ai/deepseek-v4.1-flash",
                     "reduction": "Ultra",
                     "theme": "Luxury Dashboard",
                     "language": "en",
@@ -647,6 +647,22 @@ class ConfigManager:
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 self._state = json.load(f)
+            # Auto-migrate deprecated models in profiles to active NVIDIA NIM models
+            deprecated_models = {
+                "meta/llama-3.3-70b-instruct": "deepseek-ai/deepseek-v4.1-flash",
+                "mistralai/mistral-large-3-675b-instruct-2512": "mistralai/mistral-large-2-instruct",
+                "deepseek-ai/deepseek-r1": "deepseek-ai/deepseek-v4.1-flash",
+                "qwen/qwen3.5-122b-a10b": "nvidia/llama-3.1-nemotron-70b-instruct"
+            }
+            changed = False
+            for prof in self._state.get("profiles", {}).values():
+                if isinstance(prof, dict):
+                    m = prof.get("model")
+                    if m in deprecated_models:
+                        prof["model"] = deprecated_models[m]
+                        changed = True
+            if changed:
+                self.save()
         except Exception:
             self.recover_from_backup()
 
@@ -811,12 +827,16 @@ class NvidiaProvider(BaseProvider):
             "NVIDIA NIM",
             "https://integrate.api.nvidia.com/v1",
             [
-                "meta/llama-3.3-70b-instruct",
-                "deepseek-ai/deepseek-r1",
-                "mistralai/mistral-large-3-675b-instruct-2512",
-                "google/gemma-4-31b-it",
+                "deepseek-ai/deepseek-v4.1-flash",
+                "deepseek-ai/deepseek-coder-6.7b-instruct",
+                "nvidia/llama-3.1-nemotron-70b-instruct",
                 "nvidia/llama-3.1-nemotron-51b-instruct",
-                "qwen/qwen3.5-122b-a10b"
+                "mistralai/mistral-large-2-instruct",
+                "mistralai/codestral-22b-instruct-v0.1",
+                "meta/llama-3.2-90b-vision-instruct",
+                "meta/llama-3.2-11b-vision-instruct",
+                "google/gemma-4-31b-it",
+                "z-ai/glm-5.3-flash"
             ]
         )
 
@@ -2035,15 +2055,31 @@ class ContextGenerator:
                 if progress_cb:
                     progress_cb(90, "Finalizing context layouts...")
                 return content
-            else:
-                err_text = r.text
-                try:
-                    err_json = r.json()
-                    if "error" in err_json:
-                        err_text = json.dumps(err_json["error"])
-                except Exception:
-                    pass
-                raise IOError(f"API Error code HTTP {r.status_code}: {err_text}")
+            elif r.status_code == 410 and provider and provider.name == "NVIDIA NIM" and model != "deepseek-ai/deepseek-v4.1-flash":
+                # Model has reached end of life, transparently auto-fallback to active DeepSeek V4.1 Flash
+                if progress_cb:
+                    progress_cb(65, "Model reached end-of-life, auto-retrying with deepseek-ai/deepseek-v4.1-flash...")
+                fallback_payload = provider.format_payload("deepseek-ai/deepseek-v4.1-flash", messages)
+                r_fallback = requests.post(url, json=fallback_payload, headers=headers, timeout=120)
+                if r_fallback.status_code == 200:
+                    data = r_fallback.json()
+                    content = provider.parse_response(data)
+                    if progress_cb:
+                        progress_cb(90, "Finalizing context layouts...")
+                    return content
+                else:
+                    r = r_fallback
+            
+            err_text = r.text
+            try:
+                err_json = r.json()
+                if "error" in err_json:
+                    err_text = json.dumps(err_json["error"])
+                elif "detail" in err_json:
+                    err_text = err_json["detail"]
+            except Exception:
+                pass
+            raise IOError(f"API Error code HTTP {r.status_code}: {err_text}")
         except Exception as e:
             if self.cancel_event.is_set():
                 raise InterruptedError("Process cancelled.")
@@ -3966,7 +4002,7 @@ class AutoReadmeGUI:
         b_top = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_top.pack(fill=tk.X, padx=10, pady=(4, 2))
         tk.Label(b_top, text="🛡️ SİBER AKADEMİ CREATOR HUB", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["bg_start"]).pack(side=tk.LEFT)
-        tk.Label(b_top, text="v3.0.13", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
+        tk.Label(b_top, text="v3.0.14", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
 
         b_links = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_links.pack(fill=tk.X, padx=10, pady=(2, 6))
@@ -5812,7 +5848,13 @@ Custom Requirements:
         self.gen_btn.config(state=tk.NORMAL, text=get_text("generate_btn", self.lang))
         self.cancel_btn.pack_forget()
         self.log(f"API Request failed: {err}")
-        messagebox.showerror("Error", f"Failed: {err}")
+        err_str = str(err)
+        detail = f"Failed: {err_str}"
+        if "403" in err_str or "Authorization failed" in err_str:
+            detail += "\n\n💡 İpucu: NVIDIA NIM API anahtarı yetkilendirmesi başarısız oldu (403 Forbidden). Lütfen https://build.nvidia.com adresinden geçerli/yeni bir API anahtarı alıp Ayarlar > API Anahtarları bölümüne giriniz."
+        elif "410" in err_str or "end of life" in err_str:
+            detail += "\n\n💡 İpucu: Bu modelin süresi dolmuştur (End of Life). Lütfen açılır listeden güncel 'deepseek-ai/deepseek-v4.1-flash' modelini seçiniz."
+        messagebox.showerror("Error", detail)
 
     def copy_clipboard(self):
         txt = self.preview_text.get("1.0", tk.END).strip()
@@ -6538,12 +6580,12 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V3.0.13")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V3.0.14")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v3.0.13
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v3.0.14
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 

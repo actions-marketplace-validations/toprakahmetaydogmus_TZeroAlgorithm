@@ -365,7 +365,7 @@ flowchart TD
 ## 🌟 Core Highlights & Capabilities
 
 ### 1. Multi-LLM Provider Engine
-- **NVIDIA NIM:** `llama-3.3-70b-instruct`, `deepseek-r1`, `mistral-large`, `nemotron-51b`, `qwen3.5`
+- **NVIDIA NIM:** `deepseek-v4.1-flash`, `deepseek-coder-6.7b`, `nemotron-70b`, `mistral-large-2`, `llama-3.2-90b-vision`
 - **OpenAI:** `gpt-4o`, `gpt-4o-mini`, `o3-mini`, `o1`
 - **Google Gemini:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`
 - **Anthropic:** `claude-3-7-sonnet-20250219`, `claude-3-5-sonnet`, `claude-3-5-haiku`
@@ -617,7 +617,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.13
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.14
         with:
           workspace: '.'
           audit: 'true'
@@ -934,7 +934,7 @@ flowchart TD
 ## 🌟 Öne Çıkan Yetenekler & Özellikler
 
 ### 1. Çoklu LLM Sağlayıcı Entegrasyonu
-- **NVIDIA NIM:** `llama-3.3-70b-instruct`, `deepseek-r1`, `mistral-large`, `nemotron-51b`, `qwen3.5`
+- **NVIDIA NIM:** `deepseek-v4.1-flash`, `deepseek-coder-6.7b`, `nemotron-70b`, `mistral-large-2`, `llama-3.2-90b-vision`
 - **OpenAI:** `gpt-4o`, `gpt-4o-mini`, `o3-mini`, `o1`
 - **Google Gemini:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`
 - **Anthropic:** `claude-3-7-sonnet-20250219`, `claude-3-5-sonnet`, `claude-3-5-haiku`
@@ -1186,7 +1186,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.13
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.14
         with:
           workspace: '.'
           audit: 'true'

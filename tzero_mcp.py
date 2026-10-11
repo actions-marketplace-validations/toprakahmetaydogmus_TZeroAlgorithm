@@ -27,7 +27,7 @@ import inspect
 import logging
 from typing import Dict, List, Optional, Any
 
-SERVER_VERSION = "3.0.13"
+SERVER_VERSION = "3.0.14"
 
 # Safe UTF-8 reconfiguration for Windows console & piped subprocesses
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -664,7 +664,7 @@ def create_mcp_server():
             ("OpenAI (GPT-4o)", "OpenAI"),
             ("Anthropic (Claude 3.7 Sonnet)", "Anthropic"),
             ("Groq (Llama-3.3-70B)", "Groq"),
-            ("NVIDIA NIM (Llama-3.3-70B)", "NVIDIA NIM"),
+            ("NVIDIA NIM (DeepSeek / Nemotron)", "NVIDIA NIM"),
             ("Ollama (Local Private)", "Ollama (Local)"),
         ]
 

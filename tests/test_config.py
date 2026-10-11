@@ -61,6 +61,27 @@ class TestConfigManager(unittest.TestCase):
         self.assertTrue(recovered)
         self.assertIn("profiles", self.config_mgr._state)
 
+    def test_auto_migration_deprecated_models(self):
+        # Write config with deprecated model
+        import json
+        legacy_data = {
+            "version": "3.0.0",
+            "active_profile": "default",
+            "profiles": {
+                "default": {
+                    "provider": "NVIDIA NIM",
+                    "model": "meta/llama-3.3-70b-instruct"
+                }
+            }
+        }
+        with open(self.config_mgr.config_path, "w", encoding="utf-8") as f:
+            json.dump(legacy_data, f)
+
+        # Reload should auto-migrate to deepseek-ai/deepseek-v4.1-flash
+        self.config_mgr.load()
+        active = self.config_mgr.get_profile()
+        self.assertEqual(active["model"], "deepseek-ai/deepseek-v4.1-flash")
+
 
 class TestKeyringSecretsBackupManager(unittest.TestCase):
     def setUp(self):

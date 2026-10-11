@@ -24,7 +24,7 @@ class TestGenerator(unittest.TestCase):
 
     def test_count_tokens_precise(self):
         text = "Hello world! This is a test for token estimation."
-        toks = count_tokens_precise(text, "meta/llama-3.3-70b-instruct")
+        toks = count_tokens_precise(text, "deepseek-ai/deepseek-v4.1-flash")
         self.assertGreater(toks, 0)
         self.assertEqual(toks, len(text) // 4)
 
