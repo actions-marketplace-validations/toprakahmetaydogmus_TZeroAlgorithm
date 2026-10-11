@@ -76,12 +76,12 @@
 
 T-Zero V3 natively embeds a standard **Model Context Protocol (MCP)** server (`tzero_mcp.py`) operating over `stdio`. This empowers AI agents in **Cursor**, **Claude Desktop**, **Antigravity IDE**, and **Cline** to autonomously inspect, prune, and query your project's codebase before writing a single line of code.
 
-### 🛠 Available MCP Tools (14 Autonomous Tools)
+### 🛠 Available MCP Tools (16 Autonomous Tools)
 
 | Tool Name | Parameters | Purpose |
 |:----------|:-----------|:--------|
 | `get_project_context_tree` | `project_root`, `reduction_mode`, `max_tokens`, `include_file_contents` | Scans workspace and builds a multi-tier T-Zero hierarchical context tree (T-1 to T-4). Reduces tokens by up to 95%. |
-| `query_module_dependencies` | `project_root`, `file_path` | Analyzes incoming and outgoing import dependencies, local links, and external packages for a file or entire project. |
+| `query_module_dependencies` | `project_root`, `file_path` | Analyzes incoming and outgoing import dependencies across Python, TypeScript, Go, Rust, Java, C#, and C++. |
 | `query_architecture_boundaries` | `project_root`, `extra_guidance` | Queries active T-4 architectural boundaries, operational constraints, and Zero-Leak rules for coding agents. |
 | `generate_architecture_blueprint` | `project_root` | Generates a complete system architecture specification (`ARCHITECTURE.md`) with live Mermaid topology diagrams. |
 | `generate_repo_map` | `project_root`, `max_tokens` | Produces an ultra-compressed AST symbol map (classes, methods, signatures) optimized for prompt injection. |
@@ -94,6 +94,13 @@ T-Zero V3 natively embeds a standard **Model Context Protocol (MCP)** server (`t
 | `export_agent_rules` | `project_root` | Generates 1-click rules for Cursor, Windsurf, Claude Code, Cline, and Copilot. |
 | `get_token_savings_metrics` | `project_root`, `team_size` | Calculates quantitative token reduction ratio, monthly/annual cost savings, and team developer ROI metrics. |
 | `get_incremental_diff_context` | `base_ref`, `project_root` | Extracts an ultra-compact diff context with modified symbols and downstream blast radius for PR reviews (98%+ token reduction). |
+| `prune_code_snippet` | `code`, `file_path_or_ext`, `reduction_mode` | Prunes arbitrary in-memory code snippets into compact AST signatures on-the-fly (80-95% reduction). |
+| `verify_zero_leak_security` | `project_root`, `target_file`, `code_snippet` | 100% Zero-Leak security scanner for hardcoded API keys (OpenAI, Anthropic, Gemini, NVIDIA, GitHub) and secrets ($0 cost, 0 leaks). |
+
+### 📦 Live MCP Resources
+- **`tzero://architecture`**: Real-time Mermaid architecture blueprint and module topology diagram.
+- **`tzero://boundaries`**: Active T-4 architectural layer boundaries, security rules, and constraints.
+- **`tzero://token-roi`**: Quantitative token reduction ratio and economic engineering team ROI savings.
 
 ### 🧭 MCP Prompts
 - **`tzero_grounding`**: Injects strict architectural boundary rules, modular integrity guidelines, and Zero-Leak security mandates into the agent's system session.

@@ -6526,7 +6526,7 @@ def main():
     parser.add_argument("--output", "-o", default="README.md", help="Output filepath for generated markdown (default: README.md)")
     parser.add_argument("--provider", "-p", choices=list(PROVIDERS.keys()), help="AI Provider to use (default: active profile)")
     parser.add_argument("--impact", metavar="SYMBOL", help="Analyze blast radius and change impact for a symbol")
-    parser.add_argument("--enforce-boundaries", nargs="?", const="tzero.rules.json", default=None, metavar="CONFIG", help="Enforce architectural boundary rules in CI (exits with code 1 if violated)")
+    parser.add_argument("--enforce-boundaries", "--enforce-rules", nargs="?", const="tzero.rules.json", default=None, metavar="CONFIG", dest="enforce_boundaries", help="Enforce architectural boundary rules in CI (exits with code 1 if violated)")
     parser.add_argument("--search", metavar="QUERY", help="Run private local hybrid semantic code search (BM25 RAG)")
     parser.add_argument("--export-agent-rules", action="store_true", help="Generate all native AI agent rules (.cursorrules, .cursor/rules/*.mdc, .clinerules, Copilot)")
     parser.add_argument("--savings", action="store_true", help="Calculate token reduction metrics and economic developer team ROI")

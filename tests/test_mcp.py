@@ -40,7 +40,10 @@ class TestMCPServer(unittest.TestCase):
             "enforce_architecture_boundaries",
             "search_codebase_semantic",
             "export_agent_rules",
-            "get_token_savings_metrics"
+            "get_token_savings_metrics",
+            "get_incremental_diff_context",
+            "prune_code_snippet",
+            "verify_zero_leak_security"
         ]
         for exp in expected_tools:
             self.assertIn(exp, tool_names)
@@ -271,6 +274,65 @@ class TestMCPServer(unittest.TestCase):
             out = tool_result_text(res)
             self.assertIn("No Git Changes Detected", out)
 
+    def test_tool_prune_code_snippet(self):
+        sample_code = """
+import os
+import sys
+
+class Worker:
+    def execute(self):
+        # Long body
+""" + "\n".join([f"        x_{i} = {i} * 2" for i in range(100)]) + """
+        return True
+"""
+        res = self.run_async(self.server.call_tool(
+            "prune_code_snippet",
+            {"code": sample_code, "file_path_or_ext": "worker.py", "reduction_mode": "ultra"}
+        ))
+        out = tool_result_text(res)
+        self.assertIn("T-Zero Code Pruning Result", out)
+        self.assertIn("class Worker", out)
+        self.assertIn("reduction", out)
+        self.assertNotIn("x_50", out)
+
+    def test_tool_verify_zero_leak_security(self):
+        # 1. Clean snippet
+        res_clean = self.run_async(self.server.call_tool(
+            "verify_zero_leak_security",
+            {"code_snippet": "def hello():\n    return 'clean'\n"}
+        ))
+        self.assertIn("ZERO-LEAK PASS", tool_result_text(res_clean))
+
+        # 2. Leaking snippet
+        res_leak = self.run_async(self.server.call_tool(
+            "verify_zero_leak_security",
+            {"code_snippet": 'OPENAI_API_KEY = "sk-proj-1234567890abcdef1234567890abcdef12345678"'}
+        ))
+        self.assertIn("Zero-Leak Security Alert", tool_result_text(res_leak))
+
+    def test_tool_query_module_dependencies_polyglot(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            ts_file = os.path.join(temp_dir, "service.ts")
+            with open(ts_file, "w", encoding="utf-8") as f:
+                f.write("import { Injectable } from '@nestjs/common';\nimport * as fs from 'fs';\n")
+
+            res = self.run_async(self.server.call_tool(
+                "query_module_dependencies",
+                {"project_root": temp_dir, "file_path": "service.ts"}
+            ))
+            out = tool_result_text(res)
+            self.assertIn("Dependency Analysis for `service.ts`", out)
+            self.assertIn("@nestjs/common", out)
+            self.assertIn("fs", out)
+
+    def test_mcp_resources_registration(self):
+        resources = self.run_async(self.server.list_resources())
+        uris = [str(r.uri) for r in resources]
+        self.assertIn("tzero://architecture", uris)
+        self.assertIn("tzero://boundaries", uris)
+        self.assertIn("tzero://token-roi", uris)
+
 
 if __name__ == "__main__":
     unittest.main()
+
