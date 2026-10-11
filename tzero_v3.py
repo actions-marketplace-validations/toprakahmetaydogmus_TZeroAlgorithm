@@ -4237,7 +4237,7 @@ class AutoReadmeGUI:
         lbl_web3.pack(side=tk.LEFT, padx=3)
         lbl_web3.bind("<Button-1>", lambda e: webbrowser.open(DEV_URL_MAIN))
 
-        lbl_web4 = tk.Label(b_links, text="🤗 Canlı Demo", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_yellow"], bg=PALETTE["card_bg"], padx=6, pady=2, cursor="hand2")
+        lbl_web4 = tk.Label(b_links, text="🤗 Canlı Demo", font=("Segoe UI", 8, "bold"), fg=PALETTE.get("accent_coral", PALETTE["accent_cyan"]), bg=PALETTE["card_bg"], padx=6, pady=2, cursor="hand2")
         lbl_web4.pack(side=tk.LEFT, padx=3)
         lbl_web4.bind("<Button-1>", lambda e: webbrowser.open("https://huggingface.co/spaces/toprakke4/tzero-token-reducer"))
 
