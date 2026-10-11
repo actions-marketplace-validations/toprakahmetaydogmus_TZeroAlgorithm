@@ -7,10 +7,10 @@
 
 <p align="center">
   <a href="https://pypi.org/project/tzero-mcp/"><img src="https://img.shields.io/pypi/v/tzero-mcp?color=00ffd8&style=for-the-badge&logo=pypi" alt="PyPI Version" /></a>
-  <img src="https://img.shields.io/badge/MCP-13%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 13 Tools Ready" />
+  <img src="https://img.shields.io/badge/MCP-16%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 16 Tools Ready" />
   <img src="https://img.shields.io/badge/Security-100%25%20Zero--Leak%20Keyring-50fa7b?style=for-the-badge&logo=shield" alt="Zero Leak Security" />
   <img src="https://img.shields.io/badge/Python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14-bd93f9?style=for-the-badge&logo=python" alt="Python Versions" />
-  <img src="https://img.shields.io/badge/Tests-83%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 83 Passing" />
+  <img src="https://img.shields.io/badge/Tests-103%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 103 Passing" />
   <img src="https://img.shields.io/badge/License-MIT-f1fa8c?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-ff79c6?style=for-the-badge" alt="Platform" />
 </p>

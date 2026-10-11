@@ -9,12 +9,16 @@
 
 Geliştiriciler yeni MCP sunucularını doğrudan açık kaynak listelerinden keşfeder.
 
-### A. `awesome-mcp-servers` GitHub PR (Ücretsiz)
+### A. `awesome-mcp-servers` GitHub PR (Aktif & Doğrulandı)
 - **Hedef Repo:** `https://github.com/punkpeye/awesome-mcp-servers`
-- **İşlem:** Repo'yu fork edin, `README.md` dosyasının **"Development Tools"** veya **"Codebase Analysis"** bölümüne aşağıdaki satırı ekleyip PR (Pull Request) açın:
+- **Mevcut PR Durumu:** **Açık (PR #15852)**  
+  URL: [https://github.com/punkpeye/awesome-mcp-servers/pull/15852](https://github.com/punkpeye/awesome-mcp-servers/pull/15852)  
+  Etiketler: `valid-name`, `has-glama`, `has-emoji`  
+  Maliyet: **0.00 TL / $0.00**
 
+İçerik:
 ```markdown
-- [T-Zero](https://github.com/toprakahmetaydogmus/TZeroAlgorithm) - Enterprise-grade AST context tree builder & token reducer for coding agents (up to 94% context token reduction).
+- [T-Zero](https://github.com/toprakahmetaydogmus/TZeroAlgorithm) - Enterprise-grade AST context tree builder & token reducer for coding agents (up to 94.9% context token reduction, 16 MCP tools).
 ```
 
 ### B. Glama MCP Registry (Ücretsiz Web Listeleme)
