@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.0.16] - 2026-10-11
+
+### Fixed & Enhanced
+
+- **Interactive T-Zero Security & AST Architecture Audit Dialog:** Fixed GUI security audit feedback where clean scans previously only showed a brief toast; now always opens an interactive, filterable audit report modal with metric badges (T-001 Zero-Leak, T-002 Layer Boundaries, T-003 AST Contracts, T-004 Code Quality) and one-click Markdown export / save options.
+- **Canonical T-Zero 4-Tier Context Architecture & Rules (T-001 to T-004):** Context trees generated offline and through MCP now explicitly organize into Tier T-1 (Physical Topology), Tier T-2 (Dependencies), Tier T-3 (AST Interface Contracts), and Tier T-4 (Rules T-001 Zero-Leak Isolation, T-002 Boundary Enforcement, T-003 AST Contract Fidelity, and T-004 Maintainability Guard).
+- **Fixed MCP Code Smell Description Key:** Resolved bug in `audit_codebase_quality` where `sm.get('message')` returned `None` due to key name discrepancy; now supports both `msg` and `message` aliases with rule IDs.
+- **Unified Security & Code Smell Actions:** Hooked all security audit triggers (Overview card "RAPORU İNCELE", top header button, and Code Explorer toolbar "🛡 Audit") into the unified luxury audit dialog.
+
 ## [3.0.15] - 2026-10-11
 
 ### Fixed & Enhanced

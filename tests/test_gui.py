@@ -68,6 +68,11 @@ class TestGUIInstantiation(unittest.TestCase):
                 preview = app.preview_text.get("1.0", "end").strip()
                 self.assertIn("T-Zero Context Tree", preview)
                 self.assertIn("src/app.py", preview)
+
+                # Verify security audit executes and logs audit results
+                app.run_quick_security_audit()
+                root.update()
+                self.assertIn("Security Audit", app.console_text.get("1.0", "end"))
         finally:
             try:
                 root.destroy()

@@ -38,6 +38,19 @@ class TestStaticCodeAnalyzer(unittest.TestCase):
         issue_refs = [i["ref"] for i in analyzer.issues]
         self.assertIn("GlobalKeyword", issue_refs)
 
+    def test_rule_tags_and_message_alias(self):
+        code = "def bad_func(a, b, c, d, e, f, g, h):\n    pass\n"
+        analyzer = StaticCodeAnalyzer("sample_rules.py")
+        analyzer.analyze_source(code)
+        
+        doc_issue = next(i for i in analyzer.issues if i["ref"] == "NoDocstring")
+        args_issue = next(i for i in analyzer.issues if i["ref"] == "TooManyArguments")
+        
+        self.assertEqual(doc_issue["rule"], "T-003")
+        self.assertEqual(args_issue["rule"], "T-004")
+        self.assertEqual(doc_issue["message"], doc_issue["msg"])
+        self.assertEqual(args_issue["message"], args_issue["msg"])
+
 
 class TestPythonASTParser(unittest.TestCase):
     def test_class_and_methods_outline(self):

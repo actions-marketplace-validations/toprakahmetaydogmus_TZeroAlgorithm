@@ -51,6 +51,16 @@ class TestGenerator(unittest.TestCase):
         self.assertIn("### `app.py`", res)
         self.assertIn("### `db.py`", res)
         self.assertIn("100% Zero-Leak", res)
+        # Verify 4-Tier Context hierarchy
+        self.assertIn("Tier T-1", res)
+        self.assertIn("Tier T-2", res)
+        self.assertIn("Tier T-3", res)
+        self.assertIn("Tier T-4", res)
+        # Verify canonical T-Zero Algorithm rules
+        self.assertIn("Rule T-001: Zero-Leak Isolation", res)
+        self.assertIn("Rule T-002: Architectural Boundary Enforcement", res)
+        self.assertIn("Rule T-003: AST Interface Contract Fidelity", res)
+        self.assertIn("Rule T-004: Anti-Pattern & Maintainability Guard", res)
 
 
 if __name__ == "__main__":

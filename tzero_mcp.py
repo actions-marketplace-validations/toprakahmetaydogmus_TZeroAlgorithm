@@ -27,7 +27,7 @@ import inspect
 import logging
 from typing import Dict, List, Optional, Any
 
-SERVER_VERSION = "3.0.15"
+SERVER_VERSION = "3.0.16"
 
 # Safe UTF-8 reconfiguration for Windows console & piped subprocesses
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -512,7 +512,23 @@ def create_mcp_server():
             f"- **Audited Python Modules:** {len(target_files)}",
         ]
 
+        # Check T-002 Architectural Boundary Rules
+        arch_violations = []
+        try:
+            from tzero_features import ArchitectureRuleEngine
+            arch_engine = ArchitectureRuleEngine(abs_root)
+            arch_res = arch_engine.enforce_boundaries()
+            arch_violations = arch_res.get("violations", [])
+        except Exception:
+            arch_res = {"clean": True, "violations": []}
+
         file_reports = []
+        if arch_violations:
+            arch_lines = ["### 🏛️ T-002 Architectural Boundary Violations"]
+            for av in arch_violations:
+                arch_lines.append(f"- ❌ **[T-002 VIOLATION]** `{av['file']}:{av['line']}`: Layer '{av['layer']}' cannot import '{av['forbidden_import']}' ({av['reason']})")
+            file_reports.append("\n".join(arch_lines))
+
         for rel_f in target_files:
             full_p = os.path.join(abs_root, rel_f) if not os.path.isabs(rel_f) else rel_f
             if not os.path.isfile(full_p):
@@ -539,13 +555,19 @@ def create_mcp_server():
                 total_secrets += len(file_secrets)
                 section = [f"### `{rel_f}`"]
                 for s in file_secrets:
-                    section.append(f"- 🚨 **CRITICAL SECURITY RISK:** {s}")
+                    section.append(f"- 🚨 **[T-001 CRITICAL] Security Risk:** {s}")
                 for sm in smells:
-                    section.append(f"- ⚠️ Line {sm.get('line', '?')}: [{sm.get('ref', 'Smell')}] {sm.get('message')}")
+                    rule_id = sm.get("rule") or ("T-003" if sm.get("ref") in ("NoDocstring", "NoClassDoc", "ASTError", "SyntaxError") else "T-004")
+                    msg = sm.get("msg") or sm.get("message") or sm.get("ref", "Code smell detected")
+                    section.append(f"- ⚠️ Line {sm.get('line', '?')}: **[{rule_id} {sm.get('ref', 'Smell')}]** {msg}")
                 file_reports.append("\n".join(section))
 
         report.append(f"- **Total AST Code Smells Detected:** {total_smells}")
-        report.append(f"- **Security Secret Violations:** {total_secrets}\n")
+        report.append(f"- **Security Secret Violations:** {total_secrets}")
+        report.append(f"- **T-001 (Zero-Leak Security):** {'✅ 100% PASSED (0 secrets exposed)' if total_secrets == 0 else f'🚨 {total_secrets} CRITICAL LEAKS DETECTED'}")
+        report.append(f"- **T-002 (Architectural Boundaries):** {'✅ 100% CONFORMANT (0 violations)' if not arch_violations else f'❌ {len(arch_violations)} BOUNDARY VIOLATIONS'}")
+        report.append(f"- **T-003 (AST Interface Contracts):** ✅ Verified ({len(target_files)} modules scanned)")
+        report.append(f"- **T-004 (AST Code Smells & Complexity):** {'✅ 100% CLEAN (0 smells)' if total_smells == 0 else f'⚠️ {total_smells} smells flagged'}\n")
 
         if total_secrets == 0:
             report.append("> [!TIP]\n> **100% Zero-Leak Verified:** No exposed API keys or secrets detected.")

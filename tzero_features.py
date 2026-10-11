@@ -367,49 +367,51 @@ class AgentRulesGenerator:
 - Architecture: Modular Clean Architecture & High Structural Cohesion
 
 [STRICT OPERATIONAL DIRECTIVES]
-1. ZERO-LEAK SECURITY GUARANTEE:
+1. RULE T-001: ZERO-LEAK SECURITY GUARANTEE:
    - NEVER hardcode API keys, tokens, or credentials anywhere.
    - Use environment variables or OS keyring exclusively.
    - Never commit sensitive .env files.
 
-2. MINIMAL BLAST RADIUS:
-   - Before modifying core functions, verify all downstream callers.
-   - Prefer non-breaking extensions over destructive signature changes.
+2. RULE T-002: ARCHITECTURAL BOUNDARY ENFORCEMENT:
+   - Maintain clear separation of concerns between core logic, transport layers, and UI.
+   - Avoid creating circular import loops. Enforce tzero.rules.json.
+
+3. RULE T-003: AST CONTRACT FIDELITY:
+   - Preserve exact class declarations, typed signatures, and docstrings.
    - Do not delete existing comments or docstrings unless explicitly requested.
 
-3. ARCHITECTURAL BOUNDARIES:
-   - Maintain clear separation of concerns between core logic, transport layers, and UI.
-   - Avoid creating circular import loops.
-
-4. AUTOMATED VERIFICATION:
+4. RULE T-004: ANTI-PATTERN & MINIMAL BLAST RADIUS:
+   - Keep functions concise (<= 30 lines) and arguments minimal (<= 6).
+   - Before modifying core functions, verify all downstream callers.
    - Always run the test suite (`python -m unittest discover -s tests -v`) before concluding tasks.
 """
 
     @staticmethod
     def generate_clinerules(project_name: str) -> str:
         return f"""# Cline & Roo-Code System Rules: {project_name}
-# Enforced by T-Zero Context Engine
+# Enforced by T-Zero Context Engine (Rules T-001 to T-004)
 
 ## Persona & Standards
 You are an elite Principal Software Engineer working on `{project_name}`.
 
 ## Core Rules:
-1. **Zero-Leak Policy:** Never output or commit real API keys or personal secrets.
-2. **Context-Aware Development:** Inspect module dependencies before making edits.
-3. **Preserve Integrity:** Keep all existing docstrings, type annotations, and unit tests intact.
-4. **Validation:** Ensure every change passes unit tests cleanly with zero regressions.
+1. **Rule T-001 (Zero-Leak Policy):** Never output or commit real API keys or personal secrets.
+2. **Rule T-002 (Architectural Boundaries):** Enforce layer isolation and avoid circular dependencies.
+3. **Rule T-003 (AST Contract Fidelity):** Keep all existing docstrings, type annotations, and signatures intact.
+4. **Rule T-004 (Quality & Verification):** Ensure every change passes unit tests cleanly with zero regressions.
 """
 
     @staticmethod
     def generate_copilot_instructions(project_name: str) -> str:
         return f"""# GitHub Copilot Instructions for {project_name}
+# Enforced by T-Zero Algorithm Rules (T-001 to T-004)
 
 ## Repository Guidelines
 - **Project:** {project_name}
-- **Security:** 100% Zero-Leak. Use environment variables for secrets.
-- **Code Style:** PEP 8 for Python. Clean, typed, modular code.
-- **Architecture:** Respect layer boundaries and avoid circular imports.
-- **Testing:** Add unit tests in `tests/` for any new functionality.
+- **Rule T-001 (Security):** 100% Zero-Leak. Use environment variables for secrets.
+- **Rule T-002 (Architecture):** Respect layer boundaries and avoid circular imports.
+- **Rule T-003 (AST Contracts):** PEP 8 for Python. Clean, typed, modular code with complete signatures.
+- **Rule T-004 (Testing):** Add unit tests in `tests/` for any new functionality; keep functions concise.
 """
 
     @staticmethod
