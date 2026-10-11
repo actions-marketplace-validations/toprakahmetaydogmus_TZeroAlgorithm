@@ -26,6 +26,10 @@
 **GitHub Repository:** [https://github.com/toprakahmetaydogmus/TZeroAlgorithm](https://github.com/toprakahmetaydogmus/TZeroAlgorithm)
 
 <p align="center">
+  <img src="assets/social-preview.png" alt="Siber Akademi T-Zero Context Architect Banner" width="100%" />
+</p>
+
+<p align="center">
   <img src="assets/benchmark-demo.svg" alt="T-Zero AST Token Reduction Benchmark" width="100%" />
 </p>
 
