@@ -363,7 +363,7 @@ THEME_PALETTES = {
 }
 
 # Default Active Palette
-CURRENT_THEME = "Luxury Dashboard"
+CURRENT_THEME = "Glass Dark"
 PALETTE = THEME_PALETTES[CURRENT_THEME]
 
 def update_colors(theme_name: str):
@@ -798,8 +798,9 @@ class BaseProvider:
         return self.default_models
 
     def get_headers(self, api_key: str) -> Dict[str, str]:
+        clean_key = (api_key or "").strip().strip('"').strip("'")
         return {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {clean_key}",
             "Content-Type": "application/json",
             "Referer": DEV_URL_GITHUB,
             "User-Agent": f"TZeroAlgorithmV3/3.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
@@ -846,8 +847,14 @@ class NvidiaProvider(BaseProvider):
         )
 
     def get_headers(self, api_key: str) -> Dict[str, str]:
-        headers = super().get_headers(api_key)
-        headers["X-Nvidia-Api-Key"] = api_key
+        clean_key = (api_key or "").strip().strip('"').strip("'")
+        headers = {
+            "Authorization": f"Bearer {clean_key}",
+            "Content-Type": "application/json",
+            "User-Agent": f"TZeroAlgorithmV3/3.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+        }
+        if clean_key:
+            headers["X-Nvidia-Api-Key"] = clean_key
         return headers
 
 
@@ -2445,9 +2452,31 @@ class KPICard(LuxuryCard):
         self.lbl_sec_sub = tk.Label(self.inner, text=secondary_sub, font=("Segoe UI", 7), fg=PALETTE.get("text_muted", "#94a3b8"), bg=self.card_bg)
         self.lbl_sec_sub.pack(anchor=tk.W)
 
-    def update_metrics(self, prim: str, sec: str):
-        self.lbl_prim.config(text=prim)
-        self.lbl_sec.config(text=sec)
+class ScrollableGlassPanel(tk.Frame):
+    """Smooth scrollable container for dashboard analytics and charts."""
+    def __init__(self, parent, bg_color=None, **kwargs):
+        bg = bg_color or PALETTE["bg_start"]
+        super().__init__(parent, bg=bg, **kwargs)
+        self.canvas = tk.Canvas(self, bg=bg, highlightthickness=0, bd=0)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.inner = tk.Frame(self.canvas, bg=bg)
+        
+        self.inner.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.win_id = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(self.win_id, width=e.width))
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        
+        def _on_mousewheel(event):
+            try:
+                self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            except Exception:
+                pass
+        self.bind("<MouseWheel>", _on_mousewheel)
+        self.canvas.bind("<MouseWheel>", _on_mousewheel)
+        self.inner.bind("<MouseWheel>", _on_mousewheel)
 
 
 class MiniCalendarCard(LuxuryCard):
@@ -2901,79 +2930,156 @@ class NodeGraphCanvas(tk.Canvas):
         self.nodes: Dict[str, Dict[str, Any]] = {}
         self.links: List[Tuple[str, str]] = []
         self.selected_node: Optional[str] = None
+        self.hovered_node: Optional[str] = None
+        self.files_cache: List[str] = []
         self.bind("<Button-1>", self.on_click)
         self.bind("<B1-Motion>", self.on_drag)
+        self.bind("<Motion>", self.on_motion)
+        self.bind("<Configure>", self.on_resize)
+
+    def on_resize(self, event=None):
+        if self.files_cache:
+            self.set_data(self.files_cache)
 
     def set_data(self, files: List[str]):
+        self.files_cache = files
         self.nodes = {}
         self.links = []
         if not files:
             self.draw()
             return
 
-        self.nodes["root"] = {"x": 350, "y": 250, "type": "root", "size": 12, "color": PALETTE["accent_cyan"], "label": "Workspace"}
+        w = max(600, self.winfo_width() if self.winfo_width() > 1 else 650)
+        h = max(500, self.winfo_height() if self.winfo_height() > 1 else 550)
+        cx, cy = w / 2, h / 2
 
-        dirs_added = set()
-        for filepath in files[:40]:
-            parts = filepath.replace("\\", "/").split("/")
-            parent = "root"
-            
-            for i in range(len(parts) - 1):
-                dir_path = "/".join(parts[:i+1])
-                dir_name = parts[i]
-                if dir_path not in dirs_added:
-                    dirs_added.add(dir_path)
-                    angle = random.uniform(0, 2 * math.pi)
-                    distance = random.uniform(50, 100)
-                    self.nodes[dir_path] = {
-                        "x": 350 + distance * math.cos(angle),
-                        "y": 250 + distance * math.sin(angle),
-                        "type": "dir",
-                        "size": 8,
-                        "color": PALETTE["accent_purple"],
-                        "label": dir_name
-                    }
-                    self.links.append((parent, dir_path))
-                parent = dir_path
+        self.nodes["root"] = {
+            "x": cx,
+            "y": cy,
+            "type": "root",
+            "size": 16,
+            "color": PALETTE["accent_cyan"],
+            "label": "Workspace"
+        }
 
-            file_id = filepath
-            angle = random.uniform(0, 2 * math.pi)
-            distance = random.uniform(120, 180)
-            self.nodes[file_id] = {
-                "x": 350 + distance * math.cos(angle),
-                "y": 250 + distance * math.sin(angle),
-                "type": "file",
-                "size": 5,
-                "color": PALETTE["accent_green"],
-                "label": parts[-1]
-            }
-            self.links.append((parent, file_id))
+        # Filter out noisy vendor/cache dirs from graph
+        filtered_files = []
+        for f in files:
+            norm = f.replace("\\", "/")
+            if any(part in {".git", ".cache", "puppeteer", "node_modules", ".venv", "venv", "__pycache__", "dist", "build"} for part in norm.split("/")):
+                continue
+            filtered_files.append(norm)
+
+        target_files = filtered_files[:35] if filtered_files else [f.replace("\\", "/") for f in files[:25]]
+
+        # Group by top directory
+        top_dirs: Dict[str, List[str]] = {}
+        for f in target_files:
+            parts = f.split("/")
+            if len(parts) > 1:
+                top = parts[0]
+                top_dirs.setdefault(top, []).append(f)
+            else:
+                top_dirs.setdefault(".", []).append(f)
+
+        dir_count = max(1, len(top_dirs))
+        dir_radius = min(cx, cy) * 0.45
+
+        for d_idx, (d_name, d_files) in enumerate(top_dirs.items()):
+            d_angle = (2 * math.pi * d_idx) / dir_count
+            dx = cx + dir_radius * math.cos(d_angle)
+            dy = cy + dir_radius * math.sin(d_angle)
+
+            if d_name != ".":
+                d_id = f"dir_{d_name}"
+                self.nodes[d_id] = {
+                    "x": dx,
+                    "y": dy,
+                    "type": "dir",
+                    "size": 11,
+                    "color": PALETTE["accent_purple"],
+                    "label": f"📁 {d_name}"
+                }
+                self.links.append(("root", d_id))
+                parent_id = d_id
+                base_x, base_y = dx, dy
+            else:
+                parent_id = "root"
+                base_x, base_y = cx, cy
+
+            file_count = len(d_files)
+            file_dist = min(95, max(50, 20 + file_count * 8))
+            for f_idx, f_path in enumerate(d_files):
+                sub_angle = d_angle - 0.7 + (1.4 * (f_idx + 0.5) / max(1, file_count))
+                fx = base_x + file_dist * math.cos(sub_angle)
+                fy = base_y + file_dist * math.sin(sub_angle)
+                short_name = f_path.split("/")[-1]
+                ext_color = PALETTE["accent_green"] if short_name.endswith(".py") else PALETTE.get("accent_coral", PALETTE["accent_cyan"])
+                self.nodes[f_path] = {
+                    "x": fx,
+                    "y": fy,
+                    "type": "file",
+                    "size": 6,
+                    "color": ext_color,
+                    "label": short_name
+                }
+                self.links.append((parent_id, f_path))
 
         self.draw()
 
     def draw(self):
         self.delete("all")
+        w = max(600, self.winfo_width())
+        h = max(500, self.winfo_height())
+
+        hud_text = f"⚡ T-ZERO AST TOPOLOGY GRAPH  •  {len(self.nodes)} Düğüm  •  {len(self.links)} Bağlantı"
+        self.create_text(16, 16, text=hud_text, anchor="nw", fill=PALETTE.get("accent_cyan", "#38bdf8"), font=("Segoe UI", 9, "bold"))
+        self.create_text(16, 32, text="Düğümleri fareyle sürükleyebilir ve mimari ilişki haritasını inceleyebilirsiniz.", anchor="nw", fill=PALETTE["text_muted"], font=("Segoe UI", 7))
+
         for start, end in self.links:
             if start in self.nodes and end in self.nodes:
                 n1, n2 = self.nodes[start], self.nodes[end]
-                self.create_line(n1["x"], n1["y"], n2["x"], n2["y"], fill=PALETTE["card_border"], width=1)
+                is_hi = (start == self.selected_node or end == self.selected_node)
+                l_color = PALETTE["accent_cyan"] if is_hi else PALETTE["card_border"]
+                l_width = 2 if is_hi else 1
+                self.create_line(n1["x"], n1["y"], n2["x"], n2["y"], fill=l_color, width=l_width)
 
         for node_id, node in self.nodes.items():
             x, y, size = node["x"], node["y"], node["size"]
             color = node["color"]
-            if node_id == self.selected_node:
-                self.create_oval(x-size-3, y-size-3, x+size+3, y+size+3, outline=PALETTE["accent_cyan"], width=2)
-            self.create_oval(x-size, y-size, x+size, y+size, fill=color, outline="#ffffff", width=1)
-            self.create_text(x, y + size + 8, text=node["label"], fill=PALETTE["text_muted"], font=("Segoe UI", 8))
+            is_sel = (node_id == self.selected_node or node_id == self.hovered_node)
+
+            if is_sel:
+                self.create_oval(x - size - 5, y - size - 5, x + size + 5, y + size + 5, outline=PALETTE["accent_cyan"], width=2)
+            self.create_oval(x - size, y - size, x + size, y + size, fill=color, outline="#ffffff" if is_sel else PALETTE["card_border"], width=1.5 if is_sel else 1)
+
+            lbl = node["label"]
+            if len(lbl) > 22:
+                lbl = lbl[:20] + "…"
+            ty = y + size + 9
+            lbl_w = len(lbl) * 5.2
+            self.create_rectangle(x - lbl_w, ty - 6, x + lbl_w, ty + 6, fill=PALETTE["card_bg"], outline=PALETTE["card_border"], width=1)
+            self.create_text(x, ty, text=lbl, fill=PALETTE["text_main"] if is_sel else PALETTE["text_muted"], font=("Segoe UI", 7, "bold" if is_sel else "normal"))
 
     def on_click(self, event):
         self.selected_node = None
         for node_id, node in self.nodes.items():
             dist = math.hypot(event.x - node["x"], event.y - node["y"])
-            if dist <= node["size"] + 4:
+            if dist <= node["size"] + 6:
                 self.selected_node = node_id
                 break
         self.draw()
+
+    def on_motion(self, event):
+        old_hov = self.hovered_node
+        self.hovered_node = None
+        for node_id, node in self.nodes.items():
+            dist = math.hypot(event.x - node["x"], event.y - node["y"])
+            if dist <= node["size"] + 6:
+                self.hovered_node = node_id
+                break
+        if old_hov != self.hovered_node:
+            self.draw()
 
     def on_drag(self, event):
         if self.selected_node and self.selected_node in self.nodes:
@@ -3064,7 +3170,7 @@ class TokenDonutChartCanvas(tk.Canvas):
 class AdvancedTokenDistributionChart(tk.Canvas):
     """Custom language token distribution stats visualizer chart widget."""
     def __init__(self, parent, **kwargs):
-        cfg = {"bg": PALETTE["bg_start"], "highlightthickness": 0}
+        cfg = {"bg": PALETTE["card_bg"], "highlightthickness": 0}
         cfg.update(kwargs)
         super().__init__(parent, **cfg)
         self.stats: Dict[str, float] = {}
@@ -3075,42 +3181,53 @@ class AdvancedTokenDistributionChart(tk.Canvas):
 
     def draw(self):
         self.delete("all")
-        w, h = self.winfo_width(), self.winfo_height()
-        if w <= 1 or h <= 1:
-            w, h = 300, 150
-            
+        w, h = max(280, self.winfo_width()), max(120, self.winfo_height())
         if not self.stats:
-            self.create_text(w/2, h/2, text="No metrics to display.", fill=PALETTE["text_muted"], font=("Segoe UI", 9))
+            self.create_text(w / 2, h / 2, text="Henüz taranmış metrik bulunamadı.", fill=PALETTE["text_muted"], font=("Segoe UI", 8))
             return
-            
-        colors = [PALETTE["accent_cyan"], PALETTE["accent_purple"], PALETTE["accent_green"], "#f59e0b", "#10b981", "#3b82f6"]
+
+        colors = [PALETTE["accent_cyan"], PALETTE["accent_purple"], PALETTE["accent_green"], PALETTE.get("accent_coral", "#f59e0b"), "#10b981", "#3b82f6"]
         total = sum(self.stats.values())
-        
-        start_y = 15
+
+        # Sort descending and take top 5
+        sorted_items = sorted(self.stats.items(), key=lambda x: x[1], reverse=True)[:5]
+
+        start_y = 12
         bar_height = 14
         spacing = 8
-        
-        idx = 0
-        for lang, count in self.stats.items():
-            if total == 0:
-                pct = 0.0
-            else:
-                pct = (count / total) * 100.0
-            
+
+        for idx, (lang, count) in enumerate(sorted_items):
+            pct = (count / total * 100.0) if total > 0 else 0.0
             y = start_y + idx * (bar_height + spacing)
-            self.create_text(10, y + 7, text=lang.upper(), fill=PALETTE["text_main"], font=("Consolas", 8, "bold"), anchor="w")
-            
-            # Draw bar border/background
-            self.create_rectangle(75, y, w - 75, y + bar_height, fill=PALETTE["card_bg"], outline=PALETTE["card_border"])
-            
+
+            clean_lang = (lang or "OTHER").upper()
+            if len(clean_lang) > 7:
+                clean_lang = clean_lang[:7]
+
+            self.create_text(8, y + 7, text=clean_lang, fill=PALETTE["text_main"], font=("Consolas", 8, "bold"), anchor="w")
+
+            # Human-readable size string
+            if count >= 1024 * 1024:
+                size_str = f"{count / (1024 * 1024):.1f} MB"
+            elif count >= 1024:
+                size_str = f"{count / 1024:.0f} KB"
+            else:
+                size_str = f"{count:.0f} B"
+
+            bar_start_x = 68
+            bar_end_x = max(bar_start_x + 50, w - 85)
+            max_bar_w = bar_end_x - bar_start_x
+
+            # Draw bar background
+            self.create_rectangle(bar_start_x, y, bar_end_x, y + bar_height, fill=PALETTE["bg_start"], outline=PALETTE["card_border"])
+
             # Fill bar
             color = colors[idx % len(colors)]
-            fill_w = (pct / 100.0) * (w - 150)
-            self.create_rectangle(75, y, 75 + fill_w, y + bar_height, fill=color, outline=color)
-            
-            # Stats label
-            self.create_text(w - 70, y + 7, text=f"{count} ({pct:.1f}%)", fill=PALETTE["text_muted"], font=("Segoe UI", 8), anchor="w")
-            idx += 1
+            fill_w = (pct / 100.0) * max_bar_w
+            self.create_rectangle(bar_start_x, y, bar_start_x + fill_w, y + bar_height, fill=color, outline=color)
+
+            # Label
+            self.create_text(w - 6, y + 7, text=f"{size_str} ({pct:.0f}%)", fill=PALETTE["text_muted"], font=("Segoe UI", 7, "bold"), anchor="e")
 
 
 class CustomChangelogManager:
@@ -3254,6 +3371,12 @@ class AutoReadmeGUI:
                     self.root.iconbitmap(icon_path)
                 except Exception:
                     pass
+
+        saved_theme = _config_mgr.get_profile().get("theme", "Glass Dark")
+        if saved_theme in THEME_PALETTES:
+            update_colors(saved_theme)
+        else:
+            update_colors("Glass Dark")
 
         self.root.title(get_text("title", self.lang))
         self.root.configure(bg=PALETTE["bg_start"])
@@ -3972,7 +4095,8 @@ class AutoReadmeGUI:
 
     def toggle_quick_theme(self):
         play_sfx("click")
-        target = "Glass Dark" if CURRENT_THEME == "Luxury Dashboard" else "Luxury Dashboard"
+        is_dark = CURRENT_THEME in ("Glass Dark", "Royal Indigo", "Emerald Obsidian", "Midnight OLED", "Neon Cyberpunk")
+        target = "Luxury Dashboard" if is_dark else "Glass Dark"
         update_colors(target)
         _config_mgr.get_profile()["theme"] = target
         _config_mgr.save()
@@ -4217,7 +4341,7 @@ class AutoReadmeGUI:
         b_top = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_top.pack(fill=tk.X, padx=10, pady=(4, 2))
         tk.Label(b_top, text="🛡️ SİBER AKADEMİ CREATOR HUB", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["bg_start"]).pack(side=tk.LEFT)
-        tk.Label(b_top, text="v3.0.16", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
+        tk.Label(b_top, text="v3.0.17", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
 
         b_links = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_links.pack(fill=tk.X, padx=10, pady=(2, 6))
@@ -4612,6 +4736,17 @@ class AutoReadmeGUI:
                         if r_chat.status_code == 200:
                             self.safe_after(0, lambda: self.status_dot.set_status("green"))
                             self.safe_after(0, lambda: messagebox.showinfo("Success", get_text("ping_success", self.lang)))
+                        elif r_chat.status_code == 401:
+                            self.safe_after(0, lambda: self.status_dot.set_status("red"))
+                            warn_msg = (
+                                f"Uzak API Anahtarı Doğrulanamadı (HTTP 401: Authorization Failed).\n\n"
+                                f"💡 Sebep & Çözüm:\n"
+                                f"1. Girdiğiniz API anahtarı geçersiz, eksik veya süresi dolmuş olabilir.\n"
+                                f"2. NVIDIA NIM anahtarları genellikle 'nvapi-' ile başlar.\n"
+                                f"3. https://build.nvidia.com adresine giderek hesabınızdan yeni ve aktif bir API anahtarı oluşturup Settings sekmesinde giriniz.\n\n"
+                                f"⚡ T-Zero yerel çevrimdışı AST motoru sayesinde bu anahtar olmadan da %100 eksiksiz ve ücretsiz bağlam üretebilir!"
+                            )
+                            self.safe_after(0, lambda: messagebox.showwarning("Yetkilendirme Hatası (401)", warn_msg))
                         elif r_chat.status_code == 403:
                             self.safe_after(0, lambda: self.status_dot.set_status("yellow"))
                             warn_msg = (
@@ -4629,8 +4764,8 @@ class AutoReadmeGUI:
                                 f"'{target_model}' modelinin süresi dolmuştur. Lütfen 'deepseek-ai/deepseek-v4.1-flash' modelini seçiniz."
                             ))
                         else:
-                            self.safe_after(0, lambda: self.status_dot.set_status("green"))
-                            self.safe_after(0, lambda: messagebox.showinfo("Success", get_text("ping_success", self.lang)))
+                            self.safe_after(0, lambda: self.status_dot.set_status("yellow"))
+                            self.safe_after(0, lambda: messagebox.showwarning("API Yanıtı", f"Uzak API status: {r_chat.status_code}\n{r_chat.text[:200]}"))
                     except Exception:
                         self.safe_after(0, lambda: self.status_dot.set_status("green"))
                         self.safe_after(0, lambda: messagebox.showinfo("Success", get_text("ping_success", self.lang)))
@@ -6014,7 +6149,12 @@ Custom Requirements:
                 try:
                     offline_content = generate_offline_context(target_dir, selected_files, self.file_snippets)
                     self.safe_after(0, lambda: self.on_gen_success(offline_content))
-                    warn_reason = "Uzak API 403 yetkilendirme hatası" if "403" in err_msg else "Uzak API bağlantı sorunu"
+                    if "401" in err_msg:
+                        warn_reason = "Uzak API 401 yetkilendirme hatası (API anahtarınız geçersiz veya süresi dolmuş)"
+                    elif "403" in err_msg:
+                        warn_reason = "Uzak API 403 yetkilendirme hatası"
+                    else:
+                        warn_reason = "Uzak API bağlantı sorunu"
                     self.safe_after(0, lambda: self.show_toast(
                         f"⚡ {warn_reason} nedeniyle T-Zero Çevrimdışı AST Motoru ile eksiksiz bağlam üretildi!",
                         "warning"
@@ -6319,83 +6459,84 @@ Custom Requirements:
         f.columnconfigure(1, weight=1)
         f.rowconfigure(0, weight=1)
         
-        paned = tk.PanedWindow(f, orient=tk.HORIZONTAL, bg=PALETTE["bg_start"], bd=0, sashwidth=4, sashrelief=tk.FLAT)
+        paned = tk.PanedWindow(f, orient=tk.HORIZONTAL, bg=PALETTE["bg_start"], bd=0, sashwidth=6, sashrelief=tk.FLAT)
         paned.grid(row=0, column=0, columnspan=2, sticky="nsew")
         
         self.node_canvas = NodeGraphCanvas(paned)
-        paned.add(self.node_canvas, minsize=500)
+        paned.add(self.node_canvas, minsize=480)
         
-        right = GlassCard(paned)
-        right.rowconfigure(2, weight=1)
-        right.columnconfigure(0, weight=1)
+        # Right scrollable analytics panel
+        right_container = ScrollableGlassPanel(paned, bg_color=PALETTE["bg_start"])
+        right = right_container.inner
+
+        pad = GlassCard(right)
+        pad.pack(fill=tk.X, padx=10, pady=(6, 8))
+        pad_inner = pad.inner if hasattr(pad, "inner") else pad
         
-        pad = tk.Frame(right, bg=PALETTE["card_bg"], padx=15, pady=15)
-        pad.grid(row=0, column=0, sticky="nsew")
-        
-        tk.Label(pad, text="TELEMETRY TELEKINETICS:", font=("Segoe UI", 10, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["card_bg"]).pack(anchor=tk.W, pady=(0, 10))
-        self.perf_chart = PerformanceChartCanvas(pad, height=100)
-        self.perf_chart.pack(fill=tk.X, pady=(0, 10))
+        tk.Label(pad_inner, text="TELEMETRY TELEKINETICS:", font=("Segoe UI", 10, "bold"), fg=PALETTE["accent_cyan"], bg=pad.cget("bg")).pack(anchor=tk.W, pady=(0, 8))
+        self.perf_chart = PerformanceChartCanvas(pad_inner, height=95)
+        self.perf_chart.pack(fill=tk.X, pady=(0, 8))
         
         # Executive Wave Spline & Bar Charts from reference design
-        self.tab6_wave = WaveSplineChart(pad, height=95)
+        self.tab6_wave = WaveSplineChart(pad_inner, height=95)
         self.tab6_wave.pack(fill=tk.X, pady=(0, 8))
 
-        self.tab6_bars = VerticalBarChart(pad, height=95)
+        self.tab6_bars = VerticalBarChart(pad_inner, height=95)
         self.tab6_bars.pack(fill=tk.X, pady=(0, 8))
         
         # Git Commit Graph Drawer frame
-        git_graph_panel = GlassCard(pad)
+        git_graph_panel = GlassCard(pad_inner)
         git_graph_panel.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(git_graph_panel, text="GIT COMMIT HISTORY GRAPH:", font=("Segoe UI", 8, "bold"), fg=PALETTE["text_muted"], bg=PALETTE["card_bg"]).pack(anchor=tk.W, padx=5, pady=2)
+        tk.Label(git_graph_panel, text="GIT COMMIT HISTORY GRAPH:", font=("Segoe UI", 8, "bold"), fg=PALETTE["text_muted"], bg=git_graph_panel.cget("bg")).pack(anchor=tk.W, padx=6, pady=2)
         self.git_graph_canvas = GitCommitGraphCanvas(git_graph_panel, height=80)
-        self.git_graph_canvas.pack(fill=tk.X, padx=5, pady=2)
+        self.git_graph_canvas.pack(fill=tk.X, padx=6, pady=2)
 
-        tk.Label(pad, text="TOKEN BUDGET DENSITY:", font=("Segoe UI", 10, "bold"), fg=PALETTE["accent_purple"], bg=PALETTE["card_bg"]).pack(anchor=tk.W, pady=(8, 4))
-        self.donut_chart = TokenDonutChartCanvas(pad, height=130)
-        self.donut_chart.pack(fill=tk.BOTH, expand=True)
+        tk.Label(pad_inner, text="TOKEN BUDGET DENSITY:", font=("Segoe UI", 10, "bold"), fg=PALETTE["accent_purple"], bg=pad.cget("bg")).pack(anchor=tk.W, pady=(6, 4))
+        self.donut_chart = TokenDonutChartCanvas(pad_inner, height=125)
+        self.donut_chart.pack(fill=tk.X, pady=(0, 4))
         
         # Language distribution canvas
         lang_panel = GlassCard(right)
-        lang_panel.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
-        lang_panel.rowconfigure(1, weight=1)
-        lang_panel.columnconfigure(0, weight=1)
+        lang_panel.pack(fill=tk.X, padx=10, pady=6)
+        lang_inner = lang_panel.inner if hasattr(lang_panel, "inner") else lang_panel
         
-        tk.Label(lang_panel, text="LANGUAGE COMPOSITION:", font=("Segoe UI", 9, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["bg_start"]).grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        self.lang_chart = AdvancedTokenDistributionChart(lang_panel, height=120)
-        self.lang_chart.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        tk.Label(lang_inner, text="LANGUAGE COMPOSITION:", font=("Segoe UI", 9, "bold"), fg=PALETTE["accent_cyan"], bg=lang_panel.cget("bg")).pack(anchor=tk.W, padx=8, pady=4)
+        self.lang_chart = AdvancedTokenDistributionChart(lang_inner, height=130)
+        self.lang_chart.pack(fill=tk.X, padx=8, pady=4)
         
         # File type matrix table
         matrix_panel = GlassCard(right)
-        matrix_panel.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
-        matrix_panel.rowconfigure(1, weight=1)
-        matrix_panel.columnconfigure(0, weight=1)
+        matrix_panel.pack(fill=tk.X, padx=10, pady=6)
+        matrix_inner = matrix_panel.inner if hasattr(matrix_panel, "inner") else matrix_panel
         
-        tk.Label(matrix_panel, text="FILE TYPE MATRIX BREAKDOWN:", font=("Segoe UI", 9, "bold"), fg=PALETTE["accent_purple"], bg=PALETTE["card_bg"]).grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        self.matrix_tree = ttk.Treeview(matrix_panel, columns=("Ext", "Count", "Size"), show="headings", height=4)
+        tk.Label(matrix_inner, text="FILE TYPE MATRIX BREAKDOWN:", font=("Segoe UI", 9, "bold"), fg=PALETTE["accent_purple"], bg=matrix_panel.cget("bg")).pack(anchor=tk.W, padx=8, pady=4)
+        self.matrix_tree = ttk.Treeview(matrix_inner, columns=("Ext", "Count", "Size"), show="headings", height=5)
         self.matrix_tree.heading("Ext", text="Extension")
         self.matrix_tree.heading("Count", text="Files Count")
         self.matrix_tree.heading("Size", text="Total Size")
         self.matrix_tree.column("Ext", width=80)
         self.matrix_tree.column("Count", width=80)
         self.matrix_tree.column("Size", width=120)
-        self.matrix_tree.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        self.matrix_tree.pack(fill=tk.X, padx=8, pady=4)
 
         # AST Structure Outline Tree View
         ast_panel = GlassCard(right)
-        ast_panel.grid(row=3, column=0, sticky="nsew", padx=10, pady=10)
-        ast_panel.rowconfigure(1, weight=1)
-        ast_panel.columnconfigure(0, weight=1)
+        ast_panel.pack(fill=tk.X, padx=10, pady=6)
+        ast_inner = ast_panel.inner if hasattr(ast_panel, "inner") else ast_panel
         
-        tk.Label(ast_panel, text="AST PARSED STRUCTURE OUTLINE:", font=("Segoe UI", 9, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["card_bg"]).grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        tk.Label(ast_inner, text="AST PARSED STRUCTURE OUTLINE:", font=("Segoe UI", 9, "bold"), fg=PALETTE["accent_green"], bg=ast_panel.cget("bg")).pack(anchor=tk.W, padx=8, pady=4)
         
-        self.ast_tree = ttk.Treeview(ast_panel, show="tree", selectmode="browse")
-        self.ast_tree.grid(row=1, column=0, sticky="nsew")
+        ast_frame = tk.Frame(ast_inner, bg=ast_panel.cget("bg"))
+        ast_frame.pack(fill=tk.X, padx=8, pady=4)
         
-        ast_scroll = tk.Scrollbar(ast_panel, command=self.ast_tree.yview)
-        ast_scroll.grid(row=1, column=1, sticky="ns")
+        self.ast_tree = ttk.Treeview(ast_frame, show="tree", selectmode="browse", height=7)
+        self.ast_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        ast_scroll = tk.Scrollbar(ast_frame, command=self.ast_tree.yview)
+        ast_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.ast_tree.config(yscrollcommand=ast_scroll.set)
         
-        paned.add(right, minsize=400)
+        paned.add(right_container, minsize=380)
         
         self.root.bind("<<NotebookTabChanged>>", self.on_graph_tab_visible)
 
@@ -6790,12 +6931,12 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V3.0.16")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V3.0.17")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v3.0.16
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v3.0.17
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 

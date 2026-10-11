@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.0.17] - 2026-10-11
+
+### Fixed & Enhanced
+
+- **Glass Dark Mode by Default:** The desktop GUI (`tzero-gui`) now boots directly into modern Obsidian / Glass Dark theme for superior contrast and readability, with seamless instant toggling to Luxury Dashboard.
+- **Orbital Topology Graph Redesign:** Overhauled `NodeGraphCanvas` in the Overview tab from a dense, overlapping central cluster into a structured hierarchical orbital layout (Workspace Core root node, Inner Orbit directory ring with folder icons, Outer Orbit satellite file nodes with rounded pill badges) with automatic canvas centering and noise-filtering (`.cache`, `puppeteer`, `.venv`, `node_modules`).
+- **Scrollable Analytics & Telemetry Studio:** Wrapped the right-side analysis view in a custom smooth-scrollable glass container (`ScrollableGlassPanel`), ensuring all 8 telemetry canvases (CPU/Mem Waves, Token Frequency Splines, Git Commit Graphs, Token Budget Donut, Language Composition, Matrix Breakdown, AST Symbol Tree) render at full native heights without getting cramped or cut off.
+- **Clean Byte Formatter:** Upgraded `AdvancedTokenDistributionChart` byte representations to readable KB/MB with right-aligned badges, eliminating canvas overflow.
+- **NVIDIA NIM API Key Sanitization & 401 Diagnostics:** Auto-sanitizes API keys (stripping surrounding quotes and whitespace), removed strict gateway-triggering headers, and provides clear Turkish diagnostic alerts explaining NVIDIA NIM 401 Authorization Failed causes alongside automatic, 100% free offline AST context engine fallback.
+
 ## [3.0.16] - 2026-10-11
 
 ### Fixed & Enhanced
