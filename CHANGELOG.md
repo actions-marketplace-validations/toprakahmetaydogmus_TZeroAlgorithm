@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.0.11] - 2026-10-11
+
+### Added
+
+- Visual terminal benchmark SVG demonstration (`assets/benchmark-demo.svg`) embedded in README.
+- Reproducible VHS tape configuration (`demo.tape`) for automated zero-cost demo generation.
+- Zero-cost community adoption kit (`ZERO_COST_ADOPTION_KIT.md`) with Hacker News Show HN technical draft and curated MCP registry references.
+- 1-Line Quickstart section in README with direct MCP stdio configuration.
+
+### Improved
+
+- Verified 103 / 103 tests passing with 100% Zero-Leak security across all workspaces.
+- Synchronized repository badges to reflect 103 passing tests and 16 native MCP tools.
+- Updated action references and version strings across CLI, GUI, and MCP server.
+
 ## [3.0.10] - 2026-10-08
 
 ### Fixed
