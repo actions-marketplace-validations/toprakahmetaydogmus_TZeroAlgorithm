@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.13] - 2026-10-11
+
+### Fixed
+
+- Fixed undefined variable `provider_name` during GUI payload generation in `async_generate_payload`.
+- Added automated GUI test coverage validating provider resolution and payload preparation.
+
 ## [3.0.12] - 2026-10-11
 
 ### Added

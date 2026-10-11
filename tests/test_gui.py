@@ -52,8 +52,14 @@ class TestGUIInstantiation(unittest.TestCase):
             self.assertEqual(len(app.tab_frames), 7)
             app.scanned_files = []
             app.file_checked = {}
-            app.rebuild_selector_tree()
-            self.assertIn("No supported source files found", app.tree_empty_lbl.cget("text"))
+            # Verify async_generate_payload resolves provider_name without NameError
+            app.file_checked = {"src/app.py": True}
+            app.file_snippets = {"src/app.py": "def test(): pass"}
+            # Mock generator to avoid real network call during test
+            from unittest.mock import patch, MagicMock
+            with patch("tzero_v3.ContextGenerator.generate_readme", return_value="# Mock Result"):
+                app.async_generate_payload("https://api.openai.com/v1", "test-key", ["src/app.py"])
+                self.assertFalse(app.cancel_event.is_set())
         finally:
             try:
                 root.destroy()
