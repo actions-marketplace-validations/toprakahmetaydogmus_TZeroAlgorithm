@@ -36,6 +36,28 @@
 
 > Run it yourself offline ($0 cost): `python tzero.py --savings`
 
+### 🚀 1-Line Quickstart
+
+```bash
+pip install tzero-mcp
+```
+
+Or configure directly into your MCP Client (**Cursor**, **Claude Desktop**, **Windsurf**, or **Antigravity IDE**):
+```json
+{
+  "mcpServers": {
+    "tzero": {
+      "command": "tzero-mcp"
+    }
+  }
+}
+```
+
+Or run offline CLI inspection immediately ($0 cost, 100% Zero-Leak):
+```bash
+python tzero.py --savings
+```
+
 ---
 
 # 🇬🇧 English

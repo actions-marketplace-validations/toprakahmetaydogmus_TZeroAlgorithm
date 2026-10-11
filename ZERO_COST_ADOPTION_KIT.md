@@ -57,6 +57,12 @@ Hacker News geliştiricileri reklam dilinden nefret eder, somut mühendislik det
 
   It runs completely locally via Python (no cloud embedding calls, zero data leakage), supports MCP stdio transport for Cursor, Windsurf, Claude Desktop, and Gemini CLI, and includes an AST static auditor for secrets and code smells.
 
+  Quickstart:
+  pip install tzero-mcp
+
+  Or configure in Claude Desktop / Cursor / Antigravity:
+  {"mcpServers": {"tzero": {"command": "tzero-mcp"}}}
+
   Source code is open under MIT:
   https://github.com/toprakahmetaydogmus/TZeroAlgorithm
 

@@ -9,34 +9,29 @@ Set Width 1200
 Set Height 680
 Set Theme "Catppuccin Mocha"
 Set Padding 20
+Set PlaybackSpeed 1.2
 
-Type "python -m tzero.cli --help"
-Sleep 500ms
+Type "python tzero.py --version"
+Sleep 400ms
 Enter
-Sleep 1500ms
+Sleep 1000ms
 
 Type "clear"
 Enter
-Sleep 500ms
+Sleep 400ms
 
-# Show unvarnished baseline token analysis
-Type "# 1. Baseline analysis: Raw repository ingestion"
+# 1. Run reproducible savings benchmark
+Type "python tzero.py --savings"
+Sleep 600ms
 Enter
-Sleep 500ms
-Type "tzero --raw-tokens"
-Sleep 500ms
-Enter
-Sleep 2s
+Sleep 3500ms
 
-# Show T-Zero AST-pruned reduction
-Type "# 2. T-Zero AST Compression (Zero-loss interfaces & signatures)"
+# 2. Run AST static code quality & zero-leak security audit
+Type "python tzero.py --doctor"
+Sleep 600ms
 Enter
-Sleep 500ms
-Type "tzero --compress --level T-2"
-Sleep 500ms
-Enter
-Sleep 3s
+Sleep 2500ms
 
-Type "# Token Savings: 94.2% Context Preserved"
+Type "# Result: 94.9% Token Reduction | 100% Zero-Leak Local Storage"
 Enter
-Sleep 2s
+Sleep 2000ms
