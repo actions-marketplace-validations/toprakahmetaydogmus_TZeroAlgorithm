@@ -3966,7 +3966,7 @@ class AutoReadmeGUI:
         b_top = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_top.pack(fill=tk.X, padx=10, pady=(4, 2))
         tk.Label(b_top, text="🛡️ SİBER AKADEMİ CREATOR HUB", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["bg_start"]).pack(side=tk.LEFT)
-        tk.Label(b_top, text="v3.0.11", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
+        tk.Label(b_top, text="v3.0.12", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
 
         b_links = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_links.pack(fill=tk.X, padx=10, pady=(2, 6))
@@ -6537,12 +6537,12 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V3.0.11")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V3.0.12")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v3.0.11
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v3.0.12
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 

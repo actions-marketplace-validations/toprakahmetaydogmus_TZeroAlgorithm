@@ -1,8 +1,12 @@
 # Changelog
 
-## [3.0.11] - 2026-10-11
+## [3.0.12] - 2026-10-11
 
 ### Added
+
+- Live animated SVG terminal demonstration with smooth 94.9% sliding progress bar and pulsing metrics.
+- Added `skip-existing: true` to PyPI deployment workflow to prevent duplicate upload errors.
+- 1-Line quickstart installation and pre-configured MCP JSON configuration.
 
 - Visual terminal benchmark SVG demonstration (`assets/benchmark-demo.svg`) embedded in README.
 - Reproducible VHS tape configuration (`demo.tape`) for automated zero-cost demo generation.
