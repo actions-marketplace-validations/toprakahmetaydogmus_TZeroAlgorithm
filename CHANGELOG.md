@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-beta.1] - 2026-10-11
+
+### Added & Enhanced (Major V4 Beta)
+
+- **Autonomous AI Auto-Healing Engine (Free AI Cloud):** Added built-in Free AI Cloud provider (`FreePollinationsProvider`) into core provider architecture. If any external commercial API key fails with `HTTP 401 Authorization Failed` or `403`, T-Zero automatically self-heals by rerouting to live Free AI Cloud inference without requiring user intervention.
+- **Polyglot Offline Dependency Extraction:** `generate_offline_context` now deeply parses JavaScript/TypeScript imports (`import`, `require`), `package.json` manifests, Go packages, Rust crates, Java packages, and C# namespaces, resolving the previous "None detected" status for Node.js projects.
+- **Deep AST Neural Architecture Insights:** Offline and online context builders now synthesize architecture patterns, component boundaries, and security risk vectors.
+- **Version V4 Beta Evolution:** Prepared desktop GUI and standalone MCP architecture for next-generation v4 multi-agent autonomy.
+
 ## [3.0.17] - 2026-10-11
 
 ### Fixed & Enhanced

@@ -622,7 +622,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.17
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.0.0-beta.1
         with:
           workspace: '.'
           audit: 'true'
@@ -1191,7 +1191,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.17
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.0.0-beta.1
         with:
           workspace: '.'
           audit: 'true'

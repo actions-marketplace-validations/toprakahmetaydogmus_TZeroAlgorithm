@@ -963,7 +963,23 @@ class LocalOllamaProvider(BaseProvider):
         }
 
 
+class FreePollinationsProvider(BaseProvider):
+    def __init__(self):
+        super().__init__(
+            "Free AI Cloud (No Key Required)",
+            "https://text.pollinations.ai/openai",
+            ["openai", "mistral", "qwen-coder", "deepseek"]
+        )
+
+    def get_headers(self, api_key: str = "") -> Dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+        }
+
+
 PROVIDERS: Dict[str, BaseProvider] = {
+    "Free AI Cloud (No Key Required)": FreePollinationsProvider(),
     "NVIDIA NIM": NvidiaProvider(),
     "OpenAI": OpenAIProvider(),
     "Google Gemini": GeminiProvider(),
@@ -4369,7 +4385,7 @@ class AutoReadmeGUI:
         b_top = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_top.pack(fill=tk.X, padx=10, pady=(4, 2))
         tk.Label(b_top, text="🛡️ SİBER AKADEMİ CREATOR HUB", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["bg_start"]).pack(side=tk.LEFT)
-        tk.Label(b_top, text="v3.0.17", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
+        tk.Label(b_top, text="v4.0.0-beta.1", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
 
         b_links = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_links.pack(fill=tk.X, padx=10, pady=(2, 6))
@@ -6172,8 +6188,25 @@ Custom Requirements:
             else:
                 err_msg = str(e)
                 target_dir = self.dir_entry.get().strip() or os.getcwd()
-                self.log(f"Remote API failed: {err_msg}")
-                self.log("Seamlessly activating T-Zero Local Offline AST Context Engine (%100 Free & Zero-Leak)...")
+                self.log(f"Remote API call returned: {err_msg}")
+                self.log("Auto-Healing activated: Falling back to Siber Free AI Cloud Engine (No Key Required)...")
+                try:
+                    free_p = FreePollinationsProvider()
+                    free_url = f"{free_p.get_base_url().rstrip('/')}/chat/completions"
+                    free_headers = free_p.get_headers("")
+                    content = generator.generate_readme(
+                        free_url, "", free_headers, "openai", messages, update_prog, provider=free_p
+                    )
+                    self.log("Live AI architecture analysis generated successfully via Free AI Cloud.")
+                    self.safe_after(0, lambda: self.on_gen_success(content))
+                    self.safe_after(0, lambda: self.show_toast(
+                        "⚡ Harici API anahtarı geçersiz olduğu için Ücretsiz Siber AI Cloud ile canlı AI mimari taraması tamamlandı!",
+                        "info"
+                    ))
+                    return
+                except Exception as free_err:
+                    self.log(f"Free AI Cloud unreachable ({free_err}). Activating Local Offline AST Context Engine (%100 Free & Zero-Leak)...")
+
                 try:
                     offline_content = generate_offline_context(target_dir, selected_files, self.file_snippets)
                     self.safe_after(0, lambda: self.on_gen_success(offline_content))
@@ -6959,12 +6992,12 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V3.0.17")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V4.0.0-beta.1")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v3.0.17
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v4.0.0-beta.1
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 
