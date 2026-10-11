@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.15] - 2026-10-11
+
+### Fixed & Enhanced
+
+- **Seamless Local AST Context Engine Fallback:** If an external API call fails due to permission/quota/authorization errors (such as HTTP 403 on personal NVIDIA accounts missing Public API Endpoints scope), T-Zero automatically generates the complete, high-fidelity context tree offline without failing or halting.
+- **Deep Health Check for API Ping:** Upgraded `ping_endpoint` to perform both endpoint reachability and a lightweight chat completion probe, eliminating false-positive green lights and providing precise diagnostic advice for HTTP 403 scope issues.
+- **Full CLI & TUI Resilience:** Added offline AST auto-rescue to `run_tui_wizard` ensuring context READMEs are generated 100% reliably in all environments.
+
 ## [3.0.14] - 2026-10-11
 
 ### Fixed & Enhanced

@@ -60,6 +60,14 @@ class TestGUIInstantiation(unittest.TestCase):
             with patch("tzero_v3.ContextGenerator.generate_readme", return_value="# Mock Result"):
                 app.async_generate_payload("https://api.openai.com/v1", "test-key", ["src/app.py"])
                 self.assertFalse(app.cancel_event.is_set())
+
+            # Verify that an API 403 error triggers seamless offline AST fallback
+            with patch("tzero_v3.ContextGenerator.generate_readme", side_effect=IOError("API Error code HTTP 403: Authorization failed")):
+                app.async_generate_payload("https://integrate.api.nvidia.com/v1", "test-key", ["src/app.py"])
+                root.update()
+                preview = app.preview_text.get("1.0", "end").strip()
+                self.assertIn("T-Zero Context Tree", preview)
+                self.assertIn("src/app.py", preview)
         finally:
             try:
                 root.destroy()
