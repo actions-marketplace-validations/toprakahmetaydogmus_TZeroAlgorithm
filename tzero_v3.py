@@ -2098,7 +2098,8 @@ def generate_offline_context(project_dir: str, selected_files: List[str], file_s
     total_lines = 0
     for f, snip in file_snippets.items():
         total_lines += len(snip.splitlines())
-        if f.endswith(".py"):
+        ext_lower = os.path.splitext(f.lower())[1]
+        if ext_lower == ".py":
             try:
                 tree = ast.parse(snip)
                 for node in ast.walk(tree):
@@ -2110,6 +2111,33 @@ def generate_offline_context(project_dir: str, selected_files: List[str], file_s
                             all_deps.add(node.module.split('.')[0])
             except Exception:
                 pass
+        elif ext_lower in (".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs"):
+            for m in re.finditer(r"""(?:import\s+.*?\s+from\s+['"]|import\s*\(?['"]|require\s*\(\s*['"])([^'"]+)['"]""", snip):
+                pkg = m.group(1).strip()
+                if not pkg.startswith("."):
+                    if pkg.startswith("@"):
+                        all_deps.add("/".join(pkg.split("/")[:2]))
+                    else:
+                        all_deps.add(pkg.split("/")[0])
+        elif ext_lower == ".go":
+            for m in re.finditer(r'["\']([^"\']+)["\']', snip):
+                g_pkg = m.group(1).strip()
+                if "/" in g_pkg and not g_pkg.startswith("."):
+                    all_deps.add(g_pkg)
+        elif ext_lower in (".rs", ".java", ".cs"):
+            for m in re.finditer(r"""(?:use|import|using)\s+([A-Za-z0-9_.:]+)""", snip):
+                all_deps.add(m.group(1).split('.')[0].split('::')[0])
+
+    # Check project root package.json if present
+    pkg_json_path = os.path.join(project_dir, "package.json")
+    if os.path.isfile(pkg_json_path):
+        try:
+            with open(pkg_json_path, "r", encoding="utf-8", errors="ignore") as pj_f:
+                pj_data = json.load(pj_f)
+                all_deps.update(pj_data.get("dependencies", {}).keys())
+                all_deps.update(pj_data.get("devDependencies", {}).keys())
+        except Exception:
+            pass
 
     modules_ref = []
     for f in sorted(selected_files):
