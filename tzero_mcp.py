@@ -720,6 +720,26 @@ def create_mcp_server():
         return TokenROICalculator.format_report(metrics)
 
     # -------------------------------------------------------------------------
+    # TOOL 14: get_incremental_diff_context
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="get_incremental_diff_context",
+        description=(
+            "Calculates hyper-compact PR git diff context (changed symbols + downstream "
+            "blast radius dependents) for 98%+ token savings during code review and debugging."
+        )
+    )
+    def get_incremental_diff_context(
+        base_ref: str = "HEAD~1",
+        project_root: str = "."
+    ) -> str:
+        """Generates incremental PR diff context and downstream caller signatures."""
+        from tzero_features import GitDiffContextBuilder
+        builder = GitDiffContextBuilder(project_root)
+        res = builder.build_diff_context(base_ref)
+        return res["markdown"]
+
+    # -------------------------------------------------------------------------
     # PROMPT: tzero_grounding
     # -------------------------------------------------------------------------
     @server.prompt(

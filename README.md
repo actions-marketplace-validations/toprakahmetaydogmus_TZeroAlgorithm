@@ -76,7 +76,7 @@
 
 T-Zero V3 natively embeds a standard **Model Context Protocol (MCP)** server (`tzero_mcp.py`) operating over `stdio`. This empowers AI agents in **Cursor**, **Claude Desktop**, **Antigravity IDE**, and **Cline** to autonomously inspect, prune, and query your project's codebase before writing a single line of code.
 
-### 🛠 Available MCP Tools (13 Autonomous Tools)
+### 🛠 Available MCP Tools (14 Autonomous Tools)
 
 | Tool Name | Parameters | Purpose |
 |:----------|:-----------|:--------|
@@ -91,8 +91,9 @@ T-Zero V3 natively embeds a standard **Model Context Protocol (MCP)** server (`t
 | `analyze_change_impact` | `target_symbol`, `project_root` | Traces AST symbol definitions, caller cascades, inbound dependents, and calculates a 0-100 risk score. |
 | `enforce_architecture_boundaries` | `project_root`, `rules_file` | Validates modular import boundaries against `tzero.rules.json` to prevent architectural erosion. |
 | `search_codebase_semantic` | `query`, `project_root`, `top_k` | 100% private, local in-memory BM25 + TF-IDF hybrid semantic code search and RAG engine ($0 cost, 0 leaks). |
-| `export_agent_rules` | `project_root` | Generates 1-click rules for Cursor (`.cursorrules`, `.cursor/rules/*.mdc`), Cline (`.clinerules`), and Copilot. |
+| `export_agent_rules` | `project_root` | Generates 1-click rules for Cursor, Windsurf, Claude Code, Cline, and Copilot. |
 | `get_token_savings_metrics` | `project_root`, `team_size` | Calculates quantitative token reduction ratio, monthly/annual cost savings, and team developer ROI metrics. |
+| `get_incremental_diff_context` | `base_ref`, `project_root` | Extracts an ultra-compact diff context with modified symbols and downstream blast radius for PR reviews (98%+ token reduction). |
 
 ### 🧭 MCP Prompts
 - **`tzero_grounding`**: Injects strict architectural boundary rules, modular integrity guidelines, and Zero-Leak security mandates into the agent's system session.
@@ -250,6 +251,7 @@ Simply type `/tzero` in the Antigravity chat prompt to view available actions or
 - `/tzero rules` — Generates .cursorrules, .clinerules, Copilot instructions
 - `/tzero search <query>` — Runs 100% private local BM25 semantic code search
 - `/tzero savings` — Computes developer team token ROI metrics
+- `/tzero diff [ref]` — Incremental git diff context for PR reviews with downstream blast radius (98%+ token reduction)
 
 See the [official Antigravity MCP guide](https://antigravity.google/docs/mcp) for the current Settings flow and configuration schema.
 

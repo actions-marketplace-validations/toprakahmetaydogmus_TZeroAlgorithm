@@ -262,6 +262,15 @@ class TestMCPServer(unittest.TestCase):
             self.assertIn("T-Zero Token Reduction & Economic ROI Report", out)
             self.assertIn("Monthly Team Cost", out)
 
+    def test_tool_get_incremental_diff_context(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            res = self.run_async(self.server.call_tool(
+                "get_incremental_diff_context",
+                {"project_root": temp_dir, "base_ref": "HEAD~1"}
+            ))
+            out = tool_result_text(res)
+            self.assertIn("No Git Changes Detected", out)
+
 
 if __name__ == "__main__":
     unittest.main()

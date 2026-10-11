@@ -28,6 +28,7 @@ from tzero_features import (
     TokenROICalculator,
     HTML_DASHBOARD_TEMPLATE,
     DashboardRequestHandler,
+    GitDiffContextBuilder,
 )
 
 
@@ -146,7 +147,7 @@ class TestAgentRulesGenerator(unittest.TestCase):
 
     def test_export_all_agent_rules(self):
         created_files = AgentRulesGenerator.export_all(self.temp_dir)
-        self.assertGreaterEqual(len(created_files), 4)
+        self.assertGreaterEqual(len(created_files), 6)
 
         # Verify .cursorrules
         cr_path = os.path.join(self.temp_dir, ".cursorrules")
@@ -158,6 +159,14 @@ class TestAgentRulesGenerator(unittest.TestCase):
         # Verify .clinerules
         cl_path = os.path.join(self.temp_dir, ".clinerules")
         self.assertTrue(os.path.exists(cl_path))
+
+        # Verify .windsurfrules
+        ws_path = os.path.join(self.temp_dir, ".windsurfrules")
+        self.assertTrue(os.path.exists(ws_path))
+
+        # Verify CLAUDE.md
+        claude_path = os.path.join(self.temp_dir, "CLAUDE.md")
+        self.assertTrue(os.path.exists(claude_path))
 
         # Verify copilot-instructions.md
         copilot_path = os.path.join(self.temp_dir, ".github", "copilot-instructions.md")
@@ -234,6 +243,32 @@ class TestWebDashboard(unittest.TestCase):
         self.assertIn("Blast Radius", HTML_DASHBOARD_TEMPLATE)
         self.assertIn("Local Hybrid Semantic Code Search", HTML_DASHBOARD_TEMPLATE)
         self.assertTrue(issubclass(DashboardRequestHandler, object))
+
+
+class TestGitDiffContextBuilder(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.file_1 = os.path.join(self.temp_dir, "core.py")
+        with open(self.file_1, "w", encoding="utf-8") as f:
+            f.write("def core_function():\n    return 42\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_git_diff_clean_directory(self):
+        builder = GitDiffContextBuilder(self.temp_dir)
+        res = builder.build_diff_context("HEAD")
+        self.assertIn("markdown", res)
+        self.assertEqual(res["changed_files_count"], 0)
+
+    def test_git_diff_context_structure(self):
+        builder = GitDiffContextBuilder(self.temp_dir)
+        builder.get_diff_changed_files = lambda ref="HEAD~1": [{"status": "M", "file": "core.py"}]
+        res = builder.build_diff_context("HEAD~1")
+        self.assertEqual(res["changed_files_count"], 1)
+        self.assertIn("Incremental PR Context", res["markdown"])
+        self.assertIn("core.py", res["markdown"])
+        self.assertGreater(res["token_savings_percent"], 0.0)
 
 
 if __name__ == "__main__":

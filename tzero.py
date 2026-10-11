@@ -13,6 +13,7 @@ delegating directly to the V3 engine and exporting core analysis tools and MCP u
 from tzero_v3 import (
     CodebaseScanner,
     TokenReducer,
+    PolyglotSignatureExtractor,
     generate_offline_context,
     DependencyAnalyzer,
     StaticCodeAnalyzer,
@@ -22,6 +23,14 @@ from tzero_v3 import (
     count_tokens_precise,
     launch_gui,
     main,
+)
+from tzero_features import (
+    ChangeImpactAnalyzer,
+    ArchitectureRuleEngine,
+    AgentRulesGenerator,
+    LocalSemanticCodeSearch,
+    TokenROICalculator,
+    GitDiffContextBuilder,
 )
 
 try:
