@@ -7,19 +7,20 @@
 - Architecture: Modular Clean Architecture & High Structural Cohesion
 
 [STRICT OPERATIONAL DIRECTIVES]
-1. ZERO-LEAK SECURITY GUARANTEE:
+1. RULE T-001: ZERO-LEAK SECURITY GUARANTEE:
    - NEVER hardcode API keys, tokens, or credentials anywhere.
    - Use environment variables or OS keyring exclusively.
    - Never commit sensitive .env files.
 
-2. MINIMAL BLAST RADIUS:
-   - Before modifying core functions, verify all downstream callers.
-   - Prefer non-breaking extensions over destructive signature changes.
+2. RULE T-002: ARCHITECTURAL BOUNDARY ENFORCEMENT:
+   - Maintain clear separation of concerns between core logic, transport layers, and UI.
+   - Avoid creating circular import loops. Enforce tzero.rules.json.
+
+3. RULE T-003: AST CONTRACT FIDELITY:
+   - Preserve exact class declarations, typed signatures, and docstrings.
    - Do not delete existing comments or docstrings unless explicitly requested.
 
-3. ARCHITECTURAL BOUNDARIES:
-   - Maintain clear separation of concerns between core logic, transport layers, and UI.
-   - Avoid creating circular import loops.
-
-4. AUTOMATED VERIFICATION:
+4. RULE T-004: ANTI-PATTERN & MINIMAL BLAST RADIUS:
+   - Keep functions concise (<= 30 lines) and arguments minimal (<= 6).
+   - Before modifying core functions, verify all downstream callers.
    - Always run the test suite (`python -m unittest discover -s tests -v`) before concluding tasks.
