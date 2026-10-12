@@ -70,8 +70,19 @@ def generate_siber_akademi_icon():
         return None
 
 
+def kill_running_tzero_processes():
+    """Kill any running T-Zero binaries to avoid file locking on Windows."""
+    if os.name == "nt":
+        for proc_name in ("TZeroAlgorithm.exe", "TZeroMCP.exe", "AddMCP.exe"):
+            try:
+                subprocess.run(["taskkill", "/F", "/IM", proc_name], capture_output=True, text=True)
+            except Exception:
+                pass
+
+
 def build_binary():
     """Runs PyInstaller commands to bundle packages and resources into a single file."""
+    kill_running_tzero_processes()
     # Ensure build environment is clean
     for folder in ("build", "dist"):
         if os.path.exists(folder):
@@ -100,13 +111,29 @@ def build_binary():
         "--onefile",
         "--noconsole",
         "--clean",
+        "--noconfirm",
         "--name=TZeroAlgorithm",
         "--distpath=dist",
         "--workpath=build/TZeroAlgorithm",
         "--specpath=build/specs",
-        # keyring loads its OS backends dynamically; PyInstaller cannot see them on its own
-        "--collect-submodules=keyring.backends",
+        "--hidden-import=tzero_v3",
+        "--hidden-import=tzero_features",
+        "--hidden-import=tzero_deps",
+        "--hidden-import=addmcp",
+        "--hidden-import=tzero_mcp",
         "--hidden-import=win32ctypes.core",
+        "--collect-all=keyring",
+        "--collect-all=win32ctypes",
+        "--collect-all=pygments",
+        "--collect-all=requests",
+        "--collect-all=urllib3",
+        "--collect-all=certifi",
+        "--collect-all=PIL",
+        "--collect-all=darkdetect",
+        "--copy-metadata=keyring",
+        "--copy-metadata=requests",
+        "--copy-metadata=pygments",
+        "--copy-metadata=Pillow",
     ]
     
     if icon_file:
@@ -128,8 +155,22 @@ def build_binary():
             "--distpath=dist",
             "--workpath=build/TZeroMCP",
             "--specpath=build/specs",
-            "--collect-submodules=keyring.backends",
+            "--hidden-import=tzero_v3",
+            "--hidden-import=tzero_features",
+            "--hidden-import=tzero_deps",
             "--hidden-import=win32ctypes.core",
+            "--collect-all=mcp",
+            "--collect-all=anyio",
+            "--collect-all=pydantic",
+            "--collect-all=pydantic_core",
+            "--collect-all=keyring",
+            "--collect-all=win32ctypes",
+            "--collect-all=requests",
+            "--collect-all=urllib3",
+            "--collect-all=certifi",
+            "--copy-metadata=mcp",
+            "--copy-metadata=keyring",
+            "--copy-metadata=requests",
         ]
         if icon_file:
             server_args.append(f"--icon={os.path.abspath(icon_file)}")
@@ -153,6 +194,9 @@ def build_binary():
             "--distpath=dist",
             "--workpath=build/AddMCP",
             "--specpath=build/specs",
+            "--hidden-import=win32ctypes.core",
+            "--collect-all=keyring",
+            "--collect-all=win32ctypes",
             f"--add-binary={os.path.abspath(server_binary)}{os.pathsep}.",
         ]
         if icon_file:

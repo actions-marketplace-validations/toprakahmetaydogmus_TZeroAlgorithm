@@ -29,7 +29,39 @@ import random
 import logging
 import shutil
 
-# Safe UTF-8 reconfiguration for Windows console & piped subprocesses
+# Safe UTF-8 reconfiguration & Windows console attachment for frozen executables
+if sys.platform.startswith("win"):
+    if len(sys.argv) > 1:
+        try:
+            import ctypes
+            if ctypes.windll.kernel32.AttachConsole(-1):
+                try:
+                    sys.stdout = open("CONOUT$", "w", encoding="utf-8", errors="replace")
+                except Exception:
+                    pass
+                try:
+                    sys.stderr = open("CONOUT$", "w", encoding="utf-8", errors="replace")
+                except Exception:
+                    pass
+                try:
+                    sys.stdin = open("CONIN$", "r", encoding="utf-8", errors="replace")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    if sys.stdout is None:
+        try:
+            sys.stdout = open(os.devnull, "w", encoding="utf-8", errors="replace")
+        except Exception:
+            import io
+            sys.stdout = io.StringIO()
+    if sys.stderr is None:
+        try:
+            sys.stderr = open(os.devnull, "w", encoding="utf-8", errors="replace")
+        except Exception:
+            import io
+            sys.stderr = io.StringIO()
+
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -2166,11 +2198,19 @@ hr {{ border: none; border-top: 1px solid var(--card-border); margin: 2rem 0; }}
 </style>
 </head>
 <body>
-<div class="badge">🚀 Siber Akademi T-Zero V3 Context Architect Preview</div>
+<div class="badge">🚀 Siber Akademi T-Zero V4 Context Architect Preview</div>
 {body_content}
 </body>
 </html>
 """
+
+    generate_repomap = generate_repo_map
+    generate_html_preview = generate_styled_html
+
+generate_repomap = ContextExportManager.generate_repo_map
+generate_repo_map = ContextExportManager.generate_repo_map
+generate_html_preview = ContextExportManager.generate_styled_html
+
 
 
 # --- 9. WORKSPACE PRESETS AND PROFILE IMPORTER ---
@@ -3621,15 +3661,27 @@ class PygmentsHighlighter:
 
     def highlight_code(self, code_str: str, lang: str):
         self.text_widget.delete("1.0", tk.END)
+        lexer = None
         try:
             lexer = get_lexer_by_name(lang)
         except Exception:
-            lexer = get_lexer_by_name("python")
-            
-        tokens = lex(code_str, lexer)
-        for token_type, value in tokens:
-            tag_name = str(token_type)
-            self.text_widget.insert(tk.END, value, tag_name)
+            try:
+                lexer = get_lexer_by_name("python")
+            except Exception:
+                lexer = None
+
+        if lexer is None:
+            self.text_widget.insert(tk.END, code_str)
+            return
+
+        try:
+            tokens = lex(code_str, lexer)
+            for token_type, value in tokens:
+                tag_name = str(token_type)
+                self.text_widget.insert(tk.END, value, tag_name)
+        except Exception:
+            self.text_widget.delete("1.0", tk.END)
+            self.text_widget.insert(tk.END, code_str)
 
 
 # --- 13. DYNAMIC UI DASHBOARD MAIN WINDOW ---
@@ -7313,10 +7365,18 @@ def main():
             try:
                 launch_gui()
                 return
-            except Exception:
-                pass
+            except Exception as e:
+                if os.name == "nt":
+                    try:
+                        import ctypes
+                        ctypes.windll.user32.MessageBoxW(0, f"T-Zero GUI Başlatma Hatası:\n\n{e}", "T-Zero Kritik Hata", 0x10)
+                    except Exception:
+                        pass
+                print(f"[FATAL ERROR] Could not launch GUI: {e}")
+                sys.exit(1)
         print_quickstart_guide()
         return
+
 
     args = parser.parse_args()
     if getattr(args, "info", False):
