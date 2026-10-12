@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm"><img src="https://mcpservers.org/badge.svg" alt="Listed on mcpservers.org" /></a>
   <a href="https://pypi.org/project/tzero-mcp/"><img src="https://img.shields.io/pypi/v/tzero-mcp?color=00ffd8&style=for-the-badge&logo=pypi" alt="PyPI Version" /></a>
   <a href="https://huggingface.co/spaces/toprakke4/tzero-token-reducer"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-ffd21e?style=for-the-badge" alt="Hugging Face Spaces Live Demo" /></a>
   <img src="https://img.shields.io/badge/MCP-20%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 20 Tools Ready" />
@@ -212,6 +213,10 @@ curl -fsSL https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/
 ```bash
 npx -y @smithery/cli install tzero --client cursor
 ```
+
+**mcpservers.org Listing:**  
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)  
+Explore verified listing: [https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)
 
 ---
 
@@ -782,6 +787,10 @@ curl -fsSL https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/
 ```bash
 npx -y @smithery/cli install tzero --client cursor
 ```
+
+**mcpservers.org Kaydı:**  
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)  
+Onaylı sunucu sayfası: [https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)
 
 ---
 
