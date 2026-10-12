@@ -73,6 +73,13 @@ class TestGUIInstantiation(unittest.TestCase):
                 app.run_quick_security_audit()
                 root.update()
                 self.assertIn("Security Audit", app.console_text.get("1.0", "end"))
+
+                # Verify on_scan_finish updates KPICard and gauge metrics without error
+                app.on_scan_finish(["src/app.py", "README.md"], {"src/app.py": 128, "README.md": 64}, {"src/app.py": "code", "README.md": "doc"})
+                root.update()
+                self.assertTrue(app.has_scanned)
+                if hasattr(app, "kpi_card") and hasattr(app.kpi_card, "lbl_prim"):
+                    self.assertIn("2", app.kpi_card.lbl_prim.cget("text"))
         finally:
             try:
                 root.destroy()

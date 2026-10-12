@@ -2803,6 +2803,13 @@ class KPICard(LuxuryCard):
         self.lbl_sec_sub = tk.Label(self.inner, text=secondary_sub, font=("Segoe UI", 7), fg=PALETTE.get("text_muted", "#94a3b8"), bg=self.card_bg)
         self.lbl_sec_sub.pack(anchor=tk.W)
 
+    def update_metrics(self, primary_val: str, secondary_val: str):
+        """Update live metrics for primary and secondary indicators."""
+        if hasattr(self, "lbl_prim") and self.lbl_prim.winfo_exists():
+            self.lbl_prim.config(text=primary_val)
+        if hasattr(self, "lbl_sec") and self.lbl_sec.winfo_exists():
+            self.lbl_sec.config(text=secondary_val)
+
 class ScrollableGlassPanel(tk.Frame):
     """Smooth scrollable container for dashboard analytics and charts."""
     def __init__(self, parent, bg_color=None, **kwargs):
