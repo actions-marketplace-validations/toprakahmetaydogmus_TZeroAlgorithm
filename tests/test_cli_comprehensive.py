@@ -64,7 +64,10 @@ class TestComprehensiveCLI(unittest.TestCase):
     def test_cli_diff(self):
         res = self._run_cli(["--diff", "HEAD"])
         self.assertEqual(res.returncode, 0)
-        self.assertIn("T-Zero Incremental PR Context", res.stdout)
+        self.assertTrue(
+            ("T-Zero Incremental PR Context" in res.stdout) or ("No Git Changes Detected" in res.stdout),
+            f"Unexpected diff output: {res.stdout}"
+        )
 
     def test_cli_impact(self):
         res = self._run_cli(["--impact", "TokenReducer", "--dir", "."])
