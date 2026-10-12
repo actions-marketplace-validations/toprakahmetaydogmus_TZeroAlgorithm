@@ -27,7 +27,7 @@ import inspect
 import logging
 from typing import Dict, List, Optional, Any
 
-SERVER_VERSION = "4.0.0-beta.1"
+SERVER_VERSION = "4.0.0"
 
 # Safe UTF-8 reconfiguration for Windows console & piped subprocesses
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -400,14 +400,21 @@ def create_mcp_server():
         description=(
             "Generates a complete system architecture specification (ARCHITECTURE.md) "
             "including auto-generated Mermaid topology diagrams, component boundaries, "
-            "and module dependency hierarchies."
+            "and module dependency hierarchies. Supports live 3rd-party AI synthesis "
+            "or local offline AST architecture analysis."
         )
     )
-    def generate_architecture_blueprint(project_root: str = ".") -> str:
+    def generate_architecture_blueprint(
+        project_root: str = ".",
+        use_ai: bool = False,
+        model: str = ""
+    ) -> str:
         """Generates a complete ARCHITECTURE.md document with live Mermaid diagrams.
         
         Args:
             project_root: Root directory of the repository (default: current directory).
+            use_ai: If True, uses configured 3rd-party AI or Free AI Cloud to synthesize deep architecture analysis.
+            model: Optional model identifier override (e.g. 'deepseek-v4.1-flash', 'gpt-4o').
         """
         abs_root = os.path.abspath(project_root)
         if not os.path.isdir(abs_root):
@@ -419,10 +426,27 @@ def create_mcp_server():
         
         deps_map = build_workspace_import_graph(files, abs_root)
 
+        provider = None
+        api_base = ""
+        api_key = ""
+        if use_ai:
+            prof = _config_mgr.get_profile()
+            prov_name = prof.get("provider", "NVIDIA NIM")
+            provider = PROVIDERS.get(prov_name)
+            if provider:
+                api_base = provider.get_base_url()
+                api_key = _config_mgr.get_credential(provider.name) or os.getenv("NVIDIA_API_KEY", "")
+
         return ContextExportManager.generate_architecture_blueprint(
             project_name=p_name,
             files=files,
-            deps=deps_map
+            deps=deps_map,
+            snippets=snippets,
+            use_ai=use_ai,
+            provider=provider,
+            api_base=api_base,
+            api_key=api_key,
+            model=model
         )
 
     # -------------------------------------------------------------------------

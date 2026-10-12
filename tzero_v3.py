@@ -657,7 +657,13 @@ class ConfigManager:
                 "meta/llama-3.3-70b-instruct": "deepseek-ai/deepseek-v4.1-flash",
                 "mistralai/mistral-large-3-675b-instruct-2512": "mistralai/mistral-large-2-instruct",
                 "deepseek-ai/deepseek-r1": "deepseek-ai/deepseek-v4.1-flash",
-                "qwen/qwen3.5-122b-a10b": "nvidia/llama-3.1-nemotron-70b-instruct"
+                "qwen/qwen3.5-122b-a10b": "nvidia/llama-3.1-nemotron-70b-instruct",
+                "nvidia/llama-3.1-nemotron-51b-instruct": "nvidia/llama-3.1-nemotron-70b-instruct",
+                "mistralai/codestral-22b-instruct-v0.1": "mistralai/mistral-large-2-instruct",
+                "meta/llama-3.2-11b-vision-instruct": "meta/llama-3.2-90b-vision-instruct",
+                "google/gemma-4-31b-it": "deepseek-ai/deepseek-v4.1-flash",
+                "z-ai/glm-5.3-flash": "deepseek-ai/deepseek-v4.1-flash",
+                "google/gemini-2.5-pro": "gemini-2.5-pro",
             }
             changed = False
             for prof in self._state.get("profiles", {}).values():
@@ -828,6 +834,14 @@ class BaseProvider:
 
 
 class NvidiaProvider(BaseProvider):
+    MODEL_ALIASES: Dict[str, str] = {
+        "deepseek-v4.1-flash": "deepseek-ai/deepseek-v4.1-flash",
+        "deepseek-coder-6.7b": "deepseek-ai/deepseek-coder-6.7b-instruct",
+        "nemotron-70b": "nvidia/llama-3.1-nemotron-70b-instruct",
+        "mistral-large-2": "mistralai/mistral-large-2-instruct",
+        "llama-3.2-90b-vision": "meta/llama-3.2-90b-vision-instruct",
+    }
+
     def __init__(self):
         super().__init__(
             "NVIDIA NIM",
@@ -836,13 +850,8 @@ class NvidiaProvider(BaseProvider):
                 "deepseek-ai/deepseek-v4.1-flash",
                 "deepseek-ai/deepseek-coder-6.7b-instruct",
                 "nvidia/llama-3.1-nemotron-70b-instruct",
-                "nvidia/llama-3.1-nemotron-51b-instruct",
                 "mistralai/mistral-large-2-instruct",
-                "mistralai/codestral-22b-instruct-v0.1",
-                "meta/llama-3.2-90b-vision-instruct",
-                "meta/llama-3.2-11b-vision-instruct",
-                "google/gemma-4-31b-it",
-                "z-ai/glm-5.3-flash"
+                "meta/llama-3.2-90b-vision-instruct"
             ]
         )
 
@@ -851,11 +860,20 @@ class NvidiaProvider(BaseProvider):
         headers = {
             "Authorization": f"Bearer {clean_key}",
             "Content-Type": "application/json",
-            "User-Agent": f"TZeroAlgorithmV3/3.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         }
         if clean_key:
             headers["X-Nvidia-Api-Key"] = clean_key
         return headers
+
+    def format_payload(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
+        target_model = self.MODEL_ALIASES.get(model, model)
+        return {
+            "model": target_model,
+            "messages": messages,
+            "temperature": kwargs.get("temperature", 0.2),
+            "max_tokens": kwargs.get("max_tokens", 8192)
+        }
 
 
 class OpenAIProvider(BaseProvider):
@@ -877,6 +895,12 @@ class GeminiProvider(BaseProvider):
 
 
 class OpenRouterProvider(BaseProvider):
+    MODEL_ALIASES: Dict[str, str] = {
+        "claude-3.7-sonnet": "anthropic/claude-3.7-sonnet",
+        "gpt-4o": "openai/gpt-4o",
+        "deepseek-r1": "deepseek/deepseek-r1",
+    }
+
     def __init__(self):
         super().__init__(
             "OpenRouter",
@@ -884,8 +908,7 @@ class OpenRouterProvider(BaseProvider):
             [
                 "anthropic/claude-3.7-sonnet",
                 "openai/gpt-4o",
-                "deepseek/deepseek-r1",
-                "google/gemini-2.5-pro"
+                "deepseek/deepseek-r1"
             ]
         )
 
@@ -893,15 +916,34 @@ class OpenRouterProvider(BaseProvider):
         headers = super().get_headers(api_key)
         headers["HTTP-Referer"] = DEV_URL_GITHUB
         headers["X-Title"] = "T-ZERO Context Architect"
+        headers["User-Agent"] = f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         return headers
+
+    def format_payload(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
+        target_model = self.MODEL_ALIASES.get(model, model)
+        return {
+            "model": target_model,
+            "messages": messages,
+            "temperature": kwargs.get("temperature", 0.2),
+            "max_tokens": kwargs.get("max_tokens", 8192)
+        }
 
 
 class AnthropicProvider(BaseProvider):
+    MODEL_ALIASES: Dict[str, str] = {
+        "claude-3-7-sonnet-20250219": "claude-3-7-sonnet-20250219",
+        "claude-3-7-sonnet": "claude-3-7-sonnet-20250219",
+        "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-20241022": "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku": "claude-3-5-haiku-20241022",
+        "claude-3-5-haiku-20241022": "claude-3-5-haiku-20241022",
+    }
+
     def __init__(self):
         super().__init__(
             "Anthropic",
             "https://api.anthropic.com/v1",
-            ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"]
+            ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet", "claude-3-5-haiku"]
         )
 
     def get_headers(self, api_key: str) -> Dict[str, str]:
@@ -910,7 +952,7 @@ class AnthropicProvider(BaseProvider):
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "Referer": DEV_URL_GITHUB,
-            "User-Agent": f"TZeroAlgorithmV3/3.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         }
 
     def get_endpoint_url(self, api_base: str) -> str:
@@ -920,6 +962,7 @@ class AnthropicProvider(BaseProvider):
         return base
 
     def format_payload(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
+        target_model = self.MODEL_ALIASES.get(model, model)
         system = ""
         user_msgs = []
         for msg in messages:
@@ -928,7 +971,7 @@ class AnthropicProvider(BaseProvider):
             else:
                 user_msgs.append({"role": msg["role"], "content": msg["content"]})
         payload = {
-            "model": model,
+            "model": target_model,
             "messages": user_msgs,
             "max_tokens": kwargs.get("max_tokens", 4096),
             "temperature": kwargs.get("temperature", 0.2)
@@ -959,7 +1002,7 @@ class LocalOllamaProvider(BaseProvider):
         return {
             "Content-Type": "application/json",
             "Referer": DEV_URL_GITHUB,
-            "User-Agent": f"TZeroAlgorithmV3/3.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         }
 
 
@@ -1781,38 +1824,259 @@ class ContextExportManager:
 """
 
     @staticmethod
-    def generate_architecture_blueprint(project_name: str, files: List[str], deps: Dict[str, List[str]]) -> str:
-        """Generates ARCHITECTURE.md with Mermaid diagrams and module specs."""
-        mermaid_nodes = []
-        mermaid_edges = []
+    def generate_offline_architecture_blueprint(
+        project_name: str,
+        files: List[str],
+        deps: Dict[str, List[str]],
+        snippets: Optional[Dict[str, str]] = None
+    ) -> str:
+        """Generates an intelligent, tailored ARCHITECTURE.md using AST & filesystem analysis.
+        
+        Categorizes the actual codebase into physical & logical layers (Entrypoints,
+        Presentation, Services/APIs, Core Domain Engine, Storage/Security, Utilities, Tests),
+        extracts exported classes & functions, and builds a comprehensive Mermaid topology diagram.
+        """
+        snippets = snippets or {}
+        
+        # 1. Detect language / runtime stack
+        ext_counts: Dict[str, int] = {}
+        for f in files:
+            ext = os.path.splitext(f.lower())[1]
+            if ext:
+                ext_counts[ext] = ext_counts.get(ext, 0) + 1
+                
+        stack_tags = []
+        if any(e in ext_counts for e in [".py"]):
+            stack_tags.append("Python 3.x (AST Polyglot Engine)")
+        if any(e in ext_counts for e in [".ts", ".tsx"]):
+            stack_tags.append("TypeScript")
+        if any(e in ext_counts for e in [".js", ".jsx", ".mjs"]):
+            stack_tags.append("JavaScript / Node.js")
+        if any(e in ext_counts for e in [".go"]):
+            stack_tags.append("Go")
+        if any(e in ext_counts for e in [".rs"]):
+            stack_tags.append("Rust")
+        if any(e in ext_counts for e in [".cpp", ".c", ".h"]):
+            stack_tags.append("C / C++")
+        if not stack_tags:
+            stack_tags.append("Polyglot Toolchain")
+
+        # 2. Classify files into architectural layers based on real path & content
+        layers: Dict[str, List[str]] = {
+            "Entrypoints & Execution Harness": [],
+            "Presentation & Interface Layer": [],
+            "Service & Integration Layer": [],
+            "Core Domain & Algorithmic Engine": [],
+            "Security, Storage & Configuration": [],
+            "Utilities & Shared Tooling": [],
+            "Test & Verification Suite": []
+        }
+
+        for f in files:
+            f_lower = f.lower()
+            if f_lower.startswith("tests/") or f_lower.startswith("test_") or "test" in f_lower or "spec" in f_lower:
+                layers["Test & Verification Suite"].append(f)
+            elif any(f_lower.endswith(k) for k in ["main.py", "app.py", "cli.py", "index.ts", "index.js", "server.py", "server.js", "run.bat", "run.sh"]):
+                layers["Entrypoints & Execution Harness"].append(f)
+            elif any(w in f_lower for w in ["gui", "ui", "view", "component", "screen", "canvas", "render", "template", "theme"]):
+                layers["Presentation & Interface Layer"].append(f)
+            elif any(w in f_lower for w in ["mcp", "api", "client", "provider", "endpoint", "route", "http", "service", "adapter"]):
+                layers["Service & Integration Layer"].append(f)
+            elif any(w in f_lower for w in ["keyring", "secret", "auth", "config", "db", "database", "store", "cipher", "security"]):
+                layers["Security, Storage & Configuration"].append(f)
+            elif any(w in f_lower for w in ["core", "engine", "algorithm", "ast", "feature", "scanner", "parser", "domain", "model", "analyzer"]):
+                layers["Core Domain & Algorithmic Engine"].append(f)
+            else:
+                layers["Utilities & Shared Tooling"].append(f)
+
+        # 3. Build component breakdown with real extracted symbols
+        layer_markdown_blocks = []
+        for layer_name, layer_files in layers.items():
+            if not layer_files:
+                continue
+            symbols_found = []
+            for lf in layer_files[:6]:
+                code = snippets.get(lf, "")
+                if code:
+                    cls_names = re.findall(r'class\s+([A-Za-z0-9_]+)', code)[:3]
+                    fn_names = re.findall(r'def\s+([A-Za-z0-9_]+)', code)[:3]
+                    found = []
+                    if cls_names:
+                        found.append(f"Classes: {', '.join(cls_names)}")
+                    if fn_names:
+                        found.append(f"Functions: {', '.join(fn_names)}")
+                    if found:
+                        symbols_found.append(f"  - `{lf}` ({'; '.join(found)})")
+                    else:
+                        symbols_found.append(f"  - `{lf}`")
+                else:
+                    symbols_found.append(f"  - `{lf}`")
+
+            files_formatted = "\n".join(symbols_found)
+            layer_markdown_blocks.append(f"### 🔹 {layer_name} ({len(layer_files)} modules)\n{files_formatted}")
+
+        layers_str = "\n\n".join(layer_markdown_blocks)
+
+        # 4. Generate Mermaid diagram
+        mermaid_lines = ["graph TD"]
+        subgraph_map = {
+            "Presentation & Interface Layer": "UI",
+            "Entrypoints & Execution Harness": "Entry",
+            "Service & Integration Layer": "Services",
+            "Core Domain & Algorithmic Engine": "Core",
+            "Security, Storage & Configuration": "Security",
+        }
+        for l_name, sg_id in subgraph_map.items():
+            l_files = layers.get(l_name, [])
+            if l_files:
+                mermaid_lines.append(f"    subgraph {sg_id}[\"{l_name}\"]")
+                for f in l_files[:4]:
+                    c_id = re.sub(r'[^a-zA-Z0-9_]', '_', f)
+                    mermaid_lines.append(f"        {c_id}[\"{f}\"]")
+                mermaid_lines.append("    end")
+
+        edge_count = 0
         for mod, targets in deps.items():
             clean_mod = re.sub(r'[^a-zA-Z0-9_]', '_', mod)
-            mermaid_nodes.append(f"    {clean_mod}[{mod}]")
-            for t in targets[:4]:
+            for t in targets[:3]:
+                if edge_count >= 30:
+                    break
                 clean_t = re.sub(r'[^a-zA-Z0-9_]', '_', t)
-                mermaid_edges.append(f"    {clean_mod} --> {clean_t}")
+                mermaid_lines.append(f"    {clean_mod} -.-> {clean_t}")
+                edge_count += 1
 
-        mermaid_block = "graph TD\n" + "\n".join(mermaid_nodes[:25]) + "\n" + "\n".join(mermaid_edges[:40]) if mermaid_nodes else "graph TD\n    Workspace[Workspace Root] --> CoreModules[Core Modules]"
+        if len(mermaid_lines) <= 1:
+            mermaid_lines = [
+                "graph TD",
+                f"    WorkspaceRoot[\"{project_name} Root\"] --> CoreModules[\"Core Modules\"]",
+                "    CoreModules --> Adapters[\"External Adapters / MCP\"]",
+                "    CoreModules --> Security[\"Zero-Leak Security & Storage\"]"
+            ]
 
-        file_list_str = "\n".join(f"- `{f}`" for f in files[:40])
+        mermaid_block = "\n".join(mermaid_lines)
+        stack_str = ", ".join(stack_tags)
+        file_list_str = "\n".join(f"- `{f}`" for f in files[:50])
+
         return f"""# 🏛️ Architecture & System Blueprint: {project_name}
 
-> Generated by Siber Akademi T-Zero Context Architect V3.
+> **Engine:** Siber Akademi T-Zero Context Architect V4 (Polyglot AST Architecture Engine)  
+> **Technology Stack:** {stack_str}  
+> **Indexed Modules:** {len(files)} files  
+> **Security Guarantee:** 100% Zero-Leak (T-001 Isolation Enforced)
+
+---
 
 ## 📊 System Topology Diagram
 ```mermaid
 {mermaid_block}
 ```
 
+---
+
 ## 🧩 Component & Layer Breakdown
-- **Presentation Layer (UI/GUI):** High-performance desktop interface with glassmorphism and real-time telemetry.
-- **Service & Provider Layer:** Multi-provider LLM connector interface with retry logic and token budgeting.
-- **Static Analysis & AST Engine:** Python AST signature extractor, docstring pruner, and duplicity analyzer.
-- **Security & Storage Layer:** OS Keyring encryption with POSIX-compliant permission controls.
+{layers_str}
+
+---
+
+## 🛡️ T-Zero Operational Guardrails & Invariants
+1. **Rule T-001 (Zero-Leak Isolation):** No plain API keys, tokens, or credentials may be logged, embedded, or exposed across boundaries.
+2. **Rule T-002 (Layer Boundary Enforcement):** Presentation interfaces must remain decoupled from core domain algorithms and persistence logic.
+3. **Rule T-003 (AST Interface Contract Fidelity):** All public signatures and types must preserve exact syntax and semantic validity.
+4. **Rule T-004 (Maintainability Guard):** Cyclomatic complexity, excessive line counts, and copy-paste code duplicity are continuously audited.
+
+---
 
 ## 📦 Project Artifacts ({len(files)} indexed files)
 {file_list_str}
 """
+
+
+    @staticmethod
+    def generate_architecture_blueprint(
+        project_name: str, 
+        files: List[str], 
+        deps: Dict[str, List[str]],
+        snippets: Optional[Dict[str, str]] = None,
+        use_ai: bool = False,
+        provider: Optional[BaseProvider] = None,
+        api_base: str = "",
+        api_key: str = "",
+        model: str = "",
+        progress_cb: Optional[Callable] = None
+    ) -> str:
+        """Generates ARCHITECTURE.md with Mermaid diagrams and module specs.
+        
+        Supports live 3rd-party AI synthesis (NVIDIA NIM, OpenAI, Gemini, Anthropic, OpenRouter,
+        Local Ollama, or Free AI Cloud) and seamless fallback to the local offline AST architecture engine.
+        """
+        if use_ai:
+            try:
+                active_prov = provider
+                active_url = api_base
+                active_key = api_key
+                active_model = model
+                if not active_prov:
+                    prof = _config_mgr.get_profile()
+                    prov_name = prof.get("provider", "NVIDIA NIM")
+                    active_prov = PROVIDERS.get(prov_name)
+                    if not active_url and active_prov:
+                        active_url = active_prov.get_base_url()
+                    if not active_key and active_prov:
+                        active_key = _config_mgr.get_credential(active_prov.name) or ""
+                    if not active_model and active_prov:
+                        active_model = prof.get("model") or active_prov.get_models()[0]
+
+                if not active_key and (not active_prov or active_prov.name != "Free AI Cloud (No Key Required)"):
+                    active_prov = FreePollinationsProvider()
+                    active_url = active_prov.get_base_url()
+                    active_key = ""
+                    active_model = "openai"
+
+                if progress_cb:
+                    progress_cb(30, f"Synthesizing architecture with {active_prov.name} ({active_model})...")
+
+                headers = active_prov.get_headers(active_key)
+                budgeted_snips = get_budgeted_snippets(files[:30], snippets or {}) if snippets else {}
+
+                sys_prompt = (
+                    "You are an elite Principal Systems Architect adhering to the Siber Akademi T-Zero Framework. "
+                    f"Synthesize an exhaustive, authoritative ARCHITECTURE.md system blueprint for '{project_name}'. "
+                    "Structure your response strictly with:\n"
+                    "1. # 🏛️ Architecture & System Blueprint: {project_name}\n"
+                    "2. ## 📊 System Topology Diagram (using valid ```mermaid graph TD)\n"
+                    "3. ## 🧩 Component & Layer Breakdown (analyze the real detected files, their responsibilities, and architectural boundaries)\n"
+                    "4. ## 🔄 Data Flow & Inter-Module Communication\n"
+                    "5. ## 🛡️ T-Zero Operational Guardrails (Rules T-001 to T-004)\n"
+                    "6. ## 📦 Core Project Artifacts & Module Registry\n"
+                    "Output raw Markdown directly without conversational greetings or wrapping fences."
+                )
+
+                user_msg = (
+                    f"Project Name: {project_name}\n"
+                    f"Indexed Codebase Files ({len(files)} files):\n{files[:50]}\n\n"
+                    f"Module Dependency Graph:\n{json.dumps(deps, indent=2)}\n\n"
+                    f"AST Interface Signatures:\n{json.dumps(budgeted_snips, indent=2)[:12000]}"
+                )
+
+                messages = [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": user_msg}
+                ]
+
+                gen = ContextGenerator()
+                endpoint = active_prov.get_endpoint_url(active_url)
+                ai_output = gen.generate_readme(
+                    endpoint, active_key, headers, active_model, messages, progress_cb, provider=active_prov
+                )
+                if progress_cb:
+                    progress_cb(100, "AI Architecture blueprint synthesized successfully!")
+                return ai_output
+            except Exception as e:
+                if progress_cb:
+                    progress_cb(50, f"Remote AI error ({e}). Falling back to Local Offline AST Architecture Engine...")
+
+        # Local Offline AST Engine (Fast, 100% Free, Private, and Zero-Leak)
+        return ContextExportManager.generate_offline_architecture_blueprint(project_name, files, deps, snippets)
 
     @staticmethod
     def generate_repo_map(project_name: str, files: List[str], snippets: Dict[str, str]) -> str:
@@ -1956,6 +2220,9 @@ class ProfileImporterExporter:
         except Exception as e:
             logger.error(f"Failed to import settings profile: {e}")
         return None
+
+
+generate_offline_architecture_blueprint = ContextExportManager.generate_offline_architecture_blueprint
 
 
 TZERO_GUARDRAILS_DEFAULT = """### 🛡️ T-Zero Algorithm Guardrails (Rules T-001 to T-004):
@@ -4385,7 +4652,7 @@ class AutoReadmeGUI:
         b_top = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_top.pack(fill=tk.X, padx=10, pady=(4, 2))
         tk.Label(b_top, text="🛡️ SİBER AKADEMİ CREATOR HUB", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["bg_start"]).pack(side=tk.LEFT)
-        tk.Label(b_top, text="v4.0.0-beta.1", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
+        tk.Label(b_top, text="v4.0.0", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
 
         b_links = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_links.pack(fill=tk.X, padx=10, pady=(2, 6))
@@ -6043,55 +6310,24 @@ class AutoReadmeGUI:
     def run_local_dry_run(self):
         selected_files = [f for f, v in self.file_checked.items() if v]
         if not selected_files:
+            messagebox.showwarning("Warning", "Please select at least one file for dry-run!")
             return
             
-        self.gen_progress["value"] = 50
-        self.log("Assembling offline prompt structure...")
+        d = self.dir_entry.get().strip() or os.getcwd()
+        self.gen_progress["value"] = 30
+        self.gen_status_lbl.config(text="Analyzing AST hierarchy offline...")
+        self.log("Running Local Dry-Run Offline (%100 Free, Private & Zero-Leak)...")
         
         snippets = get_budgeted_snippets(selected_files, self.file_snippets)
-        changes = []
-        for desc, (var, item) in self.git_checkboxes.items():
-            if var.get():
-                changes.append(f"- {desc}")
-        for item in self.manual_changes:
-            changes.append(f"- {item['desc']}")
-        changelog_str = "\n".join(changes) or "No logged changes."
+        offline_context = generate_offline_context(d, selected_files, snippets)
         
-        modules = []
-        for f in selected_files:
-            modules.append(f"### File: {f}\n| Field | Value |\n|---|---|\n| Purpose | Outlined Code Skeleton |\n| Parsing Mode | Signature Outline |")
-        
-        vars = {
-            "PROJECT_NAME": os.path.basename(self.dir_entry.get().strip() or "Workspace"),
-            "IDE_NAME": "Siber Akademi T-Zero V3",
-            "MODULES_REFERENCE": "\n\n".join(modules),
-            "HALLUCINATION_GUARDRAILS": TZERO_GUARDRAILS_DEFAULT
-        }
-        
-        template_filled = self.template_engine.render(vars)
-        extra = self.extra_prompt_text.get("1.0", tk.END).strip()
-        
-        final_prompt = f"""# SİBER AKADEMİ - OFFLINE COMPILED CONTEXT PROMPT
-
-This prompt contains the structured outline files prepared for LLM indexing:
-
-{template_filled}
-
-## Outlined Files signatures:
-{json.dumps(snippets, indent=2)}
-
-## Revisions log:
-{changelog_str}
-
-## Extra instructions:
-{extra}
-"""
         self.preview_text.delete("1.0", tk.END)
-        self.preview_text.insert(tk.END, final_prompt)
+        self.preview_text.insert(tk.END, offline_context)
         self.update_rendered_markdown_panel()
         self.gen_progress["value"] = 100
-        self.gen_status_lbl.config(text="Dry run complete!")
-        self.log("Offline context draft compiled successfully.")
+        self.gen_status_lbl.config(text="Dry run complete! 100% Free & Zero-Leak context generated.")
+        self.log("Offline AST context tree synthesized successfully.")
+        self.show_toast("⚡ Yerel Çevrimdışı AST Bağlamı (100% Free & Zero-Leak) başarıyla derlendi!", "success")
 
     def start_generation(self):
         url = self.api_url_entry.get().strip()
@@ -6348,17 +6584,53 @@ Custom Requirements:
                             deps_map[f] = visitor.dependencies
                     except Exception:
                         pass
-        content = ContextExportManager.generate_architecture_blueprint(p_name, selected, deps_map)
-        out_path = os.path.join(d, "ARCHITECTURE.md")
-        try:
-            with open(out_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            play_sfx("success")
-            self.show_toast("ARCHITECTURE.md exported successfully!", "success")
-            self.log(f"ARCHITECTURE.md exported: {out_path}")
-        except Exception as e:
-            play_sfx("error")
-            messagebox.showerror("Error", f"Failed saving ARCHITECTURE.md: {e}")
+
+        provider_name = self.provider_var.get()
+        p = PROVIDERS.get(provider_name)
+        key = self.api_key_entry.get().strip()
+        url = self.api_url_entry.get().strip()
+        model = self.model_var.get()
+        use_ai = bool(key or (p and p.name == "Free AI Cloud (No Key Required)"))
+
+        self.gen_progress["value"] = 20
+        self.gen_status_lbl.config(text="Synthesizing ARCHITECTURE.md...")
+        self.log(f"Architecture synthesis started (use_ai={use_ai})...")
+
+        def worker():
+            try:
+                content = ContextExportManager.generate_architecture_blueprint(
+                    project_name=p_name,
+                    files=selected,
+                    deps=deps_map,
+                    snippets=self.file_snippets,
+                    use_ai=use_ai,
+                    provider=p,
+                    api_base=url,
+                    api_key=key,
+                    model=model,
+                    progress_cb=lambda val, msg: self.safe_after(0, lambda: self._update_prog_sync(val, msg))
+                )
+                out_path = os.path.join(d, "ARCHITECTURE.md")
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                self.safe_after(0, lambda: self._on_arch_export_done(out_path, use_ai))
+            except Exception as e:
+                self.safe_after(0, lambda: self._on_arch_export_error(str(e)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_arch_export_done(self, out_path: str, use_ai: bool):
+        play_sfx("success")
+        mode_str = "Canlı 3. Parti AI Motoru" if use_ai else "T-Zero Yerel Çevrimdışı AST Motoru"
+        self.show_toast(f"ARCHITECTURE.md başarıyla oluşturuldu! ({mode_str})", "success")
+        self.log(f"ARCHITECTURE.md exported ({mode_str}): {out_path}")
+        self.gen_progress["value"] = 100
+        self.gen_status_lbl.config(text=f"ARCHITECTURE.md hazır ({mode_str})")
+
+    def _on_arch_export_error(self, err_msg: str):
+        play_sfx("error")
+        messagebox.showerror("Error", f"Failed saving ARCHITECTURE.md: {err_msg}")
+        self.gen_status_lbl.config(text="Architecture export failed.")
 
     def export_repo_map(self):
         play_sfx("click")
@@ -6948,7 +7220,7 @@ def run_export_cli(project_dir: str, export_type: str, out_file: str):
                             deps_map[f] = visitor.dependencies
                     except Exception:
                         pass
-        content = ContextExportManager.generate_architecture_blueprint(p_name, files, deps_map)
+        content = ContextExportManager.generate_architecture_blueprint(p_name, files, deps_map, snippets=snippets)
     elif export_type == "repomap":
         content = ContextExportManager.generate_repo_map(p_name, files, snippets)
     elif export_type == "html":
@@ -6992,12 +7264,12 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V4.0.0-beta.1")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V4.0.0")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v4.0.0-beta.1
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v4.0.0
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 

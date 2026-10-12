@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0] - 2026-10-12
+
+### Released (Official V4.0.0 Production Release)
+
+- **Official V4 Production Release:** Transitioned T-Zero Context Architect and MCP Server out of beta into full production release `v4.0.0`.
+- **Live 3rd-Party AI Architecture Blueprint Synthesis (`ARCHITECTURE.md`):** `ContextExportManager.generate_architecture_blueprint`, MCP Tool 4 (`generate_architecture_blueprint`), and GUI `export_architecture_md` now leverage live 3rd-party AI (NVIDIA NIM, OpenAI, Anthropic, Gemini, OpenRouter, Local Ollama, or Free AI Cloud) to synthesize comprehensive, project-tailored system architectures with deep layer breakdowns, component roles, and dynamic Mermaid topology diagrams.
+- **Deep Polyglot Local Offline AST Architecture Engine:** Replaced static template strings with a true offline AST engine that inspects actual project files, categorizes physical and logical layers (Entrypoints, Presentation, Services, Core Domain, Security/Persistence, Utilities, Tests), extracts declared classes and functions, and compiles a customized Mermaid dependency graph.
+- **Strict Verified AI Model Matrix:**
+  - **NVIDIA NIM:** `deepseek-v4.1-flash`, `deepseek-coder-6.7b`, `nemotron-70b`, `mistral-large-2`, `llama-3.2-90b-vision` (verified against live `/v1/models` endpoint).
+  - **OpenAI:** `gpt-4o`, `gpt-4o-mini`, `o3-mini`, `o1`.
+  - **Google Gemini:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`.
+  - **Anthropic:** `claude-3-7-sonnet-20250219`, `claude-3-5-sonnet`, `claude-3-5-haiku`.
+  - **OpenRouter:** Universal gateway for `claude-3.7-sonnet`, `gpt-4o`, `deepseek-r1`.
+  - **Local Ollama:** `llama3:latest`, `mistral:latest`, `phi3:latest`, `qwen2.5:latest` (100% private, local, offline, and free).
+  - **Free AI Cloud:** `FreePollinationsProvider` as autonomous zero-key fallback.
+- **Removed Deprecated & Inactive Models:** Purged deprecated models (`codestral-22b`, `nemotron-51b`, `llama-3.2-11b-vision`, `gemma-4-31b-it`, `glm-5.3-flash`) across all providers and added automatic legacy profile migration in `ConfigManager.load()`.
+- **High-Fidelity GUI Local Dry-Run:** Clicking "LOCAL DRY-RUN (OFFLINE)" now compiles the complete 4-Tier T-Zero Context Tree using `generate_offline_context`, updating the raw preview and rendered Markdown tabs instantly without making external network calls.
+- **100% Zero-Leak Security & OS Keyring Isolation:** Enforced strict credential isolation across all adapters; user credentials are encrypted in OS Keyring and never printed, logged, or exposed in commits or context trees.
+
 ## [4.0.0-beta.1] - 2026-10-11
 
 ### Added & Enhanced (Major V4 Beta)

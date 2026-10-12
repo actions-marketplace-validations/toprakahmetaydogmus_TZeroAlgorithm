@@ -5,8 +5,8 @@ authors:
     given-names: "Toprak Ahmet"
     affiliation: "Siber Akademi"
 title: "T-Zero: Polyglot AST Codebase Context Reduction Engine and 20-Tool Model Context Protocol Server for Autonomous AI Coding Agents"
-version: 4.0.0-beta.1
-date-released: 2026-10-11
+version: 4.0.0
+date-released: 2026-10-12
 url: "https://github.com/toprakahmetaydogmus/TZeroAlgorithm"
 repository-code: "https://github.com/toprakahmetaydogmus/TZeroAlgorithm"
 license: MIT
