@@ -50,7 +50,7 @@ REPO_URL = "https://github.com/toprakahmetaydogmus/TZeroAlgorithm"
 VERCEL_URL = "https://tzero-indol.vercel.app"
 SPACE_URL = "https://huggingface.co/spaces/toprakke4/tzero-token-reducer"
 
-# Model pricing in USD per 1 Million Prompt Tokens (Updated for Q4 2024 / 2025)
+# Model pricing in USD per 1 Million Prompt Tokens (Updated for 2026 Models)
 MODEL_PRICING: Dict[str, Dict[str, Any]] = {
     "OpenAI GPT-4o": {
         "input_per_m": 2.50,
@@ -59,12 +59,33 @@ MODEL_PRICING: Dict[str, Dict[str, Any]] = {
         "char_ratio": 3.75,
         "color": "#10a37f",
     },
+    "OpenAI o3-mini": {
+        "input_per_m": 1.10,
+        "output_per_m": 4.40,
+        "context_window": 200000,
+        "char_ratio": 3.75,
+        "color": "#10a37f",
+    },
+    "Anthropic Claude 3.7 Sonnet": {
+        "input_per_m": 3.00,
+        "output_per_m": 15.00,
+        "context_window": 200000,
+        "char_ratio": 3.65,
+        "color": "#d97706",
+    },
     "Anthropic Claude 3.5 Sonnet": {
         "input_per_m": 3.00,
         "output_per_m": 15.00,
         "context_window": 200000,
         "char_ratio": 3.65,
         "color": "#d97706",
+    },
+    "DeepSeek-V4.1-Flash": {
+        "input_per_m": 0.14,
+        "output_per_m": 0.28,
+        "context_window": 128000,
+        "char_ratio": 3.85,
+        "color": "#3b82f6",
     },
     "DeepSeek-V3": {
         "input_per_m": 0.14,
@@ -73,14 +94,14 @@ MODEL_PRICING: Dict[str, Dict[str, Any]] = {
         "char_ratio": 3.85,
         "color": "#3b82f6",
     },
-    "Google Gemini 1.5 Pro": {
+    "Google Gemini 2.5 Pro": {
         "input_per_m": 1.25,
         "output_per_m": 5.00,
         "context_window": 2000000,
         "char_ratio": 3.70,
         "color": "#8b5cf6",
     },
-    "Google Gemini 1.5 Flash": {
+    "Google Gemini 2.5 Flash": {
         "input_per_m": 0.075,
         "output_per_m": 0.30,
         "context_window": 1000000,
@@ -95,6 +116,7 @@ MODEL_PRICING: Dict[str, Dict[str, Any]] = {
         "color": "#ec4899",
     },
 }
+
 
 # ==================================================================================================
 # CUSTOM ULTRA-LUXURY GLASSMORPHISM CSS
@@ -547,6 +569,10 @@ class ASTContextArchitect:
             "parse_success": True,
         }
 
+        # Mask secrets BEFORE parsing AST to eliminate leaks in default arguments & docstrings
+        if mask_secrets:
+            code_str = cls.sanitize_secrets(code_str)
+
         try:
             tree = ast.parse(code_str)
         except SyntaxError as syn_err:
@@ -562,10 +588,7 @@ class ASTContextArchitect:
         imports: List[str] = []
         classes_data: List[str] = []
         globals_data: List[str] = []
-
-        # Mask secrets if enabled
-        if mask_secrets:
-            code_str = cls.sanitize_secrets(code_str)
+        api_routes: List[str] = []
 
         # Header for AI Agent
         output_lines.append("# " + "=" * 76)
@@ -575,6 +598,16 @@ class ASTContextArchitect:
         output_lines.append("")
 
         for node in tree.body:
+            # 0. API Route Contract Detection (@app.get, @router.post, etc.)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for dec in node.decorator_list:
+                    try:
+                        dec_str = ast.unparse(dec)
+                        if any(k in dec_str for k in (".get(", ".post(", ".put(", ".delete(", ".patch(", ".route(", "api_view")):
+                            api_routes.append(f"- [{dec_str}] -> def {node.name}(...)")
+                    except Exception:
+                        pass
+
             # 1. Imports
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 stats["imports_found"] += 1
@@ -588,24 +621,46 @@ class ASTContextArchitect:
             elif isinstance(node, ast.ClassDef):
                 stats["classes_found"] += 1
                 classes_data.append(cls._format_class_node(node, tier, strip_docstrings))
+                for sub in node.body:
+                    if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        for dec in sub.decorator_list:
+                            try:
+                                dec_str = ast.unparse(dec)
+                                if any(k in dec_str for k in (".get(", ".post(", ".put(", ".delete(", ".patch(", ".route(", "api_view")):
+                                    api_routes.append(f"- [{dec_str}] -> {node.name}.{sub.name}(...)")
+                            except Exception:
+                                pass
 
             # 3. Top-Level Functions
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 stats["functions_found"] += 1
                 classes_data.append(cls._format_function_node(node, tier, strip_docstrings, indent=""))
 
-            # 4. Global Constants & Type Aliases
+            # 4. Global Constants, __all__, Type Aliases, and TypeVars
             elif isinstance(node, ast.Assign):
                 for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id.isupper():
-                        try:
-                            globals_data.append(f"{target.id} = ... # Global Constant")
-                        except Exception:
-                            pass
+                    if isinstance(target, ast.Name):
+                        if target.id == "__all__":
+                            globals_data.append(ast.unparse(node))
+                        elif target.id.isupper():
+                            try:
+                                globals_data.append(f"{target.id} = ... # Global Constant")
+                            except Exception:
+                                pass
+                        elif isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in ("TypeVar", "NewType"):
+                            globals_data.append(ast.unparse(node))
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                if node.target.id == "__all__" or node.target.id.isupper() or "TypeAlias" in ast.unparse(node.annotation):
+                    globals_data.append(ast.unparse(node))
 
         if imports and tier != "T-1 Topology":
             output_lines.append("# --- [TIER T-2] DEPENDENCIES & SYSTEM IMPORTS ---")
             output_lines.extend(imports)
+            output_lines.append("")
+
+        if api_routes:
+            output_lines.append("# --- [TIER T-3] 🌐 API ENDPOINTS & ROUTES CONTRACT ---")
+            output_lines.extend(api_routes)
             output_lines.append("")
 
         if globals_data:
@@ -635,10 +690,26 @@ class ASTContextArchitect:
 
     @classmethod
     def _format_class_node(cls, node: ast.ClassDef, tier: str, strip_docstrings: bool) -> str:
-        """Formats a class declaration with bases, docstrings, and pruned method stubs."""
+        """Formats a class declaration with bases, docstrings, schema definitions, and pruned method stubs."""
         bases = [ast.unparse(b) for b in node.bases]
         bases_str = f"({', '.join(bases)})" if bases else ""
         lines = [f"class {node.name}{bases_str}:"]
+
+        # Check if class is a Pydantic BaseModel, TypedDict, Enum, SQLAlchemy Base/Model, or dataclass
+        is_schema = False
+        schema_keywords = {"BaseModel", "TypedDict", "Enum", "IntEnum", "StrEnum", "Base", "Model", "SQLModel"}
+        for b in bases:
+            if any(k in b for k in schema_keywords):
+                is_schema = True
+                break
+        for dec in node.decorator_list:
+            try:
+                dec_str = ast.unparse(dec)
+                if "dataclass" in dec_str:
+                    is_schema = True
+                    break
+            except Exception:
+                pass
 
         # Docstring
         doc = ast.get_docstring(node)
@@ -646,16 +717,57 @@ class ASTContextArchitect:
             first_line = doc.strip().splitlines()[0]
             lines.append(f'    """{first_line}"""')
 
+        # Schema fields & instance attributes (100% preservation for Pydantic/dataclass/TypedDict/Enum)
+        schema_fields: List[str] = []
+        for item in node.body:
+            if isinstance(item, ast.AnnAssign):
+                # Annotated field (e.g. name: str = Field(...))
+                try:
+                    schema_fields.append(f"    {ast.unparse(item)}")
+                except Exception:
+                    pass
+            elif isinstance(item, ast.Assign) and (is_schema or any(isinstance(t, ast.Name) and t.id.isupper() for t in item.targets)):
+                # Class attribute / Enum constant (e.g. ACTIVE = "active", count = 0)
+                try:
+                    schema_fields.append(f"    {ast.unparse(item)}")
+                except Exception:
+                    pass
+            elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == "__init__":
+                for child in ast.walk(item):
+                    if isinstance(child, ast.Assign):
+                        for target in child.targets:
+                            if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id == "self":
+                                inferred = "Any"
+                                if isinstance(child.value, ast.Constant):
+                                    inferred = type(child.value.value).__name__
+                                elif isinstance(child.value, ast.List):
+                                    inferred = "list"
+                                elif isinstance(child.value, ast.Dict):
+                                    inferred = "dict"
+                                elif isinstance(child.value, ast.Set):
+                                    inferred = "set"
+                                attr_line = f"    self.{target.attr}: {inferred} = ..."
+                                if attr_line not in schema_fields:
+                                    schema_fields.append(attr_line)
+                    elif isinstance(child, ast.AnnAssign):
+                        if isinstance(child.target, ast.Attribute) and isinstance(child.target.value, ast.Name) and child.target.value.id == "self":
+                            try:
+                                attr_line = f"    self.{child.target.attr}: {ast.unparse(child.annotation)} = ..."
+                                if attr_line not in schema_fields:
+                                    schema_fields.append(attr_line)
+                            except Exception:
+                                pass
+
+        if schema_fields:
+            lines.extend(schema_fields)
+
         methods_found = 0
         for item in node.body:
             if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 methods_found += 1
                 lines.append(cls._format_function_node(item, tier, strip_docstrings, indent="    "))
-            elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
-                type_hint = ast.unparse(item.annotation)
-                lines.append(f"    {item.target.id}: {type_hint}")
 
-        if methods_found == 0 and not doc:
+        if methods_found == 0 and not doc and not schema_fields:
             lines.append("    pass")
 
         lines.append("")
@@ -669,16 +781,56 @@ class ASTContextArchitect:
         strip_docstrings: bool,
         indent: str = "",
     ) -> str:
-        """Extracts signature, args, return type, and replaces body with pass."""
+        """Extracts signature with 100% parameter contract fidelity and raised exceptions."""
         prefix = "async def " if isinstance(node, ast.AsyncFunctionDef) else "def "
         
-        # Build arguments string
+        args = node.args
+        all_pos = args.posonlyargs + args.args
+        num_defaults = len(args.defaults)
+        defaults_offset = len(all_pos) - num_defaults
+        
         args_parts: List[str] = []
-        for arg in node.args.args:
+        for i, arg in enumerate(args.posonlyargs):
             name = arg.arg
             if arg.annotation:
                 name += f": {ast.unparse(arg.annotation)}"
+            if i >= defaults_offset:
+                name += f" = {ast.unparse(args.defaults[i - defaults_offset])}"
             args_parts.append(name)
+        if args.posonlyargs:
+            args_parts.append("/")
+            
+        for i, arg in enumerate(args.args):
+            idx = len(args.posonlyargs) + i
+            name = arg.arg
+            if arg.annotation:
+                name += f": {ast.unparse(arg.annotation)}"
+            if idx >= defaults_offset:
+                name += f" = {ast.unparse(args.defaults[idx - defaults_offset])}"
+            args_parts.append(name)
+            
+        if args.vararg:
+            v_s = f"*{args.vararg.arg}"
+            if args.vararg.annotation:
+                v_s += f": {ast.unparse(args.vararg.annotation)}"
+            args_parts.append(v_s)
+        elif args.kwonlyargs:
+            args_parts.append("*")
+            
+        for i, arg in enumerate(args.kwonlyargs):
+            name = arg.arg
+            if arg.annotation:
+                name += f": {ast.unparse(arg.annotation)}"
+            default = args.kw_defaults[i]
+            if default is not None:
+                name += f" = {ast.unparse(default)}"
+            args_parts.append(name)
+            
+        if args.kwarg:
+            k_s = f"**{args.kwarg.arg}"
+            if args.kwarg.annotation:
+                k_s += f": {ast.unparse(args.kwarg.annotation)}"
+            args_parts.append(k_s)
 
         returns_str = ""
         if node.returns:
@@ -692,6 +844,22 @@ class ASTContextArchitect:
             result.extend(decorators)
         result.append(sig_line)
 
+        # Detect explicit raises
+        exc_names: List[str] = []
+        for child in ast.walk(node):
+            if isinstance(child, ast.Raise) and child.exc:
+                if isinstance(child.exc, ast.Call) and isinstance(child.exc.func, (ast.Name, ast.Attribute)):
+                    name = ast.unparse(child.exc.func)
+                    if name not in exc_names:
+                        exc_names.append(name)
+                elif isinstance(child.exc, (ast.Name, ast.Attribute)):
+                    name = ast.unparse(child.exc)
+                    if name not in exc_names:
+                        exc_names.append(name)
+
+        if exc_names:
+            result.append(f"{indent}    # Raises: {', '.join(exc_names)}")
+
         # Docstring extraction
         doc = ast.get_docstring(node)
         if doc and not strip_docstrings:
@@ -703,16 +871,52 @@ class ASTContextArchitect:
 
     @classmethod
     def _fallback_regex_prune(cls, code: str) -> str:
-        """Fallback regex pruner for non-python or syntactically invalid code."""
+        """Brace-balanced structural polyglot signature parser for non-Python or syntax-invalid source."""
         lines = code.splitlines()
-        kept = []
+        kept: List[str] = []
+        brace_depth = 0
+        in_block_contract = False
+        in_block_comment = False
+
         for line in lines:
             stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Multi-line comment tracking
+            if in_block_comment:
+                if "*/" in stripped:
+                    in_block_comment = False
+                continue
+            if stripped.startswith("/*") and not stripped.endswith("*/"):
+                in_block_comment = True
+                continue
+            if stripped.startswith("//") or stripped.startswith("#"):
+                continue
+
+            # Track interface / struct / type / class / enum / trait contracts
+            is_contract_decl = bool(re.match(
+                r"^(export\s+)?(pub(\(crate\))?\s+)?(type|interface|struct|enum|trait|class|impl)\s+[A-Za-z0-9_]+",
+                stripped
+            ))
+            if is_contract_decl:
+                in_block_contract = True
+
+            if in_block_contract:
+                kept.append(line)
+                open_braces = line.count("{")
+                close_braces = line.count("}")
+                brace_depth += (open_braces - close_braces)
+                if brace_depth <= 0 and ("{" in line or "}" in line or ";" in line):
+                    in_block_contract = False
+                    brace_depth = 0
+                continue
+
             if (
-                stripped.startswith(("class ", "def ", "async def ", "import ", "from ", "export ", "public ", "function "))
+                stripped.startswith(("class ", "def ", "async def ", "import ", "from ", "export ", "public ", "func ", "fn "))
                 or stripped.endswith(":")
             ):
-                kept.append(line)
+                kept.append(line.split("{")[0].rstrip())
         return "\n".join(kept)
 
     @classmethod

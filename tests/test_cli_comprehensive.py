@@ -136,6 +136,25 @@ class TestComprehensiveCLI(unittest.TestCase):
         self.assertEqual(res.returncode, 0)
         self.assertIn("[ARCH PASS]", res.stdout)
 
+    def test_cli_audit_sarif(self):
+        res = self._run_cli(["--audit", ".", "--format", "sarif"])
+        self.assertEqual(res.returncode, 0)
+        self.assertIn('"version": "2.1.0"', res.stdout)
+        self.assertIn("StaticCodeAnalyzer", res.stdout)
+
+    def test_cli_audit_json(self):
+        import json
+        res = self._run_cli(["--audit", ".", "--format", "json"])
+        self.assertEqual(res.returncode, 0)
+        data = json.loads(res.stdout)
+        self.assertIn("total_issues", data)
+        self.assertIn("issues", data)
+
+    def test_cli_pr_report(self):
+        res = self._run_cli(["--pr-report", "HEAD"])
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("T-Zero Autonomous PR Architecture & Security Report", res.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -111,6 +111,52 @@ class TestKeyringSecretsBackupManager(unittest.TestCase):
 
         self.assertEqual(bytes(decrypted), raw_bytes)
 
+    def test_pbkdf2_backup_and_restore_roundtrip(self):
+        import unittest.mock
+        saved_rounds = KeyringSecretsBackupManager.PBKDF2_ROUNDS
+        KeyringSecretsBackupManager.PBKDF2_ROUNDS = 2000
+        mock_store = {"OpenAI": "sk-realtestkey12345", "Anthropic": "sk-ant-test67890"}
+        try:
+            with unittest.mock.patch("keyring.get_password", side_effect=lambda s, p: mock_store.get(p)):
+                restored_store = {}
+                with unittest.mock.patch("keyring.set_password", side_effect=lambda s, p, v: restored_store.__setitem__(p, v)):
+                    ok = KeyringSecretsBackupManager.backup_credentials(self.backup_path, "master_pass_123")
+                    self.assertTrue(ok)
+                    self.assertTrue(os.path.exists(self.backup_path))
+                    with open(self.backup_path, "rb") as f:
+                        data = f.read()
+                    self.assertTrue(data.startswith(KeyringSecretsBackupManager.MAGIC_HEADER))
+
+                    # Restore with correct passphrase
+                    restore_ok = KeyringSecretsBackupManager.restore_credentials(self.backup_path, "master_pass_123")
+                    self.assertTrue(restore_ok)
+                    self.assertEqual(restored_store, mock_store)
+
+                    # Restore with wrong passphrase should fail authentication
+                    fail_ok = KeyringSecretsBackupManager.restore_credentials(self.backup_path, "wrong_pass")
+                    self.assertFalse(fail_ok)
+        finally:
+            KeyringSecretsBackupManager.PBKDF2_ROUNDS = saved_rounds
+
+    def test_legacy_xor_fallback_restore(self):
+        import json
+        import unittest.mock
+        legacy_data = json.dumps({"NVIDIA NIM": "nv-secret-12345"}).encode("utf-8")
+        passphrase = "legacy_passphrase"
+        key_bytes = passphrase.encode("utf-8")
+        encrypted = bytearray(legacy_data)
+        for i in range(len(encrypted)):
+            encrypted[i] ^= key_bytes[i % len(key_bytes)]
+
+        with open(self.backup_path, "wb") as f:
+            f.write(encrypted)
+
+        restored = {}
+        with unittest.mock.patch("keyring.set_password", side_effect=lambda s, p, v: restored.__setitem__(p, v)):
+            ok = KeyringSecretsBackupManager.restore_credentials(self.backup_path, passphrase)
+            self.assertTrue(ok)
+            self.assertEqual(restored, {"NVIDIA NIM": "nv-secret-12345"})
+
 
 if __name__ == "__main__":
     unittest.main()

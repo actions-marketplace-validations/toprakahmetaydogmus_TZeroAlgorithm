@@ -24,9 +24,10 @@ class TestMCPServer(unittest.TestCase):
         return asyncio.run(coro)
 
     def test_mcp_tools_and_prompts_registration(self):
-        """Verifies that all 8 MCP tools and grounding prompt are properly registered."""
+        """Verifies that all 21 MCP tools and grounding prompt are properly registered."""
         tools = self.run_async(self.server.list_tools())
         tool_names = [t.name for t in tools]
+        self.assertEqual(len(tool_names), 21)
         expected_tools = [
             "get_project_context_tree",
             "query_module_dependencies",
@@ -43,7 +44,12 @@ class TestMCPServer(unittest.TestCase):
             "get_token_savings_metrics",
             "get_incremental_diff_context",
             "prune_code_snippet",
-            "verify_zero_leak_security"
+            "verify_zero_leak_security",
+            "verify_hallucination_guard",
+            "get_smart_skeleton_context",
+            "rank_repository_pagerank",
+            "trace_symbol_call_chain",
+            "find_dead_code",
         ]
         for exp in expected_tools:
             self.assertIn(exp, tool_names)

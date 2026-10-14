@@ -66,7 +66,10 @@ try:
         calculate_token_cost,
         count_tokens_precise,
         PROVIDER_COST_PER_MILLION,
+        PROVIDERS,
+        ConfigManager,
     )
+    _config_mgr = ConfigManager()
 except ImportError as e:
     sys.stderr.write(f"[ERROR] Failed to import core T-Zero engine: {e}\n")
     sys.exit(1)
@@ -257,12 +260,31 @@ def create_mcp_server():
         token_count = count_tokens_precise(raw_context)
 
         if token_count > max_tokens:
+            try:
+                from tzero_features import RepositoryPageRank
+                pr_analyzer = RepositoryPageRank(abs_root)
+                ranks = pr_analyzer.rank(top_k=len(selected_files))
+                score_map = {r["file"]: r["score"] for r in ranks}
+            except Exception:
+                score_map = {}
+
+            def file_priority(f: str) -> float:
+                pr = score_map.get(f, 0.0)
+                full_p = os.path.join(abs_root, f)
+                try:
+                    mtime = os.path.getmtime(full_p)
+                except Exception:
+                    mtime = 0.0
+                base_bonus = 1.0 if any(ep in os.path.basename(f).lower() for ep in ("main", "app", "index", "server", "core", "models", "schema")) else 0.0
+                return (pr * 100.0) + base_bonus + (mtime / 1e10)
+
+            ranked_files = sorted(selected_files, key=file_priority, reverse=True)
             budget_ratio = max_tokens / max(token_count, 1)
             keep_count = max(1, int(len(selected_files) * budget_ratio))
-            pruned_files = selected_files[:keep_count]
+            pruned_files = [f for f in selected_files if f in ranked_files[:keep_count]]
             pruned_snippets = {k: reduced_snippets[k] for k in pruned_files}
             raw_context = generate_offline_context(abs_root, pruned_files, pruned_snippets)
-            raw_context += f"\n\n> [NOTE] Context was capped to fit max_tokens={max_tokens} (retained top {keep_count} priority modules)."
+            raw_context += f"\n\n> [NOTE] Context was capped to fit max_tokens={max_tokens} (retained top {keep_count} priority modules prioritized via PageRank + Recency)."
 
         return raw_context
 
@@ -959,6 +981,144 @@ def create_mcp_server():
         return f"🔒 [ZERO-LEAK PASS] All {len(files)} files in `{abs_root}` passed 100% Zero-Leak security audit. Zero exposed secrets."
 
     # -------------------------------------------------------------------------
+    # TOOL 17: verify_hallucination_guard
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="verify_hallucination_guard",
+        description=(
+            "Eliminates AI coding hallucinations before code is written or applied. "
+            "Parses proposed code and verifies all internal imports and function/method call "
+            "contracts (argument counts and keyword parameter names) against known workspace AST signatures."
+        )
+    )
+    def verify_hallucination_guard(
+        proposed_code: str,
+        target_file: str = "",
+        project_root: str = "."
+    ) -> str:
+        """Validates proposed code against workspace AST signatures and contracts.
+        
+        Args:
+            proposed_code: Python code proposed to be written or edited.
+            target_file: Optional path of the target file being modified.
+            project_root: Root directory of the repository (default: current directory).
+        """
+        abs_root = os.path.abspath(project_root)
+        from tzero_features import ZeroHallucinationGuard
+        guard = ZeroHallucinationGuard(abs_root)
+        res = guard.validate_code(proposed_code, target_file)
+        return res["report"]
+
+    # -------------------------------------------------------------------------
+    # TOOL 18: get_smart_skeleton_context
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="get_smart_skeleton_context",
+        description=(
+            "Focus-aware dynamic skeletonizer. Returns the full, unpruned implementation of "
+            "the focus file (or specific focus symbol), surrounded by ultra-compact T-3 AST "
+            "signatures for all 1st-degree outbound imports and inbound callers. Solves the "
+            "'Lost in the Middle' problem while saving 95%+ tokens."
+        )
+    )
+    def get_smart_skeleton_context(
+        focus_file: str,
+        focus_symbol: str = "",
+        project_root: str = "."
+    ) -> str:
+        """Returns focus implementation with 1st-degree surrounding AST skeletons.
+        
+        Args:
+            focus_file: Target file path to focus on.
+            focus_symbol: Optional specific function or class name within focus_file to inspect.
+            project_root: Root directory of the repository (default: current directory).
+        """
+        abs_root = os.path.abspath(project_root)
+        from tzero_features import SmartSkeletonContextBuilder
+        builder = SmartSkeletonContextBuilder(abs_root)
+        return builder.build_skeleton(focus_file, focus_symbol)
+
+    # -------------------------------------------------------------------------
+    # TOOL 19: rank_repository_pagerank
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="rank_repository_pagerank",
+        description=(
+            "Identifies the architectural backbone and most critical modules of any repository "
+            "using graph-theory PageRank centrality over AST import and reference topologies. "
+            "Ranks modules by inbound/outbound degree and structural criticality."
+        )
+    )
+    def rank_repository_pagerank(
+        project_root: str = ".",
+        top_k: int = 15
+    ) -> str:
+        """Computes PageRank architectural centrality scores for repository modules.
+        
+        Args:
+            project_root: Root directory of the repository (default: current directory).
+            top_k: Number of top central modules to return in the ranking report (default: 15).
+        """
+        abs_root = os.path.abspath(project_root)
+        from tzero_features import RepositoryPageRank
+        ranker = RepositoryPageRank(abs_root)
+        rankings = ranker.rank(top_k=top_k)
+        return ranker.format_report(rankings)
+
+    # -------------------------------------------------------------------------
+    # TOOL 20: trace_symbol_call_chain
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="trace_symbol_call_chain",
+        description=(
+            "Traces deep execution paths across the codebase AST. Recursively discovers "
+            "upstream callers (who calls symbol_name) and downstream callees (what symbol_name calls) "
+            "up to max_depth, rendering an execution tree and Mermaid call diagram."
+        )
+    )
+    def trace_symbol_call_chain(
+        symbol_name: str,
+        project_root: str = ".",
+        max_depth: int = 3
+    ) -> str:
+        """Traces upstream and downstream call chains for any function or method.
+        
+        Args:
+            symbol_name: Name of the function or method to trace.
+            project_root: Root directory of the repository (default: current directory).
+            max_depth: Maximum recursion depth for the call graph traversal (default: 3).
+        """
+        abs_root = os.path.abspath(project_root)
+        from tzero_features import SymbolCallChainTracer
+        tracer = SymbolCallChainTracer(abs_root)
+        res = tracer.trace(symbol_name, max_depth=max_depth)
+        return tracer.format_report(res)
+
+    # -------------------------------------------------------------------------
+    # TOOL 21: find_dead_code
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="find_dead_code",
+        description=(
+            "Finds unused, orphaned, or unreferenced functions and classes across the codebase AST. "
+            "Excludes __all__, main, dunder methods, and test functions."
+        )
+    )
+    def find_dead_code(
+        project_root: str = "."
+    ) -> str:
+        """Discovers unused symbols and dead code candidates across the codebase.
+        
+        Args:
+            project_root: Root directory of the repository (default: current directory).
+        """
+        abs_root = os.path.abspath(project_root)
+        from tzero_features import DeadCodeFinder
+        finder = DeadCodeFinder(abs_root)
+        dead = finder.find_unused_symbols()
+        return finder.format_report(dead)
+
+    # -------------------------------------------------------------------------
     # RESOURCES: tzero://architecture, tzero://boundaries, tzero://token-roi
     # -------------------------------------------------------------------------
     @server.resource(
@@ -968,9 +1128,7 @@ def create_mcp_server():
         mime_type="text/markdown"
     )
     def resource_architecture() -> str:
-        from tzero_features import ArchitectureBlueprintGenerator
-        gen = ArchitectureBlueprintGenerator(".")
-        return gen.generate_markdown()
+        return generate_architecture_blueprint(project_root=".", use_ai=False)
 
     @server.resource(
         "tzero://boundaries",

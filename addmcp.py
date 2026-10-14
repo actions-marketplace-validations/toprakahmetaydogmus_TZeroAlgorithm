@@ -568,6 +568,38 @@ _MCP_TOOLS_SPEC = {
         "Computes quantitative token reduction metrics and monthly team financial ROI savings.",
         "Invoke the `get_token_savings_metrics` MCP tool."
     ),
+    "get_incremental_diff_context": (
+        "Extracts ultra-compact PR diff context with modified symbols and downstream blast radius for code reviews.",
+        "Invoke the `get_incremental_diff_context` MCP tool."
+    ),
+    "prune_code_snippet": (
+        "Prunes arbitrary in-memory code snippets into compact AST signatures on-the-fly (80-95% reduction).",
+        "Invoke the `prune_code_snippet` MCP tool."
+    ),
+    "verify_zero_leak_security": (
+        "100% Zero-Leak security scanner for hardcoded API keys and secrets across workspace files.",
+        "Invoke the `verify_zero_leak_security` MCP tool."
+    ),
+    "verify_hallucination_guard": (
+        "Eliminates AI coding hallucinations before code is written by validating imports and function call signatures against workspace AST.",
+        "Invoke the `verify_hallucination_guard` MCP tool with proposed code."
+    ),
+    "get_smart_skeleton_context": (
+        "Focus-aware dynamic skeletonizer delivering full focus implementation with surrounding 1st-degree AST interface skeletons.",
+        "Invoke the `get_smart_skeleton_context` MCP tool with focus file/symbol."
+    ),
+    "rank_repository_pagerank": (
+        "Identifies repository architectural backbone and module centrality using graph-theory PageRank over AST topologies.",
+        "Invoke the `rank_repository_pagerank` MCP tool."
+    ),
+    "trace_symbol_call_chain": (
+        "Traces deep upstream callers and downstream callees across workspace AST with execution tree and Mermaid diagrams.",
+        "Invoke the `trace_symbol_call_chain` MCP tool with target symbol name."
+    ),
+    "find_dead_code": (
+        "Finds unused, orphaned, or unreferenced functions and classes across the codebase AST.",
+        "Invoke the `find_dead_code` MCP tool."
+    ),
 }
 
 _ANTIGRAVITY_PLUGIN_JSON = """{

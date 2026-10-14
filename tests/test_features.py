@@ -29,6 +29,9 @@ from tzero_features import (
     HTML_DASHBOARD_TEMPLATE,
     DashboardRequestHandler,
     GitDiffContextBuilder,
+    DeadCodeFinder,
+    detect_circular_dependencies,
+    ZeroHallucinationGuard,
 )
 
 
@@ -269,6 +272,79 @@ class TestGitDiffContextBuilder(unittest.TestCase):
         self.assertIn("Incremental PR Context", res["markdown"])
         self.assertIn("core.py", res["markdown"])
         self.assertGreater(res["token_savings_percent"], 0.0)
+
+
+class TestDeadCodeFinder(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.temp_dir, "lib.py"), "w", encoding="utf-8") as f:
+            f.write(
+                "def used_function():\n    return 1\n\n"
+                "def orphan_function():\n    return 2\n\n"
+                "class OrphanClass:\n    pass\n"
+            )
+        with open(os.path.join(self.temp_dir, "main.py"), "w", encoding="utf-8") as f:
+            f.write(
+                "import lib\n\n"
+                "def run():\n    return lib.used_function()\n"
+            )
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_find_unused_symbols(self):
+        finder = DeadCodeFinder(self.temp_dir)
+        dead = finder.find_unused_symbols()
+        dead_names = [d["symbol"] for d in dead["dead_symbols"]]
+        self.assertIn("orphan_function", dead_names)
+        self.assertIn("OrphanClass", dead_names)
+        self.assertNotIn("used_function", dead_names)
+
+
+class TestCircularDependencies(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.temp_dir, "mod_a.py"), "w", encoding="utf-8") as f:
+            f.write("import mod_b\n")
+        with open(os.path.join(self.temp_dir, "mod_b.py"), "w", encoding="utf-8") as f:
+            f.write("import mod_a\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_detect_cycles(self):
+        cycles = detect_circular_dependencies(self.temp_dir)
+        self.assertTrue(len(cycles) > 0)
+        cycle_str = " -> ".join(cycles[0])
+        self.assertTrue("mod_a" in cycle_str and "mod_b" in cycle_str)
+
+
+class TestZeroHallucinationGuard(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.temp_dir, "calc.py"), "w", encoding="utf-8") as f:
+            f.write(
+                "class Calculator:\n"
+                "    def add_numbers(self, a: int, b: int) -> int:\n"
+                "        return a + b\n"
+            )
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_fuzzy_did_you_mean_suggestion(self):
+        guard = ZeroHallucinationGuard(self.temp_dir)
+        # 1. Mismatched import with typo
+        proposed_import_typo = "from calc import Calculater\n"
+        res_import = guard.validate_code(proposed_import_typo)
+        self.assertFalse(res_import["passed"])
+        self.assertIn("Calculator", res_import["report"])
+
+        # 2. Mismatched keyword argument
+        proposed_kwarg_typo = "from calc import Calculator\nc = Calculator()\nc.add_numbers(a=1, bx=2)\n"
+        res_kwarg = guard.validate_code(proposed_kwarg_typo)
+        self.assertFalse(res_kwarg["passed"])
+        self.assertIn("b", res_kwarg["report"])
 
 
 if __name__ == "__main__":

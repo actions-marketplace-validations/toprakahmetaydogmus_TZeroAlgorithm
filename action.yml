@@ -18,6 +18,14 @@ inputs:
     description: 'Enforce architectural boundaries defined in tzero.rules.json'
     required: false
     default: 'false'
+  format:
+    description: 'Output format for audit (text, json, sarif)'
+    required: false
+    default: 'text'
+  pr-report:
+    description: 'Generate GitHub PR Summary report with Blast Radius and Security tables'
+    required: false
+    default: 'false'
 
 runs:
   using: 'composite'
@@ -34,9 +42,14 @@ runs:
     - name: Run AST Code & Security Audit
       if: ${{ inputs.audit == 'true' }}
       shell: bash
-      run: tzero --audit "${{ inputs.workspace }}"
+      run: tzero --audit "${{ inputs.workspace }}" --format "${{ inputs.format }}"
 
     - name: Enforce Architecture Boundaries
       if: ${{ inputs.enforce-boundaries == 'true' }}
       shell: bash
       run: tzero --enforce-boundaries --dir "${{ inputs.workspace }}"
+
+    - name: Generate T-Zero PR Summary Report
+      if: ${{ inputs.pr-report == 'true' }}
+      shell: bash
+      run: tzero --pr-report HEAD~1 --dir "${{ inputs.workspace }}"
