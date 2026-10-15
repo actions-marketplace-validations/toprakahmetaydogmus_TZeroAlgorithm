@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/stargazers"><img src="https://img.shields.io/github/stars/toprakahmetaydogmus/TZeroAlgorithm?style=for-the-badge&logo=github&color=ffd700" alt="GitHub Stars" /></a>
   <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm"><img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/score.svg" alt="T-Zero MCP server on Glama" height="28" /></a>
   <a href="https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm"><img src="https://img.shields.io/badge/mcpservers.org-verified-2563eb?style=for-the-badge&logo=server" alt="Listed on mcpservers.org" /></a>
   <a href="https://pypi.org/project/tzero-mcp/"><img src="https://img.shields.io/pypi/v/tzero-mcp?color=00ffd8&style=for-the-badge&logo=pypi" alt="PyPI Version" /></a>
@@ -1297,6 +1298,18 @@ jobs:
           audit: 'true'
           enforce-boundaries: 'false'
 ```
+
+---
+
+## ⭐ Star History
+
+If you find T-Zero helpful for your AI coding workflows, please consider giving it a star on GitHub! It helps more developers discover the project.
+
+<p align="center">
+  <a href="https://star-history.com/#toprakahmetaydogmus/TZeroAlgorithm&Date">
+    <img src="https://api.star-history.com/svg?repos=toprakahmetaydogmus/TZeroAlgorithm&type=Date&theme=dark" alt="T-Zero Algorithm Star History Chart" width="100%" />
+  </a>
+</p>
 
 ---
 
