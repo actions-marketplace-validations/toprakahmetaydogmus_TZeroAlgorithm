@@ -7,7 +7,7 @@ name = "tzero-mcp"
 version = "4.0.0"
 description = "Enterprise Codebase Context Builder, AST Signatures Analyzer, & Token Reducer for LLMs"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
     { name = "Toprak Ahmet Aydoğmuş", email = "toprakahmetileq@gmail.com" }
@@ -24,8 +24,6 @@ keywords = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -41,6 +39,7 @@ dependencies = [
     "darkdetect>=0.8.0",
     "pygments>=2.14.0",
     "Pillow>=9.0.0",
+    "pyinstaller>=6.0.0",
     "mcp>=1.0.0",
     "typer>=0.9.0"
 ]
