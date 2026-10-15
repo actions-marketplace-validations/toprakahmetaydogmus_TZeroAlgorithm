@@ -1,5 +1,5 @@
 <a id="top"></a>
-# ⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT V4
+# ⚡  T-ZERO CONTEXT ARCHITECT V4
 
 <p align="center">
   <a href="#english"><img src="https://img.shields.io/badge/Language-🇬🇧%20English-007acc?style=for-the-badge&logo=gitbook&logoColor=white" alt="English Documentation" /></a>
