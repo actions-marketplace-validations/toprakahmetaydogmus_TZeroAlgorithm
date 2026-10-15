@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [INFO] Installing project build/runtime requirements...
-python -m pip install -r requirements.txt
+python -m pip install .
 if %errorlevel% neq 0 (
     echo [ERROR] Dependency installation failed.
     pause

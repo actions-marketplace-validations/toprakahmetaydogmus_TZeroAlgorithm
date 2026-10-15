@@ -10,11 +10,8 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install dependencies first for efficient layer caching
-COPY requirements.txt pyproject.toml ./
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
-
-# Copy repository code
+# Copy project files
+COPY pyproject.toml uv.lock* uv.toml* ./
 COPY . .
 
 # Install package so tzero-mcp is registered on system PATH

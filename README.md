@@ -1,18 +1,23 @@
-# ⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT V3
+<a id="top"></a>
+# ⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT V4
 
 <p align="center">
-  <a href="#-english"><b>🇬🇧 English Documentation</b></a> • 
-  <a href="#-türkçe"><b>🇹🇷 Türkçe Dokümantasyon</b></a>
+  <a href="#english"><img src="https://img.shields.io/badge/Language-🇬🇧%20English-007acc?style=for-the-badge&logo=gitbook&logoColor=white" alt="English Documentation" /></a>
+  &nbsp;&nbsp;
+  <a href="#turkce"><img src="https://img.shields.io/badge/Dil-🇹🇷%20Türkçe-e03131?style=for-the-badge&logo=gitbook&logoColor=white" alt="Türkçe Dokümantasyon" /></a>
 </p>
 
 <p align="center">
-  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm"><img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/score.svg" alt="T-Zero MCP server on Glama" /></a>
-  <a href="https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm"><img src="https://mcpservers.org/badge.svg" alt="Listed on mcpservers.org" /></a>
+  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm"><img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/score.svg" alt="T-Zero MCP server on Glama" height="28" /></a>
+  <a href="https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm"><img src="https://img.shields.io/badge/mcpservers.org-verified-2563eb?style=for-the-badge&logo=server" alt="Listed on mcpservers.org" /></a>
   <a href="https://pypi.org/project/tzero-mcp/"><img src="https://img.shields.io/pypi/v/tzero-mcp?color=00ffd8&style=for-the-badge&logo=pypi" alt="PyPI Version" /></a>
   <a href="https://huggingface.co/spaces/toprakke4/tzero-token-reducer"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-ffd21e?style=for-the-badge" alt="Hugging Face Spaces Live Demo" /></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/MCP-21%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 21 Tools Ready" />
   <img src="https://img.shields.io/badge/Security-100%25%20Zero--Leak%20Keyring-50fa7b?style=for-the-badge&logo=shield" alt="Zero Leak Security" />
-  <img src="https://img.shields.io/badge/Python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14-bd93f9?style=for-the-badge&logo=python" alt="Python Versions" />
+  <img src="https://img.shields.io/badge/Python-%3E%3D3.11-bd93f9?style=for-the-badge&logo=python" alt="Python Versions" />
   <img src="https://img.shields.io/badge/Tests-131%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 131 Passing" />
   <img src="https://img.shields.io/badge/License-MIT-f1fa8c?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-ff79c6?style=for-the-badge" alt="Platform" />
@@ -28,11 +33,11 @@
 **GitHub Repository:** [https://github.com/toprakahmetaydogmus/TZeroAlgorithm](https://github.com/toprakahmetaydogmus/TZeroAlgorithm)
 
 <p align="center">
-  <img src="assets/social-preview.png" alt="Siber Akademi T-Zero Context Architect Banner" width="100%" />
+  <img src="https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/main/assets/social-preview.png" alt="Siber Akademi T-Zero Context Architect Banner" width="100%" />
 </p>
 
 <p align="center">
-  <img src="assets/benchmark-demo.svg" alt="T-Zero AST Token Reduction Benchmark" width="100%" />
+  <img src="https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/main/assets/benchmark-demo.svg" alt="T-Zero AST Token Reduction Benchmark" width="100%" />
 </p>
 
 ### ⚡ Visual Proof: Raw Ingestion vs. T-Zero AST Pruning (Reproducible)
@@ -71,7 +76,14 @@ python tzero.py --savings
 
 ---
 
+<a id="english"></a>
 # 🇬🇧 English
+
+<p align="right">
+  <a href="#turkce"><img src="https://img.shields.io/badge/Dokümantasyon-🇹🇷%20Türkçe'ye%20Geç-e03131?style=flat-square" alt="Türkçe'ye Geç" /></a>
+  &nbsp;
+  <a href="#top"><img src="https://img.shields.io/badge/⬆%20Back%20to%20Top-grey?style=flat-square" alt="Back to Top" /></a>
+</p>
 
 ## Table of Contents
 1. [Security Architecture (100% Zero-Leak Guarantee)](#-security-architecture-100-zero-leak-guarantee)
@@ -616,7 +628,7 @@ TZeroAlgorithm/
 ├── main.py                      # Primary execution entrypoint (CLI & GUI)
 ├── pyproject.toml               # Modern PEP 517/621 packaging metadata
 ├── README.md                    # Bilingual comprehensive documentation
-├── requirements.txt             # Production Python dependencies
+├── uv.lock                      # Deterministic locked dependencies
 ├── run.bat                      # Windows quick-launch runner
 ├── siber_akademi.ico            # High-resolution application icon
 ├── tzero.py                     # Backward-compatibility API wrapper
@@ -685,7 +697,14 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ---
 ---
 
+<a id="turkce"></a>
 # 🇹🇷 Türkçe
+
+<p align="right">
+  <a href="#english"><img src="https://img.shields.io/badge/Documentation-🇬🇧%20Switch%20to%20English-007acc?style=flat-square" alt="Switch to English" /></a>
+  &nbsp;
+  <a href="#top"><img src="https://img.shields.io/badge/⬆%20Başa%20Dön-grey?style=flat-square" alt="Başa Dön" /></a>
+</p>
 
 ## İçindekiler
 1. [Şifreli Güvenlik Mimarisi (%100 Zero-Leak Garantisi)](#-şifreli-güvenlik-mimarisi-100-zero-leak-garantisi)
@@ -1224,7 +1243,7 @@ TZeroAlgorithm/
 ├── main.py                      # Ana çalıştırma giriş noktası (CLI & GUI)
 ├── pyproject.toml               # Modern PEP 517/621 paket yapılandırması
 ├── README.md                    # İki dilli kapsamlı dokümantasyon
-├── requirements.txt             # Üretim bağımlılık listesi
+├── uv.lock                      # Deterministik kilitli bağımlılıklar
 ├── run.bat                      # Windows hızlı başlatıcısı
 ├── siber_akademi.ico            # Yüksek çözünürlüklü uygulama ikonu
 ├── tzero.py                     # Geriye dönük uyumluluk API sarmalayıcısı
