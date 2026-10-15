@@ -1,10 +1,23 @@
 name: CI Test Suite
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
   pull_request:
     branches: [ main ]
+  push:
+    branches: [ main ]
+    paths:
+      - 'tzero_v3.py'
+      - 'tzero_mcp.py'
+      - 'tzero_features.py'
+      - 'tzero_deps.py'
+      - 'tzero.py'
+      - 'main.py'
+      - 'app.py'
+      - 'addmcp.py'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/ci.yml'
 
 jobs:
   test:
