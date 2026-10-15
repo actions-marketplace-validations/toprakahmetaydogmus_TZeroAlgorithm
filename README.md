@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm"><img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/score.svg" alt="T-Zero MCP server on Glama" /></a>
   <a href="https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm"><img src="https://mcpservers.org/badge.svg" alt="Listed on mcpservers.org" /></a>
   <a href="https://pypi.org/project/tzero-mcp/"><img src="https://img.shields.io/pypi/v/tzero-mcp?color=00ffd8&style=for-the-badge&logo=pypi" alt="PyPI Version" /></a>
   <a href="https://huggingface.co/spaces/toprakke4/tzero-token-reducer"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-ffd21e?style=for-the-badge" alt="Hugging Face Spaces Live Demo" /></a>
@@ -344,6 +345,33 @@ Only Cursor currently provides a verified public one-click install URL for arbit
 ```bash
 python tzero_mcp.py
 # Or: python main.py --mcp
+```
+
+---
+
+#### 🐳 Option 4: Docker & Glama Registry
+
+T-Zero MCP is listed and verified on [Glama](https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm).
+
+**Run with Docker directly:**
+```bash
+# Build locally
+docker build -t tzero-mcp .
+
+# Test stdio handshake
+docker run -i --rm tzero-mcp
+```
+
+**MCP Client configuration with Docker:**
+```json
+{
+  "mcpServers": {
+    "tzero": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "tzero-mcp"]
+    }
+  }
+}
 ```
 
 ---
@@ -925,6 +953,33 @@ Güncel ayarlar ve yapılandırma şeması için [resmi Antigravity MCP kılavuz
 ```bash
 python tzero_mcp.py
 # Veya: python main.py --mcp
+```
+
+---
+
+#### 🐳 4. Seçenek: Docker & Glama Registry (Konteynerize MCP)
+
+T-Zero MCP, [Glama](https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm) üzerinde listelenmiş ve onaylanmıştır.
+
+**Doğrudan Docker ile Çalıştırma:**
+```bash
+# Yerel imajı derleyin
+docker build -t tzero-mcp .
+
+# Stdio el sıkışmasını test edin
+docker run -i --rm tzero-mcp
+```
+
+**MCP İstemcileri İçin Docker Yapılandırması:**
+```json
+{
+  "mcpServers": {
+    "tzero": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "tzero-mcp"]
+    }
+  }
+}
 ```
 
 ---

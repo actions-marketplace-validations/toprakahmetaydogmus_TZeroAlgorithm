@@ -1,14 +1,22 @@
-# Generated Dockerfile for TZeroAlgorithm MCP Server
+# T-Zero Context Engine MCP Server Dockerfile for Glama and Container Deployments
 FROM python:3.11-slim
+
+# Prevent Python from buffering stdout/stderr (crucial for MCP stdio JSON-RPC transport)
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Copy dependency specifications and install
+# Install dependencies first for efficient layer caching
 COPY requirements.txt pyproject.toml ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy repository code
 COPY . .
 
-# Run MCP server on stdio
-ENTRYPOINT ["python", "tzero_mcp.py"]
+# Install package so tzero-mcp is registered on system PATH
+RUN pip install --no-cache-dir .
+
+# Launch T-Zero MCP Server over stdio
+ENTRYPOINT ["python", "-u", "tzero_mcp.py", "--stdio"]
