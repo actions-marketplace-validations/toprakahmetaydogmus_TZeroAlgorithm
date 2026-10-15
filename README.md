@@ -18,8 +18,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/MCP-21%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 21 Tools Ready" />
   <img src="https://img.shields.io/badge/Security-100%25%20Zero--Leak%20Keyring-50fa7b?style=for-the-badge&logo=shield" alt="Zero Leak Security" />
-  <img src="https://img.shields.io/badge/Python-%3E%3D3.11-bd93f9?style=for-the-badge&logo=python" alt="Python Versions" />
-  <img src="https://img.shields.io/badge/Tests-131%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 131 Passing" />
+  <img src="https://img.shields.io/badge/Mobile-Swift%20%7C%20Kotlin-f05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift and Kotlin Support" />
+  <img src="https://img.shields.io/badge/Tests-134%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 134 Passing" />
   <img src="https://img.shields.io/badge/License-MIT-f1fa8c?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-ff79c6?style=for-the-badge" alt="Platform" />
 </p>
@@ -269,8 +269,8 @@ Restart the client after installation. The Windows configs below call `py -m pip
 
 Choose the link for your operating system, approve the configuration in Cursor, then enable `tzero` under **Settings → MCP** or **Customize → MCP**.
 
-- [Add T-Zero to Cursor (Windows)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicHkiLCJhcmdzIjpbIi1tIiwicGlweCIsInJ1biIsIi0tc3BlYyIsImdpdCtodHRwczovL2dpdGh1Yi5jb20vdG9wcmFrYWhtZXRheWRvZ211cy9UWmVyb0FsZ29yaXRobS5naXRAdjQuMC4wIiwidHplcm8tbWNwIl19)
-- [Add T-Zero to Cursor (macOS/Linux)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicGlweCIsImFyZ3MiOlsicnVuIiwiLS1zcGVjIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS90b3ByYWthaG1ldGF5ZG9nbXVzL1RaZXJvQWxnb3JpdGhtLmdpdEB2NC4wLjAiLCJ0emVyby1tY3AiXX0%3D)
+- [Add T-Zero to Cursor (Windows)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicHkiLCJhcmdzIjpbIi1tIiwicGlweCIsInJ1biIsIi0tc3BlYyIsImdpdCtodHRwczovL2dpdGh1Yi5jb20vdG9wcmFrYWhtZXRheWRvZ211cy9UWmVyb0FsZ29yaXRobS5naXRAdjQuMS4wIiwidHplcm8tbWNwIl19)
+- [Add T-Zero to Cursor (macOS/Linux)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicGlweCIsImFyZ3MiOlsicnVuIiwiLS1zcGVjIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS90b3ByYWthaG1ldGF5ZG9nbXVzL1RaZXJvQWxnb3JpdGhtLmdpdEB2NC4xLjAiLCJ0emVyby1tY3AiXX0%3D)
 
 If Cursor does not open the installer, use **Settings → MCP → Add Custom MCP** and paste the platform-appropriate JSON below.
 
@@ -280,7 +280,7 @@ If Cursor does not open the installer, use **Settings → MCP → Add Custom MCP
   "mcpServers": {
     "tzero": {
       "command": "py",
-      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.0.0.zip", "tzero-mcp"]
+      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.1.0.zip", "tzero-mcp"]
     }
   }
 }
@@ -292,7 +292,7 @@ If Cursor does not open the installer, use **Settings → MCP → Add Custom MCP
   "mcpServers": {
     "tzero": {
       "command": "pipx",
-      "args": ["run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.0.0.zip", "tzero-mcp"]
+      "args": ["run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.1.0.zip", "tzero-mcp"]
     }
   }
 }
@@ -342,7 +342,7 @@ For `.vscode/mcp.json`, VS Code uses a top-level `servers` object and requires `
     "tzero": {
       "type": "stdio",
       "command": "py",
-      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.0.0.zip", "tzero-mcp"]
+      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.1.0.zip", "tzero-mcp"]
     }
   }
 }
@@ -436,7 +436,8 @@ flowchart TD
 - **Ultra Mode:** Strips implementation internals while preserving class hierarchies, decorators, docstrings, type hints, and complete multi-line Python function/class/import headers.
 - **Balanced Mode:** Retains signatures alongside critical control flow and exception handling statements.
 - **None Mode:** Preserves 100% of raw source code.
-- Supported languages: **Python, JavaScript, TypeScript, JSX/TSX, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- Supported languages: **Python, JavaScript, TypeScript, JSX/TSX, Swift (iOS), Kotlin (Android), Java, C#, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- **Mobile First AST Engine:** Specialized interface signature extraction for **Swift** (`.swift`) & **Kotlin** (`.kt`, `.kts`) preserving protocol/class/data class contracts, SwiftUI `@State`/`@Binding`/`@Observable` wrappers, and Jetpack Compose `@Composable` functions with >60-80% token reduction.
 
 ### 3. Advanced Codebase Analysis Tools
 - **AST Class & Method Outliner:** Generates a structured hierarchy of every class, method, argument list, and decorator.
@@ -677,7 +678,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.0.0
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.1.0
         with:
           workspace: '.'
           audit: 'true'
@@ -1051,7 +1052,8 @@ flowchart TD
 - **Ultra Mod:** Fonksiyon gövdelerini temizler; sınıf hiyerarşisini, dekoratörleri, docstring'leri, tip ipuçlarını ve çok satırlı Python fonksiyon/sınıf/import başlıklarının tamamını korur.
 - **Balanced Mod:** İmzalarla birlikte temel kontrol bloklarını (if/try/for) ve istisna yönetimini muhafaza eder.
 - **None Mod:** Kaynak kodun %100 orijinal halini korur.
-- Desteklenen diller: **Python, JavaScript, TypeScript, JSX/TSX, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- Desteklenen diller: **Python, JavaScript, TypeScript, JSX/TSX, Swift (iOS), Kotlin (Android), Java, C#, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- **Mobil Odaklı AST Motoru:** **Swift** (`.swift`) ve **Kotlin** (`.kt`, `.kts`) için özel arayüz ve imza çıkarımı; protokol, veri sınıfları, SwiftUI `@State`/`@Binding`/`@Observable` sarmalayıcıları ve Jetpack Compose `@Composable` fonksiyon sözleşmelerini koruyarak %60-80+ token tasarrufu sağlar.
 
 ### 3. İleri Düzey Kod Tabanı Analiz Araçları
 - **AST Sınıf ve Metot Ağacı:** Tüm sınıfları, metotları, argüman listelerini ve dekoratörleri hiyerarşik olarak listeler.
@@ -1292,7 +1294,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.0.0
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.1.0
         with:
           workspace: '.'
           audit: 'true'

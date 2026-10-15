@@ -664,7 +664,8 @@ class ConfigManager:
                     "language": "en",
                     "allowed_extensions": [
                         ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", 
-                        ".html", ".css", ".json", ".sh", ".bat", ".cpp", ".c", ".h"
+                        ".html", ".css", ".json", ".sh", ".bat", ".cpp", ".c", ".h",
+                        ".java", ".cs", ".kt", ".kts", ".swift"
                     ],
                     "ignored_folders": [
                         ".git", "node_modules", "__pycache__", "venv", ".venv", "dist", "build",
@@ -892,7 +893,7 @@ class NvidiaProvider(BaseProvider):
         headers = {
             "Authorization": f"Bearer {clean_key}",
             "Content-Type": "application/json",
-            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+            "User-Agent": f"TZeroAlgorithmV4/4.1 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         }
         if clean_key:
             headers["X-Nvidia-Api-Key"] = clean_key
@@ -948,7 +949,7 @@ class OpenRouterProvider(BaseProvider):
         headers = super().get_headers(api_key)
         headers["HTTP-Referer"] = DEV_URL_GITHUB
         headers["X-Title"] = "T-ZERO Context Architect"
-        headers["User-Agent"] = f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+        headers["User-Agent"] = f"TZeroAlgorithmV4/4.1 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         return headers
 
     def format_payload(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
@@ -984,7 +985,7 @@ class AnthropicProvider(BaseProvider):
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "Referer": DEV_URL_GITHUB,
-            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+            "User-Agent": f"TZeroAlgorithmV4/4.1 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         }
 
     def get_endpoint_url(self, api_base: str) -> str:
@@ -1034,7 +1035,7 @@ class LocalOllamaProvider(BaseProvider):
         return {
             "Content-Type": "application/json",
             "Referer": DEV_URL_GITHUB,
-            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+            "User-Agent": f"TZeroAlgorithmV4/4.1 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         }
 
 
@@ -1049,7 +1050,7 @@ class FreePollinationsProvider(BaseProvider):
     def get_headers(self, api_key: str = "") -> Dict[str, str]:
         return {
             "Content-Type": "application/json",
-            "User-Agent": f"TZeroAlgorithmV4/4.0 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
+            "User-Agent": f"TZeroAlgorithmV4/4.1 (Toprak Ahmet Aydogmus; {DEV_URL_GITHUB})"
         }
 
 
@@ -1069,8 +1070,8 @@ PROVIDERS: Dict[str, BaseProvider] = {
 class PolyglotSignatureExtractor:
     """High-precision, zero-leak polyglot interface signature extractor.
     
-    Compresses codebases across TypeScript/JavaScript, Go, Rust, Java, C#, and C/C++
-    by 85-97% while maintaining complete interface and signature contracts.
+    Compresses codebases across TypeScript/JavaScript, Go, Rust, Java, C#, C/C++,
+    Kotlin, and Swift by 85-97% while maintaining complete interface and signature contracts.
     """
 
     @classmethod
@@ -1086,6 +1087,10 @@ class PolyglotSignatureExtractor:
             return cls.reduce_java_csharp(code, mode)
         elif ext in (".cpp", ".c", ".h", ".hpp", ".cc", ".cxx"):
             return cls.reduce_c_cpp(code, mode)
+        elif ext in (".kt", ".kts"):
+            return cls.reduce_kotlin(code, mode)
+        elif ext == ".swift":
+            return cls.reduce_swift(code, mode)
         return code
 
     @staticmethod
@@ -1349,6 +1354,176 @@ class PolyglotSignatureExtractor:
 
         return "\n".join(reduced)
 
+    @staticmethod
+    def reduce_kotlin(code: str, mode: str = "ultra") -> str:
+        lines = code.splitlines()
+        reduced = []
+        in_block_comment = False
+        in_function_body = 0
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Multi-line comment tracking
+            if in_block_comment:
+                if "*/" in stripped:
+                    in_block_comment = False
+                continue
+            if stripped.startswith("/*") and not stripped.endswith("*/"):
+                in_block_comment = True
+                continue
+            if stripped.startswith("//"):
+                continue
+
+            # Package and imports
+            if stripped.startswith(("package ", "import ")):
+                reduced.append(line)
+                continue
+
+            # Annotations (@Inject, @Composable, @Entity, @OptIn, etc.)
+            if stripped.startswith("@"):
+                reduced.append(line)
+                continue
+
+            # Skip function body internals
+            if in_function_body > 0:
+                in_function_body += (stripped.count("{") - stripped.count("}"))
+                if in_function_body < 0:
+                    in_function_body = 0
+                continue
+
+            # Skip control flow statements
+            if re.match(r"^(if|for|while|when|catch)\s*(\(|$)", stripped):
+                continue
+
+            # Class, interface, object, enum, sealed class, data class declarations
+            is_type_decl = bool(re.search(
+                r"\b(class|interface|object|enum\s+class|data\s+class|sealed\s+class|annotation\s+class|value\s+class)\s+[A-Za-z0-9_]+",
+                stripped
+            ))
+            if is_type_decl:
+                header = line.split("{")[0].rstrip()
+                reduced.append(header + (" {" if "{" in line else ""))
+                continue
+
+            # Functions (fun, suspend fun, inline fun, override fun)
+            is_func = bool(re.search(r"\b(fun)\s+[A-Za-z0-9_<>[\]?*,\s]+\(.*\)", stripped) or re.search(r"\bfun\s+[A-Za-z0-9_]+\s*\(", stripped))
+            if is_func:
+                if "{" in line:
+                    header = line.split("{")[0].rstrip()
+                    reduced.append(header + " { ... }")
+                    net_braces = (stripped.count("{") - stripped.count("}"))
+                    if net_braces > 0:
+                        in_function_body = net_braces
+                elif "=" in line and not stripped.endswith("="):
+                    header = line.split("=")[0].rstrip()
+                    reduced.append(header + " = ...")
+                else:
+                    reduced.append(line)
+                continue
+
+            # Properties (val, var declarations with types/getters)
+            is_prop = bool(re.match(r"^(override\s+)?(public|protected|private|internal|val|var|const\s+val|lateinit\s+var)\s+", stripped))
+            if is_prop and ("=" in stripped or ":" in stripped):
+                if "=" in line:
+                    header = line.split("=")[0].rstrip()
+                    reduced.append(header + " = ...")
+                else:
+                    reduced.append(line)
+                continue
+
+            if mode.lower() == "balanced":
+                reduced.append(line)
+
+        return "\n".join(reduced)
+
+    @staticmethod
+    def reduce_swift(code: str, mode: str = "ultra") -> str:
+        lines = code.splitlines()
+        reduced = []
+        in_block_comment = False
+        in_function_body = 0
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Multi-line comment tracking
+            if in_block_comment:
+                if "*/" in stripped:
+                    in_block_comment = False
+                continue
+            if stripped.startswith("/*") and not stripped.endswith("*/"):
+                in_block_comment = True
+                continue
+            if stripped.startswith("//"):
+                continue
+
+            # Imports and compiler directives
+            if stripped.startswith(("import ", "#if ", "#else", "#endif")):
+                reduced.append(line)
+                continue
+
+            # Attributes & property wrappers (@State, @Published, @MainActor, @objc, etc.)
+            if stripped.startswith("@"):
+                reduced.append(line)
+                continue
+
+            # Skip function body internals
+            if in_function_body > 0:
+                in_function_body += (stripped.count("{") - stripped.count("}"))
+                if in_function_body < 0:
+                    in_function_body = 0
+                continue
+
+            # Skip control flow statements
+            if re.match(r"^(if|guard|for|while|switch|catch)\s+", stripped):
+                continue
+
+            # Types: class, struct, protocol, enum, actor, extension
+            is_type_decl = bool(re.search(
+                r"\b(class|struct|protocol|enum|actor|extension)\s+[A-Za-z0-9_]+",
+                stripped
+            ))
+            if is_type_decl:
+                header = line.split("{")[0].rstrip()
+                reduced.append(header + (" {" if "{" in line else ""))
+                continue
+
+            # Functions, initializers, deinit (func, init, deinit)
+            is_func = bool(re.search(r"\b(func|init)\s+.*\(.*\)", stripped) or re.search(r"\b(func|init)\s*\(", stripped) or stripped.startswith("deinit"))
+            if is_func:
+                if "{" in line:
+                    header = line.split("{")[0].rstrip()
+                    reduced.append(header + " { ... }")
+                    net_braces = (stripped.count("{") - stripped.count("}"))
+                    if net_braces > 0:
+                        in_function_body = net_braces
+                else:
+                    reduced.append(line)
+                continue
+
+            # Properties (var, let)
+            is_prop = bool(re.match(r"^(public|private|protected|internal|fileprivate|open|override|static|lazy|weak|var|let)\s+", stripped))
+            if is_prop and ("var " in stripped or "let " in stripped):
+                if "{" in line:
+                    header = line.split("{")[0].rstrip()
+                    reduced.append(header + " { ... }")
+                elif "=" in line:
+                    header = line.split("=")[0].rstrip()
+                    reduced.append(header + " = ...")
+                else:
+                    reduced.append(line)
+                continue
+
+            if mode.lower() == "balanced":
+                reduced.append(line)
+
+        return "\n".join(reduced)
+
 
 class TokenReducer:
     """Extracts functional headers, classes, and annotations while pruning internals across all languages."""
@@ -1372,6 +1547,10 @@ class TokenReducer:
             return PolyglotSignatureExtractor.reduce_java_csharp(code, mode)
         elif ext in (".cpp", ".c", ".h", ".hpp", ".cc", ".cxx"):
             return PolyglotSignatureExtractor.reduce_c_cpp(code, mode)
+        elif ext in (".kt", ".kts"):
+            return PolyglotSignatureExtractor.reduce_kotlin(code, mode)
+        elif ext == ".swift":
+            return PolyglotSignatureExtractor.reduce_swift(code, mode)
             
         return TokenReducer._default_trim(code)
 
@@ -2326,6 +2505,14 @@ class WorkspacePresetManager:
         "Systems (C/C++)": {
             "allowed": [".cpp", ".c", ".h", ".hpp", ".make", "Makefile"],
             "ignored": [".git", "obj", "build", "bin"]
+        },
+        "Mobile (Android Kotlin)": {
+            "allowed": [".kt", ".kts", ".java", ".xml", ".gradle", ".json"],
+            "ignored": [".git", ".gradle", "build", ".idea", "captures"]
+        },
+        "Mobile (iOS Swift)": {
+            "allowed": [".swift", ".plist", ".json", ".h", ".m"],
+            "ignored": [".git", "Pods", "DerivedData", ".build", ".swiftpm"]
         }
     }
 
@@ -2540,7 +2727,7 @@ def generate_offline_context(project_dir: str, selected_files: List[str], file_s
                 g_pkg = m.group(1).strip()
                 if "/" in g_pkg and not g_pkg.startswith("."):
                     all_deps.add(g_pkg)
-        elif ext_lower in (".rs", ".java", ".cs"):
+        elif ext_lower in (".rs", ".java", ".cs", ".kt", ".kts", ".swift"):
             for m in re.finditer(r"""(?:use|import|using)\s+([A-Za-z0-9_.:]+)""", snip):
                 all_deps.add(m.group(1).split('.')[0].split('::')[0])
 
@@ -4816,7 +5003,7 @@ class AutoReadmeGUI:
         b_top = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_top.pack(fill=tk.X, padx=10, pady=(4, 2))
         tk.Label(b_top, text="🛡️ SİBER AKADEMİ CREATOR HUB", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_cyan"], bg=PALETTE["bg_start"]).pack(side=tk.LEFT)
-        tk.Label(b_top, text="v4.0.0", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
+        tk.Label(b_top, text="v4.1.0", font=("Segoe UI", 8, "bold"), fg=PALETTE["accent_green"], bg=PALETTE["bg_start"]).pack(side=tk.RIGHT)
 
         b_links = tk.Frame(brand, bg=PALETTE["bg_start"])
         b_links.pack(fill=tk.X, padx=10, pady=(2, 6))
@@ -7319,7 +7506,7 @@ def run_audit_cli(target_dir: str, output_format: str = "text"):
                     "tool": {
                         "driver": {
                             "name": "T-Zero Context Architect",
-                            "version": "4.0.0",
+                            "version": "4.1.0",
                             "informationUri": "https://github.com/toprakahmetaydogmus/TZeroAlgorithm"
                         }
                     },
@@ -7383,7 +7570,7 @@ def run_pr_report_cli(target_dir: str, base_ref: str = "HEAD~1"):
         "- **Status:** ✅ Clean (No hardcoded credentials detected in diff)",
         "- **Rules Enforced:** T-001 Zero-Leak, T-002 Layer Isolation, T-003 AST Contract Fidelity",
         "",
-        "> *Report generated autonomously by [T-Zero Context Architect v4.0.0](https://github.com/toprakahmetaydogmus/TZeroAlgorithm)*"
+        "> *Report generated autonomously by [T-Zero Context Architect v4.1.0](https://github.com/toprakahmetaydogmus/TZeroAlgorithm)*"
     ])
     full_report = "\n".join(report_lines)
     print(full_report)
@@ -7544,12 +7731,12 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V4.0.0")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V4.1.0")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v4.0.0
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v4.1.0
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 

@@ -27,7 +27,7 @@ import inspect
 import logging
 from typing import Dict, List, Optional, Any
 
-SERVER_VERSION = "4.0.0"
+SERVER_VERSION = "4.1.0"
 
 # Safe UTF-8 reconfiguration for Windows console & piped subprocesses
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -131,8 +131,11 @@ def get_file_imports(file_path: str) -> List[str]:
     elif ext == ".rs":
         for m in re.finditer(r"""use\s+([A-Za-z0-9_:]+)""", content):
             deps.add(m.group(1))
-    elif ext == ".java":
+    elif ext in (".java", ".kt", ".kts"):
         for m in re.finditer(r"""import\s+(?:static\s+)?([A-Za-z0-9_.]+)""", content):
+            deps.add(m.group(1))
+    elif ext == ".swift":
+        for m in re.finditer(r"""import\s+([A-Za-z0-9_]+)""", content):
             deps.add(m.group(1))
     elif ext == ".cs":
         for m in re.finditer(r"""using\s+([A-Za-z0-9_.]+)\s*;""", content):
@@ -149,7 +152,8 @@ def build_workspace_import_graph(files: List[str], base_dir: str) -> Dict[str, L
     graph = {}
     supported_exts = {
         ".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs",
-        ".go", ".rs", ".java", ".cs", ".cpp", ".c", ".h", ".hpp"
+        ".go", ".rs", ".java", ".cs", ".cpp", ".c", ".h", ".hpp",
+        ".kt", ".kts", ".swift"
     }
     for f in files:
         ext = os.path.splitext(f.lower())[1]
@@ -242,7 +246,7 @@ def create_mcp_server():
         code_exts = {
             ".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".go", ".rs",
             ".java", ".cs", ".cpp", ".c", ".h", ".hpp", ".html", ".css", ".sh",
-            ".bat", ".json", ".yaml", ".yml"
+            ".bat", ".json", ".yaml", ".yml", ".kt", ".kts", ".swift"
         }
         selected_files = [f for f in files if os.path.splitext(f.lower())[1] in code_exts]
         if not selected_files:

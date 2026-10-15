@@ -32,7 +32,7 @@ class TestComprehensiveCLI(unittest.TestCase):
     def test_cli_version(self):
         res = self._run_cli(["--version"])
         self.assertEqual(res.returncode, 0)
-        self.assertIn("4.0.0", res.stdout)
+        self.assertIn("4.1.0", res.stdout)
 
     def test_cli_info(self):
         res = self._run_cli(["--info"])

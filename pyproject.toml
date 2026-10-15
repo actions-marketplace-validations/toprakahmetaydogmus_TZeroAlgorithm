@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tzero-mcp"
-version = "4.0.0"
+version = "4.1.0"
 description = "Enterprise Codebase Context Builder, AST Signatures Analyzer, & Token Reducer for LLMs"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,7 +20,12 @@ keywords = [
     "codebase-map",
     "cursor",
     "copilot",
-    "prompt-engineering"
+    "prompt-engineering",
+    "swift",
+    "kotlin",
+    "mobile-development",
+    "ios",
+    "android"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
