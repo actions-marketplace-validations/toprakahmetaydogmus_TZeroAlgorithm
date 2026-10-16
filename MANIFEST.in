@@ -5,3 +5,4 @@ include install.ps1
 include install.sh
 include action.yml
 include .pre-commit-hooks.yaml
+include requirements.txt

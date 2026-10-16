@@ -11,7 +11,7 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # Copy project files
-COPY pyproject.toml uv.lock* uv.toml* ./
+COPY pyproject.toml requirements.txt* uv.lock* uv.toml* ./
 COPY . .
 
 # Install package so tzero-mcp is registered on system PATH

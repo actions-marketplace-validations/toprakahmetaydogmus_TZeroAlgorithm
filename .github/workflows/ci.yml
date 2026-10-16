@@ -17,6 +17,7 @@ on:
       - 'addmcp.py'
       - 'tests/**'
       - 'pyproject.toml'
+      - 'requirements.txt'
       - '.github/workflows/ci.yml'
 
 jobs:
