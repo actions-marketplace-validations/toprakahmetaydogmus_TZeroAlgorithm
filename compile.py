@@ -7,6 +7,7 @@ building resource metadata, and packaging source packages into a single-file exe
 
 import os
 import sys
+import time
 import shutil
 import subprocess
 import logging
@@ -70,54 +71,83 @@ def generate_siber_akademi_icon():
         return None
 
 
+def kill_running_tzero_processes():
+    """Kill any running T-Zero binaries to avoid file locking on Windows."""
+    if os.name == "nt":
+        for proc_name in ("TZeroAlgorithm.exe", "TZeroMCP.exe", "AddMCP.exe"):
+            try:
+                subprocess.run(["taskkill", "/F", "/IM", proc_name, "/T"], capture_output=True, text=True)
+            except Exception:
+                pass
+
+
+def prepare_target_file(proc_name: str):
+    """Ensure specific target binary is free to be written, renaming if locked."""
+    target_path = os.path.join("dist", proc_name)
+    if os.path.exists(target_path):
+        try:
+            os.remove(target_path)
+        except Exception:
+            try:
+                os.rename(target_path, f"{target_path}.old_{int(time.time())}")
+            except Exception:
+                pass
+
+
 def build_binary():
     """Runs PyInstaller commands to bundle packages and resources into a single file."""
-    # Ensure build environment is clean
-    for folder in ("build", "dist"):
-        if os.path.exists(folder):
-            try:
-                shutil.rmtree(folder)
-                logger.info(f"Cleaned folder: {folder}")
-            except Exception as e:
-                logger.warning(f"Could not clean directory '{folder}': {e}")
-
-    main_script = "main.py"
-    if not os.path.exists(main_script):
-        logger.critical(f"Fatal: Main execution entry point '{main_script}' not found.")
-        sys.exit(1)
-
-    logger.info("Starting PyInstaller compilation pipeline...")
-    
-    # Generate custom icon
+    kill_running_tzero_processes()
+    # Clean build environment
+    if os.path.exists("build"):
+        try:
+            shutil.rmtree("build")
+            logger.info("Cleaned folder: build")
+        except Exception as e:
+            logger.warning(f"Could not clean directory 'build': {e}")
+    main_binary = os.path.join("dist", "TZeroAlgorithm.exe" if os.name == "nt" else "TZeroAlgorithm")
     icon_file = generate_siber_akademi_icon()
     
-    # Assembly build arguments
-    # --onefile: build a single executable
-    # --noconsole: run GUI without popping terminal logs console (disable CLI terminal)
-    # --clean: clean cache directories before compilation
-    build_args = [
-        sys.executable, "-m", "PyInstaller",
-        "--onefile",
-        "--noconsole",
-        "--clean",
-        "--name=TZeroAlgorithm",
-        "--distpath=dist",
-        "--workpath=build/TZeroAlgorithm",
-        "--specpath=build/specs",
-        # keyring loads its OS backends dynamically; PyInstaller cannot see them on its own
-        "--collect-submodules=keyring.backends",
-        "--hidden-import=win32ctypes.core",
-    ]
-    
-    if icon_file:
-        abs_icon = os.path.abspath(icon_file)
-        build_args.append(f"--icon={abs_icon}")
-        build_args.append(f"--add-data={abs_icon}{os.pathsep}.")
-        
-    build_args.append(main_script)
-    
     try:
-        subprocess.run(build_args, check=True)
+        if not os.path.exists(main_binary):
+            main_script = "main.py"
+            build_args = [
+                sys.executable, "-m", "PyInstaller",
+                "--onefile",
+                "--noconsole",
+                "--clean",
+                "--noconfirm",
+                "--name=TZeroAlgorithm",
+                "--distpath=dist",
+                "--workpath=build/TZeroAlgorithm",
+                "--specpath=build/specs",
+                "--hidden-import=tzero_v3",
+                "--hidden-import=tzero_features",
+                "--hidden-import=tzero_deps",
+                "--hidden-import=addmcp",
+                "--hidden-import=tzero_mcp",
+                "--hidden-import=win32ctypes.core",
+                "--collect-all=keyring",
+                "--collect-all=win32ctypes",
+                "--collect-all=pygments",
+                "--collect-all=requests",
+                "--collect-all=urllib3",
+                "--collect-all=certifi",
+                "--collect-all=PIL",
+                "--collect-all=darkdetect",
+                "--copy-metadata=keyring",
+                "--copy-metadata=requests",
+                "--copy-metadata=pygments",
+                "--copy-metadata=Pillow",
+            ]
+            if icon_file:
+                abs_icon = os.path.abspath(icon_file)
+                build_args.append(f"--icon={abs_icon}")
+                build_args.append(f"--add-data={abs_icon}{os.pathsep}.")
+            build_args.append(main_script)
+            prepare_target_file("TZeroAlgorithm.exe" if os.name == "nt" else "TZeroAlgorithm")
+            subprocess.run(build_args, check=True)
+        else:
+            logger.info("Main desktop binary already built and verified: %s", main_binary)
 
         server_args = [
             sys.executable, "-m", "PyInstaller",
@@ -128,17 +158,34 @@ def build_binary():
             "--distpath=dist",
             "--workpath=build/TZeroMCP",
             "--specpath=build/specs",
-            "--collect-submodules=keyring.backends",
+            "--hidden-import=tzero_v3",
+            "--hidden-import=tzero_features",
+            "--hidden-import=tzero_deps",
             "--hidden-import=win32ctypes.core",
+            "--collect-submodules=mcp.server",
+            "--collect-submodules=mcp.types",
+            "--collect-data=mcp",
+            "--exclude-module=mcp.cli",
+            "--collect-all=anyio",
+            "--collect-all=pydantic",
+            "--collect-all=pydantic_core",
+            "--collect-all=keyring",
+            "--collect-all=win32ctypes",
+            "--collect-all=requests",
+            "--collect-all=urllib3",
+            "--collect-all=certifi",
+            "--copy-metadata=mcp",
+            "--copy-metadata=keyring",
+            "--copy-metadata=requests",
         ]
         if icon_file:
             server_args.append(f"--icon={os.path.abspath(icon_file)}")
         server_args.append("tzero_mcp.py")
+        server_name = "TZeroMCP.exe" if os.name == "nt" else "TZeroMCP"
+        prepare_target_file(server_name)
         subprocess.run(server_args, check=True)
 
-        server_binary = os.path.join(
-            "dist", "TZeroMCP.exe" if os.name == "nt" else "TZeroMCP"
-        )
+        server_binary = os.path.join("dist", server_name)
         if not os.path.exists(server_binary):
             logger.error("MCP server executable was not created.")
             return False
@@ -153,13 +200,27 @@ def build_binary():
             "--distpath=dist",
             "--workpath=build/AddMCP",
             "--specpath=build/specs",
+            "--hidden-import=win32ctypes.core",
+            "--collect-all=keyring",
+            "--collect-all=win32ctypes",
             f"--add-binary={os.path.abspath(server_binary)}{os.pathsep}.",
         ]
         if icon_file:
             installer_args.append(f"--icon={os.path.abspath(icon_file)}")
             installer_args.append(f"--add-data={os.path.abspath(icon_file)}{os.pathsep}.")
         installer_args.append("addmcp.py")
+        installer_name = "AddMCP.exe" if os.name == "nt" else "AddMCP"
+        prepare_target_file(installer_name)
         subprocess.run(installer_args, check=True)
+
+        # Cleanup leftover .old_ backup files if any
+        if os.path.exists("dist"):
+            for fname in os.listdir("dist"):
+                if ".old" in fname:
+                    try:
+                        os.remove(os.path.join("dist", fname))
+                    except Exception:
+                        pass
 
         suffix = ".exe" if os.name == "nt" else ""
         expected_outputs = [

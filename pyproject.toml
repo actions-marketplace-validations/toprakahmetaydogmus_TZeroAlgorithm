@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tzero-mcp"
-version = "3.0.10"
+version = "4.1.0"
 description = "Enterprise Codebase Context Builder, AST Signatures Analyzer, & Token Reducer for LLMs"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
     { name = "Toprak Ahmet Aydoğmuş", email = "toprakahmetileq@gmail.com" }
@@ -20,12 +20,15 @@ keywords = [
     "codebase-map",
     "cursor",
     "copilot",
-    "prompt-engineering"
+    "prompt-engineering",
+    "swift",
+    "kotlin",
+    "mobile-development",
+    "ios",
+    "android"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -41,7 +44,9 @@ dependencies = [
     "darkdetect>=0.8.0",
     "pygments>=2.14.0",
     "Pillow>=9.0.0",
-    "mcp>=1.0.0"
+    "pyinstaller>=6.0.0",
+    "mcp>=1.0.0",
+    "typer>=0.9.0"
 ]
 
 [project.optional-dependencies]
@@ -60,7 +65,7 @@ tzero-add-mcp = "addmcp:main"
 tzero-addmcp = "addmcp:main"
 
 [tool.setuptools]
-py-modules = ["main", "tzero", "tzero_features", "tzero_mcp", "tzero_v3", "tzero_deps", "addmcp", "siber_akademi_icon"]
+py-modules = ["main", "tzero", "tzero_features", "tzero_mcp", "tzero_v3", "tzero_deps", "addmcp", "siber_akademi_icon", "app"]
 
 [tool.setuptools.package-data]
 "*" = ["*.ico"]
@@ -70,3 +75,6 @@ LinkedIn = "https://linkedin.com/in/toprak-ahmet-aydo%C4%9Fmu%C5%9F-60462534b/"
 Biography = "https://hopp.bio/siberegitim"
 Repository = "https://github.com/toprakahmetaydogmus/TZeroAlgorithm"
 Documentation = "https://github.com/toprakahmetaydogmus/TZeroAlgorithm#readme"
+"Live Demo" = "https://huggingface.co/spaces/toprakke4/tzero-token-reducer"
+Benchmark = "https://tzero-indol.vercel.app"
+Discussions = "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/discussions"

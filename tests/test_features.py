@@ -28,6 +28,10 @@ from tzero_features import (
     TokenROICalculator,
     HTML_DASHBOARD_TEMPLATE,
     DashboardRequestHandler,
+    GitDiffContextBuilder,
+    DeadCodeFinder,
+    detect_circular_dependencies,
+    ZeroHallucinationGuard,
 )
 
 
@@ -146,7 +150,7 @@ class TestAgentRulesGenerator(unittest.TestCase):
 
     def test_export_all_agent_rules(self):
         created_files = AgentRulesGenerator.export_all(self.temp_dir)
-        self.assertGreaterEqual(len(created_files), 4)
+        self.assertGreaterEqual(len(created_files), 6)
 
         # Verify .cursorrules
         cr_path = os.path.join(self.temp_dir, ".cursorrules")
@@ -158,6 +162,14 @@ class TestAgentRulesGenerator(unittest.TestCase):
         # Verify .clinerules
         cl_path = os.path.join(self.temp_dir, ".clinerules")
         self.assertTrue(os.path.exists(cl_path))
+
+        # Verify .windsurfrules
+        ws_path = os.path.join(self.temp_dir, ".windsurfrules")
+        self.assertTrue(os.path.exists(ws_path))
+
+        # Verify CLAUDE.md
+        claude_path = os.path.join(self.temp_dir, "CLAUDE.md")
+        self.assertTrue(os.path.exists(claude_path))
 
         # Verify copilot-instructions.md
         copilot_path = os.path.join(self.temp_dir, ".github", "copilot-instructions.md")
@@ -234,6 +246,105 @@ class TestWebDashboard(unittest.TestCase):
         self.assertIn("Blast Radius", HTML_DASHBOARD_TEMPLATE)
         self.assertIn("Local Hybrid Semantic Code Search", HTML_DASHBOARD_TEMPLATE)
         self.assertTrue(issubclass(DashboardRequestHandler, object))
+
+
+class TestGitDiffContextBuilder(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.file_1 = os.path.join(self.temp_dir, "core.py")
+        with open(self.file_1, "w", encoding="utf-8") as f:
+            f.write("def core_function():\n    return 42\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_git_diff_clean_directory(self):
+        builder = GitDiffContextBuilder(self.temp_dir)
+        res = builder.build_diff_context("HEAD")
+        self.assertIn("markdown", res)
+        self.assertEqual(res["changed_files_count"], 0)
+
+    def test_git_diff_context_structure(self):
+        builder = GitDiffContextBuilder(self.temp_dir)
+        builder.get_diff_changed_files = lambda ref="HEAD~1": [{"status": "M", "file": "core.py"}]
+        res = builder.build_diff_context("HEAD~1")
+        self.assertEqual(res["changed_files_count"], 1)
+        self.assertIn("Incremental PR Context", res["markdown"])
+        self.assertIn("core.py", res["markdown"])
+        self.assertGreater(res["token_savings_percent"], 0.0)
+
+
+class TestDeadCodeFinder(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.temp_dir, "lib.py"), "w", encoding="utf-8") as f:
+            f.write(
+                "def used_function():\n    return 1\n\n"
+                "def orphan_function():\n    return 2\n\n"
+                "class OrphanClass:\n    pass\n"
+            )
+        with open(os.path.join(self.temp_dir, "main.py"), "w", encoding="utf-8") as f:
+            f.write(
+                "import lib\n\n"
+                "def run():\n    return lib.used_function()\n"
+            )
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_find_unused_symbols(self):
+        finder = DeadCodeFinder(self.temp_dir)
+        dead = finder.find_unused_symbols()
+        dead_names = [d["symbol"] for d in dead["dead_symbols"]]
+        self.assertIn("orphan_function", dead_names)
+        self.assertIn("OrphanClass", dead_names)
+        self.assertNotIn("used_function", dead_names)
+
+
+class TestCircularDependencies(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.temp_dir, "mod_a.py"), "w", encoding="utf-8") as f:
+            f.write("import mod_b\n")
+        with open(os.path.join(self.temp_dir, "mod_b.py"), "w", encoding="utf-8") as f:
+            f.write("import mod_a\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_detect_cycles(self):
+        cycles = detect_circular_dependencies(self.temp_dir)
+        self.assertTrue(len(cycles) > 0)
+        cycle_str = " -> ".join(cycles[0])
+        self.assertTrue("mod_a" in cycle_str and "mod_b" in cycle_str)
+
+
+class TestZeroHallucinationGuard(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.temp_dir, "calc.py"), "w", encoding="utf-8") as f:
+            f.write(
+                "class Calculator:\n"
+                "    def add_numbers(self, a: int, b: int) -> int:\n"
+                "        return a + b\n"
+            )
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_fuzzy_did_you_mean_suggestion(self):
+        guard = ZeroHallucinationGuard(self.temp_dir)
+        # 1. Mismatched import with typo
+        proposed_import_typo = "from calc import Calculater\n"
+        res_import = guard.validate_code(proposed_import_typo)
+        self.assertFalse(res_import["passed"])
+        self.assertIn("Calculator", res_import["report"])
+
+        # 2. Mismatched keyword argument
+        proposed_kwarg_typo = "from calc import Calculator\nc = Calculator()\nc.add_numbers(a=1, bx=2)\n"
+        res_kwarg = guard.validate_code(proposed_kwarg_typo)
+        self.assertFalse(res_kwarg["passed"])
+        self.assertIn("b", res_kwarg["report"])
 
 
 if __name__ == "__main__":

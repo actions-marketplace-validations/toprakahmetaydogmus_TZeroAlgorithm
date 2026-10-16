@@ -1,16 +1,25 @@
-# ⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT V3
+<a id="top"></a>
+# ⚡  T-ZERO CONTEXT ARCHITECT V4
 
 <p align="center">
-  <a href="#-english"><b>🇬🇧 English Documentation</b></a> • 
-  <a href="#-türkçe"><b>🇹🇷 Türkçe Dokümantasyon</b></a>
+  <a href="#english"><img src="https://img.shields.io/badge/Language-🇬🇧%20English-007acc?style=for-the-badge&logo=gitbook&logoColor=white" alt="English Documentation" /></a>
+  &nbsp;&nbsp;
+  <a href="#turkce"><img src="https://img.shields.io/badge/Dil-🇹🇷%20Türkçe-e03131?style=for-the-badge&logo=gitbook&logoColor=white" alt="Türkçe Dokümantasyon" /></a>
 </p>
 
 <p align="center">
+  <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/stargazers"><img src="https://img.shields.io/github/stars/toprakahmetaydogmus/TZeroAlgorithm?style=for-the-badge&logo=github&color=ffd700" alt="GitHub Stars" /></a>
+  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm"><img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/score.svg" alt="T-Zero MCP server on Glama" height="28" /></a>
+  <a href="https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm"><img src="https://img.shields.io/badge/mcpservers.org-verified-2563eb?style=for-the-badge&logo=server" alt="Listed on mcpservers.org" /></a>
   <a href="https://pypi.org/project/tzero-mcp/"><img src="https://img.shields.io/pypi/v/tzero-mcp?color=00ffd8&style=for-the-badge&logo=pypi" alt="PyPI Version" /></a>
-  <img src="https://img.shields.io/badge/MCP-13%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 13 Tools Ready" />
+  <a href="https://huggingface.co/spaces/toprakke4/tzero-token-reducer"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-ffd21e?style=for-the-badge" alt="Hugging Face Spaces Live Demo" /></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/MCP-21%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 21 Tools Ready" />
   <img src="https://img.shields.io/badge/Security-100%25%20Zero--Leak%20Keyring-50fa7b?style=for-the-badge&logo=shield" alt="Zero Leak Security" />
-  <img src="https://img.shields.io/badge/Python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14-bd93f9?style=for-the-badge&logo=python" alt="Python Versions" />
-  <img src="https://img.shields.io/badge/Tests-83%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 83 Passing" />
+  <img src="https://img.shields.io/badge/Mobile-Swift%20%7C%20Kotlin-f05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift and Kotlin Support" />
+  <img src="https://img.shields.io/badge/Tests-134%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 134 Passing" />
   <img src="https://img.shields.io/badge/License-MIT-f1fa8c?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-ff79c6?style=for-the-badge" alt="Platform" />
 </p>
@@ -24,9 +33,58 @@
 **Bio & Hub:** [https://hopp.bio/siberegitim](https://hopp.bio/siberegitim)  
 **GitHub Repository:** [https://github.com/toprakahmetaydogmus/TZeroAlgorithm](https://github.com/toprakahmetaydogmus/TZeroAlgorithm)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/main/assets/social-preview.png" alt="Siber Akademi T-Zero Context Architect Banner" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/main/assets/benchmark-demo.svg" alt="T-Zero AST Token Reduction Benchmark" width="100%" />
+</p>
+
+### ⚡ Visual Proof: Raw Ingestion vs. T-Zero AST Pruning (Reproducible)
+
+| Analysis Mode | Raw Context Volume | T-Zero Pruned Payload | Token Reduction Ratio | Cost Delta / Query |
+|:---|:---|:---|:---:|:---:|
+| **Full Repository Scan** | `166,996 tokens` | `8,465 tokens` | **-94.9%** | **-$0.3963 / query** |
+
+> Run it yourself offline ($0 cost): `python tzero.py --savings`
+
+### 🚀 1-Line Quickstart
+
+```bash
+# Run instantly with uvx (zero installation required)
+uvx tzero-mcp
+
+# Or install via pip / pipx
+pip install tzero-mcp
+```
+
+Or configure directly into your MCP Client (**Cursor**, **Claude Desktop**, **Windsurf**, or **Antigravity IDE**):
+```json
+{
+  "mcpServers": {
+    "tzero": {
+      "command": "tzero-mcp"
+    }
+  }
+}
+```
+
+Or run offline CLI inspection immediately ($0 cost, 100% Zero-Leak):
+```bash
+python tzero.py --savings
+```
+
 ---
 
+<a id="english"></a>
 # 🇬🇧 English
+
+<p align="right">
+  <a href="#turkce"><img src="https://img.shields.io/badge/Dokümantasyon-🇹🇷%20Türkçe'ye%20Geç-e03131?style=flat-square" alt="Türkçe'ye Geç" /></a>
+  &nbsp;
+  <a href="#top"><img src="https://img.shields.io/badge/⬆%20Back%20to%20Top-grey?style=flat-square" alt="Back to Top" /></a>
+</p>
 
 ## Table of Contents
 1. [Security Architecture (100% Zero-Leak Guarantee)](#-security-architecture-100-zero-leak-guarantee)
@@ -76,23 +134,42 @@
 
 T-Zero V3 natively embeds a standard **Model Context Protocol (MCP)** server (`tzero_mcp.py`) operating over `stdio`. This empowers AI agents in **Cursor**, **Claude Desktop**, **Antigravity IDE**, and **Cline** to autonomously inspect, prune, and query your project's codebase before writing a single line of code.
 
-### 🛠 Available MCP Tools (13 Autonomous Tools)
+<p align="center">
+  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm">
+    <img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/card.svg" alt="tzero-mcp MCP server – quality and maintenance score on Glama" />
+  </a>
+</p>
+
+### 🛠 Available MCP Tools (21 Autonomous Tools)
 
 | Tool Name | Parameters | Purpose |
 |:----------|:-----------|:--------|
-| `get_project_context_tree` | `project_root`, `reduction_mode`, `max_tokens`, `include_file_contents` | Scans workspace and builds a multi-tier T-Zero hierarchical context tree (T-1 to T-4). Reduces tokens by up to 95%. |
-| `query_module_dependencies` | `project_root`, `file_path` | Analyzes incoming and outgoing import dependencies, local links, and external packages for a file or entire project. |
+| `get_project_context_tree` | `project_root`, `reduction_mode`, `max_tokens`, `include_file_contents` | Scans workspace and builds a multi-tier T-Zero hierarchical context tree (T-1 to T-4) with PageRank & Git recency token budgeting. Reduces tokens by up to 95%. |
+| `query_module_dependencies` | `project_root`, `file_path` | Analyzes incoming and outgoing import dependencies across Python, TypeScript, Go, Rust, Java, C#, and C++. |
 | `query_architecture_boundaries` | `project_root`, `extra_guidance` | Queries active T-4 architectural boundaries, operational constraints, and Zero-Leak rules for coding agents. |
 | `generate_architecture_blueprint` | `project_root` | Generates a complete system architecture specification (`ARCHITECTURE.md`) with live Mermaid topology diagrams. |
 | `generate_repo_map` | `project_root`, `max_tokens` | Produces an ultra-compressed AST symbol map (classes, methods, signatures) optimized for prompt injection. |
 | `audit_codebase_quality` | `project_root`, `file_path` | Runs an AST static code smell check and secret leak scan (detects functions >30 lines, global vars, missing docstrings). |
 | `find_code_duplicity` | `project_root`, `min_lines` | Scans the workspace to identify repeated/duplicate blocks of code across files for refactoring. |
-| `estimate_token_cost` | `text`, `project_root`, `reduction_mode` | Computes exact token count and USD cost comparison across OpenAI, Claude, Groq, NVIDIA NIM, and Ollama ($0). |
-| `analyze_change_impact` | `target_symbol`, `project_root` | Traces AST symbol definitions, caller cascades, inbound dependents, and calculates a 0-100 risk score. |
+| `estimate_token_cost` | `text`, `project_root`, `reduction_mode` | Computes exact token count and USD cost comparison across OpenAI, Claude, DeepSeek, Gemini, and Ollama ($0). |
+| `analyze_change_impact` | `target_symbol`, `project_root` | Traces AST symbol definitions, caller cascades, inbound dependents, and calculates a 0-100 risk score with test coverage hints. |
 | `enforce_architecture_boundaries` | `project_root`, `rules_file` | Validates modular import boundaries against `tzero.rules.json` to prevent architectural erosion. |
 | `search_codebase_semantic` | `query`, `project_root`, `top_k` | 100% private, local in-memory BM25 + TF-IDF hybrid semantic code search and RAG engine ($0 cost, 0 leaks). |
-| `export_agent_rules` | `project_root` | Generates 1-click rules for Cursor (`.cursorrules`, `.cursor/rules/*.mdc`), Cline (`.clinerules`), and Copilot. |
+| `export_agent_rules` | `project_root` | Generates 1-click rules for Cursor (`.cursorrules`, `.cursor/rules/*.mdc`), Windsurf, Claude Code, Cline, and Copilot. |
 | `get_token_savings_metrics` | `project_root`, `team_size` | Calculates quantitative token reduction ratio, monthly/annual cost savings, and team developer ROI metrics. |
+| `get_incremental_diff_context` | `base_ref`, `project_root` | Extracts an ultra-compact diff context with modified symbols and downstream blast radius for PR reviews (98%+ token reduction). |
+| `prune_code_snippet` | `code`, `file_path_or_ext`, `reduction_mode` | Prunes arbitrary in-memory code snippets into compact AST signatures on-the-fly (80-95% reduction). |
+| `verify_zero_leak_security` | `project_root`, `target_file`, `code_snippet` | 100% Zero-Leak security scanner for hardcoded API keys (OpenAI, Anthropic, Gemini, NVIDIA, GitHub) and secrets ($0 cost, 0 leaks). |
+| `verify_hallucination_guard` | `proposed_code`, `target_file`, `project_root` | Eliminates AI coding hallucinations before code is written by validating imports and call signatures against workspace AST with fuzzy Did-You-Mean suggestions. |
+| `get_smart_skeleton_context` | `focus_file`, `focus_symbol`, `project_root` | Focus-aware dynamic skeletonizer delivering full focus implementation with surrounding 1st-degree AST interface skeletons. |
+| `rank_repository_pagerank` | `project_root` | Identifies repository architectural backbone and module centrality using graph-theory PageRank over AST topologies. |
+| `trace_symbol_call_chain` | `symbol_name`, `project_root`, `direction` | Traces deep upstream callers and downstream callees across workspace AST with execution tree and Mermaid diagrams. |
+| `find_dead_code` | `project_root` | Detects unused, orphaned, or unreferenced functions and classes across the codebase AST. |
+
+### 📦 Live MCP Resources
+- **`tzero://architecture`**: Real-time Mermaid architecture blueprint and module topology diagram.
+- **`tzero://boundaries`**: Active T-4 architectural layer boundaries, security rules, and constraints.
+- **`tzero://token-roi`**: Quantitative token reduction ratio and economic engineering team ROI savings.
 
 ### 🧭 MCP Prompts
 - **`tzero_grounding`**: Injects strict architectural boundary rules, modular integrity guidelines, and Zero-Leak security mandates into the agent's system session.
@@ -166,6 +243,10 @@ curl -fsSL https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/
 npx -y @smithery/cli install tzero --client cursor
 ```
 
+**mcpservers.org Listing:**  
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)  
+Explore verified listing: [https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)
+
 ---
 
 #### ⚡ Option 2: 1-Click Zero-Dependency Windows Installer (Standalone Binary)
@@ -194,8 +275,8 @@ Restart the client after installation. The Windows configs below call `py -m pip
 
 Choose the link for your operating system, approve the configuration in Cursor, then enable `tzero` under **Settings → MCP** or **Customize → MCP**.
 
-- [Add T-Zero to Cursor (Windows)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicHkiLCJhcmdzIjpbIi1tIiwicGlweCIsInJ1biIsIi0tc3BlYyIsImdpdCtodHRwczovL2dpdGh1Yi5jb20vdG9wcmFrYWhtZXRheWRvZ211cy9UWmVyb0FsZ29yaXRobS5naXRAdjMuMC42IiwidHplcm8tbWNwIl19)
-- [Add T-Zero to Cursor (macOS/Linux)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicGlweCIsImFyZ3MiOlsicnVuIiwiLS1zcGVjIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS90b3ByYWthaG1ldGF5ZG9nbXVzL1RaZXJvQWxnb3JpdGhtLmdpdEB2My4wLjYiLCJ0emVyby1tY3AiXX0%3D)
+- [Add T-Zero to Cursor (Windows)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicHkiLCJhcmdzIjpbIi1tIiwicGlweCIsInJ1biIsIi0tc3BlYyIsImdpdCtodHRwczovL2dpdGh1Yi5jb20vdG9wcmFrYWhtZXRheWRvZ211cy9UWmVyb0FsZ29yaXRobS5naXRAdjQuMS4wIiwidHplcm8tbWNwIl19)
+- [Add T-Zero to Cursor (macOS/Linux)](https://cursor.com/install-mcp?name=tzero&config=eyJjb21tYW5kIjoicGlweCIsImFyZ3MiOlsicnVuIiwiLS1zcGVjIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS90b3ByYWthaG1ldGF5ZG9nbXVzL1RaZXJvQWxnb3JpdGhtLmdpdEB2NC4xLjAiLCJ0emVyby1tY3AiXX0%3D)
 
 If Cursor does not open the installer, use **Settings → MCP → Add Custom MCP** and paste the platform-appropriate JSON below.
 
@@ -205,7 +286,7 @@ If Cursor does not open the installer, use **Settings → MCP → Add Custom MCP
   "mcpServers": {
     "tzero": {
       "command": "py",
-      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v3.0.7.zip", "tzero-mcp"]
+      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.1.0.zip", "tzero-mcp"]
     }
   }
 }
@@ -217,7 +298,7 @@ If Cursor does not open the installer, use **Settings → MCP → Add Custom MCP
   "mcpServers": {
     "tzero": {
       "command": "pipx",
-      "args": ["run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v3.0.7.zip", "tzero-mcp"]
+      "args": ["run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.1.0.zip", "tzero-mcp"]
     }
   }
 }
@@ -250,6 +331,7 @@ Simply type `/tzero` in the Antigravity chat prompt to view available actions or
 - `/tzero rules` — Generates .cursorrules, .clinerules, Copilot instructions
 - `/tzero search <query>` — Runs 100% private local BM25 semantic code search
 - `/tzero savings` — Computes developer team token ROI metrics
+- `/tzero diff [ref]` — Incremental git diff context for PR reviews with downstream blast radius (98%+ token reduction)
 
 See the [official Antigravity MCP guide](https://antigravity.google/docs/mcp) for the current Settings flow and configuration schema.
 
@@ -266,7 +348,7 @@ For `.vscode/mcp.json`, VS Code uses a top-level `servers` object and requires `
     "tzero": {
       "type": "stdio",
       "command": "py",
-      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v3.0.7.zip", "tzero-mcp"]
+      "args": ["-m", "pipx", "run", "--spec", "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/archive/refs/tags/v4.1.0.zip", "tzero-mcp"]
     }
   }
 }
@@ -282,6 +364,33 @@ Only Cursor currently provides a verified public one-click install URL for arbit
 ```bash
 python tzero_mcp.py
 # Or: python main.py --mcp
+```
+
+---
+
+#### 🐳 Option 4: Docker & Glama Registry
+
+T-Zero MCP is listed and verified on [Glama](https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm).
+
+**Run with Docker directly:**
+```bash
+# Build locally
+docker build -t tzero-mcp .
+
+# Test stdio handshake
+docker run -i --rm tzero-mcp
+```
+
+**MCP Client configuration with Docker:**
+```json
+{
+  "mcpServers": {
+    "tzero": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "tzero-mcp"]
+    }
+  }
+}
 ```
 
 ---
@@ -322,7 +431,7 @@ flowchart TD
 ## 🌟 Core Highlights & Capabilities
 
 ### 1. Multi-LLM Provider Engine
-- **NVIDIA NIM:** `llama-3.3-70b-instruct`, `deepseek-r1`, `mistral-large`, `nemotron-51b`, `qwen3.5`
+- **NVIDIA NIM:** `deepseek-v4.1-flash`, `deepseek-coder-6.7b`, `nemotron-70b`, `mistral-large-2`, `llama-3.2-90b-vision`
 - **OpenAI:** `gpt-4o`, `gpt-4o-mini`, `o3-mini`, `o1`
 - **Google Gemini:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`
 - **Anthropic:** `claude-3-7-sonnet-20250219`, `claude-3-5-sonnet`, `claude-3-5-haiku`
@@ -333,7 +442,8 @@ flowchart TD
 - **Ultra Mode:** Strips implementation internals while preserving class hierarchies, decorators, docstrings, type hints, and complete multi-line Python function/class/import headers.
 - **Balanced Mode:** Retains signatures alongside critical control flow and exception handling statements.
 - **None Mode:** Preserves 100% of raw source code.
-- Supported languages: **Python, JavaScript, TypeScript, JSX/TSX, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- Supported languages: **Python, JavaScript, TypeScript, JSX/TSX, Swift (iOS), Kotlin (Android), Java, C#, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- **Mobile First AST Engine:** Specialized interface signature extraction for **Swift** (`.swift`) & **Kotlin** (`.kt`, `.kts`) preserving protocol/class/data class contracts, SwiftUI `@State`/`@Binding`/`@Observable` wrappers, and Jetpack Compose `@Composable` functions with >60-80% token reduction.
 
 ### 3. Advanced Codebase Analysis Tools
 - **AST Class & Method Outliner:** Generates a structured hierarchy of every class, method, argument list, and decorator.
@@ -398,9 +508,9 @@ pip install .
 # The package provides the `tzero` and `tzero-mcp` commands.
 
 # After the package is published to PyPI:
-pipx install tzero-algorithm
+pipx install tzero-mcp
 ```
-> The PyPI project name is `tzero-algorithm`; `tzero-mcp` is the installed command. Until the first PyPI upload, use the GitHub `pipx run --spec` configuration above.
+> The PyPI project name is `tzero-mcp`; `tzero-mcp` and `tzero` are the installed commands. Until the first PyPI upload, use the GitHub `pipx run --spec` configuration above.
 
 > **Automatic dependency check:** on startup T-Zero verifies its required packages and installs any that are missing or too old (progress goes to stderr, so MCP stdio stays clean). Opt out with `TZERO_NO_AUTO_INSTALL=1`. Run `python main.py --doctor` for a full health check. The desktop GUI needs `tkinter`; the CLI and the MCP server work without it, so headless servers, Docker and CI are fine.
 
@@ -526,7 +636,7 @@ TZeroAlgorithm/
 ├── main.py                      # Primary execution entrypoint (CLI & GUI)
 ├── pyproject.toml               # Modern PEP 517/621 packaging metadata
 ├── README.md                    # Bilingual comprehensive documentation
-├── requirements.txt             # Production Python dependencies
+├── uv.lock                      # Deterministic locked dependencies
 ├── run.bat                      # Windows quick-launch runner
 ├── siber_akademi.ico            # High-resolution application icon
 ├── tzero.py                     # Backward-compatibility API wrapper
@@ -574,7 +684,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.10
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.1.0
         with:
           workspace: '.'
           audit: 'true'
@@ -595,7 +705,14 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ---
 ---
 
+<a id="turkce"></a>
 # 🇹🇷 Türkçe
+
+<p align="right">
+  <a href="#english"><img src="https://img.shields.io/badge/Documentation-🇬🇧%20Switch%20to%20English-007acc?style=flat-square" alt="Switch to English" /></a>
+  &nbsp;
+  <a href="#top"><img src="https://img.shields.io/badge/⬆%20Başa%20Dön-grey?style=flat-square" alt="Başa Dön" /></a>
+</p>
 
 ## İçindekiler
 1. [Şifreli Güvenlik Mimarisi (%100 Zero-Leak Garantisi)](#-şifreli-güvenlik-mimarisi-100-zero-leak-garantisi)
@@ -645,23 +762,37 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 T-Zero V3, Anthropic'in standart **Model Context Protocol (MCP)** SDK'sını kullanarak `stdio` üzerinden haberleşen yerel bir sunucu (`tzero_mcp.py`) sunar. Bu sayede **Cursor**, **Claude Desktop**, **Antigravity IDE** ve **Cline** gibi yapay zeka ajanları, projede herhangi bir kod üretmeden veya değiştirmeden önce projenin hiyerarşik mimarisini, bağımlılık grafiğini ve sınırlarını sorgulayabilir.
 
-### 🛠 Sunulan MCP Araçları (13 Otonom Araç)
+<p align="center">
+  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm">
+    <img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/card.svg" alt="tzero-mcp MCP sunucusu – Glama kalite ve bakım skoru" />
+  </a>
+</p>
+
+### 🛠 Sunulan MCP Araçları (21 Otonom Araç)
 
 | Araç Adı | Parametreler | Görevi ve Amacı |
 |:---------|:-------------|:----------------|
-| `get_project_context_tree` | `project_root`, `reduction_mode`, `max_tokens`, `include_file_contents` | Proje dizinini tarar; T-1 Master Architecture, T-2 Modül Referansları ve T-4 sınır kurallarını hiyerarşik bağlam olarak döndürür. Token kullanımını %95'e kadar azaltır. |
+| `get_project_context_tree` | `project_root`, `reduction_mode`, `max_tokens`, `include_file_contents` | Proje dizinini tarar; T-1 Master Architecture, T-2 Modül Referansları ve T-4 sınır kurallarını PageRank ve Git tazelik önceliğiyle hiyerarşik bağlam olarak döndürür. Token kullanımını %95'e kadar azaltır. |
 | `query_module_dependencies` | `project_root`, `file_path` | Belirli bir dosyanın veya tüm deponun içe/dışa aktarım (import/export), dahili bağlar ve harici paket imza haritasını çeker. |
 | `query_architecture_boundaries` | `project_root`, `extra_guidance` | Yapay zeka ajanları için aktif mimari sınırları (T-4), kuralları ve Zero-Leak kısıtlamalarını sorgular. |
 | `generate_architecture_blueprint` | `project_root` | Otomatik Mermaid topoloji şeması içeren sistem mimarisi dokümanı (`ARCHITECTURE.md`) üretir. |
 | `generate_repo_map` | `project_root`, `max_tokens` | LLM sohbetleri için aşırı sıkıştırılmış AST simge haritası (sınıflar, metotlar, imzalar) üretir. |
 | `audit_codebase_quality` | `project_root`, `file_path` | AST statik kod kokusu analizi ve gizli anahtar/şifre sızıntısı taraması gerçekleştirir (30+ satır fonksiyonlar, global anahtarlar). |
 | `find_code_duplicity` | `project_root`, `min_lines` | Çalışma alanında 6+ satırlık kopya/tekrar kod bloklarını tespit eder. |
-| `estimate_token_cost` | `text`, `project_root`, `reduction_mode` | Verilen metin veya dizin için OpenAI, Claude, Groq, NVIDIA NIM ve Ollama ($0) modelleri üzerinden tam token ve USD maliyet tablosu çıkarır. |
-| `analyze_change_impact` | `target_symbol`, `project_root` | Refactoring öncesi AST sembol tanımları, çağıran zincirleri ve 0-100 risk skoru ile etki yarıçapını (blast radius) hesaplar. |
+| `estimate_token_cost` | `text`, `project_root`, `reduction_mode` | Verilen metin veya dizin için OpenAI, Claude, DeepSeek, Gemini ve Ollama ($0) modelleri üzerinden tam token ve USD maliyet tablosu çıkarır. |
+| `analyze_change_impact` | `target_symbol`, `project_root` | Refactoring öncesi AST sembol tanımları, çağıran zincirleri ve 0-100 risk skoru ile etki yarıçapını ve test kapsamı ipuçlarını hesaplar. |
 | `enforce_architecture_boundaries` | `project_root`, `rules_file` | `tzero.rules.json` kurallarına göre katmanlar arası yasaklı importları denetler ve mimari bozulmayı engeller. |
 | `search_codebase_semantic` | `query`, `project_root`, `top_k` | %100 yerel ve gizli, bellek içi BM25 + TF-IDF hibrit anlamsal kod arama ve RAG motoru ($0 maliyet, sıfır veri sızıntısı). |
 | `export_agent_rules` | `project_root` | Cursor (`.cursorrules`, `.cursor/rules/*.mdc`), Cline (`.clinerules`) ve Copilot kurallarını tek tıkla üretir. |
 | `get_token_savings_metrics` | `project_root`, `team_size` | Nicel token tasarruf oranını, aylık/yıllık maliyet kârını ve ekip bazlı ROI değerlerini hesaplar. |
+| `get_incremental_diff_context` | `base_ref`, `project_root` | PR incelemeleri için değiştirilen sembolleri ve etki yarıçapını içeren aşırı sıkıştırılmış fark bağlamı çıkarır (%98+ token tasarrufu). |
+| `prune_code_snippet` | `code`, `file_path_or_ext`, `reduction_mode` | Bellek içindeki ham kod bloklarını anında kompakt AST imzalarına budar (%80-95 tasarruf). |
+| `verify_zero_leak_security` | `project_root`, `target_file`, `code_snippet` | Çalışma alanındaki dosyalarda ve kod parçalarında açıkta kalan API anahtarları ve sırları tarayan %100 Zero-Leak güvenlik denetçisi. |
+| `verify_hallucination_guard` | `proposed_code`, `target_file`, `project_root` | Kod yazılmadan önce importları ve metot çağrı imzalarını AST sözleşmeleriyle denetler, difflib Did-You-Mean önerileriyle halüsinasyonları önler. |
+| `get_smart_skeleton_context` | `focus_file`, `focus_symbol`, `project_root` | Odaklanılan fonksiyonu tam gövdeyle, çevresindeki 1. derece bağımlılıkları ise AST arayüz iskeletiyle dinamik olarak sunar. |
+| `rank_repository_pagerank` | `project_root` | AST topolojisi üzerinde PageRank algoritması çalıştırarak projenin en kritik omurga modüllerini tespit eder. |
+| `trace_symbol_call_chain` | `symbol_name`, `project_root`, `direction` | Sembolün yukarı doğru çağıranlarını veya aşağı doğru çağrılanlarını ağaç ve Mermaid grafiği olarak çıkarır. |
+| `find_dead_code` | `project_root` | Kod tabanı genelinde kullanılmayan, öksüz kalmış veya referans verilmeyen fonksiyon ve sınıfları tespit eder. |
 
 ### 🧭 MCP Yerleşik Promptları
 - **`tzero_grounding`**: Cursor / Claude / Antigravity oturumlarına mimari kuralları, modüler sınırları ve %100 Zero-Leak güvenlik direktiflerini enjekte eder.
@@ -734,6 +865,10 @@ curl -fsSL https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/
 ```bash
 npx -y @smithery/cli install tzero --client cursor
 ```
+
+**mcpservers.org Kaydı:**  
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)  
+Onaylı sunucu sayfası: [https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm](https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm)
 
 ---
 
@@ -855,6 +990,33 @@ python tzero_mcp.py
 
 ---
 
+#### 🐳 4. Seçenek: Docker & Glama Registry (Konteynerize MCP)
+
+T-Zero MCP, [Glama](https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm) üzerinde listelenmiş ve onaylanmıştır.
+
+**Doğrudan Docker ile Çalıştırma:**
+```bash
+# Yerel imajı derleyin
+docker build -t tzero-mcp .
+
+# Stdio el sıkışmasını test edin
+docker run -i --rm tzero-mcp
+```
+
+**MCP İstemcileri İçin Docker Yapılandırması:**
+```json
+{
+  "mcpServers": {
+    "tzero": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "tzero-mcp"]
+    }
+  }
+}
+```
+
+---
+
 ## 🏗 Sistem Mimarisi
 
 ```mermaid
@@ -891,7 +1053,7 @@ flowchart TD
 ## 🌟 Öne Çıkan Yetenekler & Özellikler
 
 ### 1. Çoklu LLM Sağlayıcı Entegrasyonu
-- **NVIDIA NIM:** `llama-3.3-70b-instruct`, `deepseek-r1`, `mistral-large`, `nemotron-51b`, `qwen3.5`
+- **NVIDIA NIM:** `deepseek-v4.1-flash`, `deepseek-coder-6.7b`, `nemotron-70b`, `mistral-large-2`, `llama-3.2-90b-vision`
 - **OpenAI:** `gpt-4o`, `gpt-4o-mini`, `o3-mini`, `o1`
 - **Google Gemini:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`
 - **Anthropic:** `claude-3-7-sonnet-20250219`, `claude-3-5-sonnet`, `claude-3-5-haiku`
@@ -902,7 +1064,8 @@ flowchart TD
 - **Ultra Mod:** Fonksiyon gövdelerini temizler; sınıf hiyerarşisini, dekoratörleri, docstring'leri, tip ipuçlarını ve çok satırlı Python fonksiyon/sınıf/import başlıklarının tamamını korur.
 - **Balanced Mod:** İmzalarla birlikte temel kontrol bloklarını (if/try/for) ve istisna yönetimini muhafaza eder.
 - **None Mod:** Kaynak kodun %100 orijinal halini korur.
-- Desteklenen diller: **Python, JavaScript, TypeScript, JSX/TSX, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- Desteklenen diller: **Python, JavaScript, TypeScript, JSX/TSX, Swift (iOS), Kotlin (Android), Java, C#, C/C++, Go, Rust, HTML, CSS, Bash, Batch, JSON, YAML**.
+- **Mobil Odaklı AST Motoru:** **Swift** (`.swift`) ve **Kotlin** (`.kt`, `.kts`) için özel arayüz ve imza çıkarımı; protokol, veri sınıfları, SwiftUI `@State`/`@Binding`/`@Observable` sarmalayıcıları ve Jetpack Compose `@Composable` fonksiyon sözleşmelerini koruyarak %60-80+ token tasarrufu sağlar.
 
 ### 3. İleri Düzey Kod Tabanı Analiz Araçları
 - **AST Sınıf ve Metot Ağacı:** Tüm sınıfları, metotları, argüman listelerini ve dekoratörleri hiyerarşik olarak listeler.
@@ -967,9 +1130,9 @@ pip install .
 # `tzero` ve `tzero-mcp` komutları kurulur.
 
 # PyPI yayını yapıldıktan sonra:
-pipx install tzero-algorithm
+pipx install tzero-mcp
 ```
-> PyPI proje adı `tzero-algorithm`, kurulan MCP komutu ise `tzero-mcp`'dir. İlk PyPI yayınına kadar yukarıdaki GitHub `pipx run --spec` ayarını kullanın.
+> PyPI proje adı `tzero-mcp`, kurulan komutlar ise `tzero` ve `tzero-mcp`'dir. İlk PyPI yayınına kadar yukarıdaki GitHub `pipx run --spec` ayarını kullanın.
 
 > **Otomatik bağımlılık kontrolü:** T-Zero açılışta gerekli paketleri doğrular, eksik veya eski olanları kendisi kurar (çıktı stderr'e gider, MCP stdio bozulmaz). Kapatmak için `TZERO_NO_AUTO_INSTALL=1` kullanın. Tam sağlık kontrolü için `python main.py --doctor` çalıştırın. Masaüstü arayüzü `tkinter` ister; CLI ve MCP sunucusu onsuz da çalışır, yani sunucu, Docker ve CI ortamları sorunsuzdur.
 
@@ -1095,7 +1258,7 @@ TZeroAlgorithm/
 ├── main.py                      # Ana çalıştırma giriş noktası (CLI & GUI)
 ├── pyproject.toml               # Modern PEP 517/621 paket yapılandırması
 ├── README.md                    # İki dilli kapsamlı dokümantasyon
-├── requirements.txt             # Üretim bağımlılık listesi
+├── uv.lock                      # Deterministik kilitli bağımlılıklar
 ├── run.bat                      # Windows hızlı başlatıcısı
 ├── siber_akademi.ico            # Yüksek çözünürlüklü uygulama ikonu
 ├── tzero.py                     # Geriye dönük uyumluluk API sarmalayıcısı
@@ -1143,12 +1306,24 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v3.0.10
+        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.1.0
         with:
           workspace: '.'
           audit: 'true'
           enforce-boundaries: 'false'
 ```
+
+---
+
+## ⭐ Star History
+
+If you find T-Zero helpful for your AI coding workflows, please consider giving it a star on GitHub! It helps more developers discover the project.
+
+<p align="center">
+  <a href="https://star-history.com/#toprakahmetaydogmus/TZeroAlgorithm&Date">
+    <img src="https://api.star-history.com/svg?repos=toprakahmetaydogmus/TZeroAlgorithm&type=Date&theme=dark" alt="T-Zero Algorithm Star History Chart" width="100%" />
+  </a>
+</p>
 
 ---
 

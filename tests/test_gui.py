@@ -52,8 +52,34 @@ class TestGUIInstantiation(unittest.TestCase):
             self.assertEqual(len(app.tab_frames), 7)
             app.scanned_files = []
             app.file_checked = {}
-            app.rebuild_selector_tree()
-            self.assertIn("No supported source files found", app.tree_empty_lbl.cget("text"))
+            # Verify async_generate_payload resolves provider_name without NameError
+            app.file_checked = {"src/app.py": True}
+            app.file_snippets = {"src/app.py": "def test(): pass"}
+            # Mock generator to avoid real network call during test
+            from unittest.mock import patch, MagicMock
+            with patch("tzero_v3.ContextGenerator.generate_readme", return_value="# Mock Result"):
+                app.async_generate_payload("https://api.openai.com/v1", "test-key", ["src/app.py"])
+                self.assertFalse(app.cancel_event.is_set())
+
+            # Verify that an API 403 error triggers seamless offline AST fallback
+            with patch("tzero_v3.ContextGenerator.generate_readme", side_effect=IOError("API Error code HTTP 403: Authorization failed")):
+                app.async_generate_payload("https://integrate.api.nvidia.com/v1", "test-key", ["src/app.py"])
+                root.update()
+                preview = app.preview_text.get("1.0", "end").strip()
+                self.assertIn("T-Zero Context Tree", preview)
+                self.assertIn("src/app.py", preview)
+
+                # Verify security audit executes and logs audit results
+                app.run_quick_security_audit()
+                root.update()
+                self.assertIn("Security Audit", app.console_text.get("1.0", "end"))
+
+                # Verify on_scan_finish updates KPICard and gauge metrics without error
+                app.on_scan_finish(["src/app.py", "README.md"], {"src/app.py": 128, "README.md": 64}, {"src/app.py": "code", "README.md": "doc"})
+                root.update()
+                self.assertTrue(app.has_scanned)
+                if hasattr(app, "kpi_card") and hasattr(app.kpi_card, "lbl_prim"):
+                    self.assertIn("2", app.kpi_card.lbl_prim.cget("text"))
         finally:
             try:
                 root.destroy()

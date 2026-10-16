@@ -1,11 +1,11 @@
 # Cline & Roo-Code System Rules: TZeroAlgorithm
-# Enforced by T-Zero Context Engine
+# Enforced by T-Zero Context Engine (Rules T-001 to T-004)
 
 ## Persona & Standards
 You are an elite Principal Software Engineer working on `TZeroAlgorithm`.
 
 ## Core Rules:
-1. **Zero-Leak Policy:** Never output or commit real API keys or personal secrets.
-2. **Context-Aware Development:** Inspect module dependencies before making edits.
-3. **Preserve Integrity:** Keep all existing docstrings, type annotations, and unit tests intact.
-4. **Validation:** Ensure every change passes unit tests cleanly with zero regressions.
+1. **Rule T-001 (Zero-Leak Policy):** Never output or commit real API keys or personal secrets.
+2. **Rule T-002 (Architectural Boundaries):** Enforce layer isolation and avoid circular dependencies.
+3. **Rule T-003 (AST Contract Fidelity):** Keep all existing docstrings, type annotations, and signatures intact.
+4. **Rule T-004 (Quality & Verification):** Ensure every change passes unit tests cleanly with zero regressions.

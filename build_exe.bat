@@ -5,7 +5,7 @@ color 0E
 
 echo.
 echo ============================================================
-echo   SIBER AKADEMI T-ZERO 3.0.7 EXECUTABLE BUILDER
+echo   SIBER AKADEMI T-ZERO 4.1.0 EXECUTABLE BUILDER
 echo   Builds TZeroAlgorithm.exe, TZeroMCP.exe, and AddMCP.exe
 echo ============================================================
 echo.
@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [INFO] Installing project build/runtime requirements...
-python -m pip install -r requirements.txt
+python -m pip install .
 if %errorlevel% neq 0 (
     echo [ERROR] Dependency installation failed.
     pause

@@ -81,8 +81,12 @@ def check_dependency(dep: Dependency) -> Tuple[str, Optional[str]]:
 
 
 def _err(message: str) -> None:
-    sys.stderr.write(message + "\n")
-    sys.stderr.flush()
+    if sys.stderr is not None and hasattr(sys.stderr, "write"):
+        try:
+            sys.stderr.write(message + "\n")
+            sys.stderr.flush()
+        except Exception:
+            pass
 
 
 def ensure_dependencies(include_mcp: bool = False) -> bool:

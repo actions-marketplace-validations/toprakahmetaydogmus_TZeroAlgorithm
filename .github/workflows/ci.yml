@@ -1,10 +1,24 @@
 name: CI Test Suite
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
   pull_request:
     branches: [ main ]
+  push:
+    branches: [ main ]
+    paths:
+      - 'tzero_v3.py'
+      - 'tzero_mcp.py'
+      - 'tzero_features.py'
+      - 'tzero_deps.py'
+      - 'tzero.py'
+      - 'main.py'
+      - 'app.py'
+      - 'addmcp.py'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - '.github/workflows/ci.yml'
 
 jobs:
   test:
@@ -13,23 +27,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
+    - name: Install package and dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-
-    - name: Build and install package
-      run: python -m pip install --no-deps .
+        python -m pip install .
 
     - name: Smoke-test installed CLI
       run: tzero --version
@@ -37,3 +50,11 @@ jobs:
     - name: Run Unit Tests
       run: |
         python -m unittest discover -s tests -v
+
+    - name: Zero-Cost Security & Architecture Smoke Tests
+      run: |
+        python main.py --version
+        python main.py --audit .
+        python main.py --enforce-rules
+        python main.py --diff
+        python main.py --export-agent-rules

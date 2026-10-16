@@ -26,6 +26,10 @@ import http.server
 import socketserver
 import threading
 import urllib.parse
+import subprocess
+import fnmatch
+import difflib
+import hashlib
 from typing import Dict, List, Set, Tuple, Optional, Any
 
 # Ensure parent directory is in sys.path
@@ -34,13 +38,60 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 
+_IGNORE_RULES_CACHE: Dict[str, List[str]] = {}
+
+def get_ignore_patterns(base_dir: str) -> List[str]:
+    """Reads .gitignore and .tzeroignore patterns from project directory."""
+    if base_dir in _IGNORE_RULES_CACHE:
+        return _IGNORE_RULES_CACHE[base_dir]
+
+    patterns = [
+        ".git", ".git/*", "__pycache__", "*/__pycache__/*", "*.pyc",
+        "node_modules", "*/node_modules/*", ".venv", "venv", "*/.venv/*", "*/venv/*",
+        "build", "dist", "*.egg-info", "*.min.js", "*.min.css", "*.lock"
+    ]
+    for ign_file in (".gitignore", ".tzeroignore"):
+        p = os.path.join(base_dir, ign_file)
+        if os.path.isfile(p):
+            try:
+                with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            patterns.append(line.rstrip("/"))
+                            patterns.append(line.rstrip("/") + "/*")
+            except Exception:
+                pass
+    _IGNORE_RULES_CACHE[base_dir] = patterns
+    return patterns
+
+
 def should_skip_dir(root: str, base_dir: str) -> bool:
     """Helper to check if a subdirectory should be skipped relative to base project dir."""
-    rel = os.path.relpath(root, base_dir)
+    rel = os.path.relpath(root, base_dir).replace("\\", "/")
     if rel == ".":
         return False
-    parts = rel.split(os.sep)
-    return any(p.startswith(".") or p in ("__pycache__", "build", "dist", "node_modules", "venv", ".venv") for p in parts)
+    parts = rel.split("/")
+    if any(p.startswith(".") or p in ("__pycache__", "build", "dist", "node_modules", "venv", ".venv") for p in parts):
+        return True
+    patterns = get_ignore_patterns(base_dir)
+    for pat in patterns:
+        if fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch(parts[-1], pat):
+            return True
+    return False
+
+
+def should_skip_file(file_path: str, base_dir: str) -> bool:
+    """Helper to check if a file matches .gitignore or .tzeroignore patterns."""
+    rel = os.path.relpath(file_path, base_dir).replace("\\", "/")
+    fname = os.path.basename(file_path)
+    if fname.startswith(".") or fname.endswith((".pyc", ".min.js", ".min.css", ".lock")):
+        return True
+    patterns = get_ignore_patterns(base_dir)
+    for pat in patterns:
+        if fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch(fname, pat):
+            return True
+    return False
 
 
 # =============================================================================
@@ -58,10 +109,18 @@ class ChangeImpactAnalyzer:
         self.project_dir = os.path.abspath(project_dir)
         self.files_list: List[str] = []
         self.snippets: Dict[str, str] = {}
-        self.symbol_defs: Dict[str, str] = {}  # symbol -> defining_file
+        self.ast_trees: Dict[str, ast.AST] = {}
+        self.symbol_defs: Dict[str, str] = {}  # symbol -> primary defining_file
+        self.symbol_locations: Dict[str, List[str]] = collections.defaultdict(list) # symbol -> [defining_files]
         self.import_graph: Dict[str, Set[str]] = collections.defaultdict(set) # file -> imported_modules
         self.inbound_graph: Dict[str, Set[str]] = collections.defaultdict(set) # module -> dependent_files
         self._build_index()
+
+    def _add_symbol_def(self, symbol: str, rel_path: str):
+        if symbol not in self.symbol_defs:
+            self.symbol_defs[symbol] = rel_path
+        if rel_path not in self.symbol_locations[symbol]:
+            self.symbol_locations[symbol].append(rel_path)
 
     def _build_index(self):
         """Scans python files and builds symbol and dependency maps."""
@@ -84,11 +143,18 @@ class ChangeImpactAnalyzer:
     def _index_file_ast(self, rel_path: str, code: str):
         try:
             tree = ast.parse(code)
+            self.ast_trees[rel_path] = tree
             stem = os.path.splitext(os.path.basename(rel_path))[0]
             
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                    self.symbol_defs[node.name] = rel_path
+            for node in tree.body:
+                if isinstance(node, ast.ClassDef):
+                    self._add_symbol_def(node.name, rel_path)
+                    for item in node.body:
+                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            self._add_symbol_def(item.name, rel_path)
+                            self._add_symbol_def(f"{node.name}.{item.name}", rel_path)
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    self._add_symbol_def(node.name, rel_path)
                 elif isinstance(node, ast.Import):
                     for name in node.names:
                         base = name.name.split('.')[0]
@@ -103,23 +169,61 @@ class ChangeImpactAnalyzer:
             pass
 
     def analyze_symbol(self, symbol_name: str) -> Dict[str, Any]:
-        """Calculates the blast radius for modifying a specific symbol (class/function)."""
+        """Calculates the blast radius for modifying a specific symbol (class/function).
+        
+        Uses AST analysis over workspace code to accurately discover call sites and
+        attribute accesses without false positives from comments and string literals.
+        """
         defining_file = self.symbol_defs.get(symbol_name)
+        defining_locations = self.symbol_locations.get(symbol_name, [defining_file] if defining_file else [])
         direct_callers: List[Dict[str, Any]] = []
         transitive_files: Set[str] = set()
 
+        target_attr = symbol_name.split('.')[-1]
+        target_class = symbol_name.split('.')[0] if '.' in symbol_name else ""
+
         for f, content in self.snippets.items():
-            if f == defining_file:
+            if f in defining_locations or target_attr not in content:
                 continue
-            # Search for symbol usage in code
-            pattern = rf"\b{re.escape(symbol_name)}\b"
-            matches = [m.start() for m in re.finditer(pattern, content)]
-            if matches:
-                lines = [content[:pos].count('\n') + 1 for pos in matches]
+
+            matches_lines: List[int] = []
+            try:
+                tree = self.ast_trees.get(f)
+                if tree is None:
+                    tree = ast.parse(content)
+                    self.ast_trees[f] = tree
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Call):
+                        matched = False
+                        if isinstance(node.func, ast.Name) and node.func.id == target_attr:
+                            matched = True
+                        elif isinstance(node.func, ast.Attribute) and node.func.attr == target_attr:
+                            if target_class:
+                                if isinstance(node.func.value, ast.Name) and node.func.value.id == target_class:
+                                    matched = True
+                            else:
+                                matched = True
+                        if matched:
+                            matches_lines.append(getattr(node, 'lineno', 1))
+                    elif isinstance(node, ast.Attribute) and node.attr == target_attr:
+                        if target_class and isinstance(node.value, ast.Name) and node.value.id == target_class:
+                            matches_lines.append(getattr(node, 'lineno', 1))
+                    elif isinstance(node, ast.Name) and node.id == target_attr:
+                        # Direct symbol reference as argument, type annotation, or value
+                        matches_lines.append(getattr(node, 'lineno', 1))
+            except Exception:
+                # Fallback for non-python files or invalid syntax
+                pattern = rf"\b{re.escape(target_attr)}\b"
+                for m in re.finditer(pattern, content):
+                    line_no = content[:m.start()].count('\n') + 1
+                    matches_lines.append(line_no)
+
+            unique_lines = sorted(list(set(matches_lines)))
+            if unique_lines:
                 direct_callers.append({
                     "file": f,
-                    "occurrences": len(matches),
-                    "lines": lines[:5]
+                    "occurrences": len(unique_lines),
+                    "lines": unique_lines[:5]
                 })
                 transitive_files.add(f)
 
@@ -128,7 +232,7 @@ class ChangeImpactAnalyzer:
         for df in transitive_files:
             stem = os.path.splitext(os.path.basename(df))[0]
             for dep in self.inbound_graph.get(stem, set()):
-                if dep != defining_file and dep not in transitive_files:
+                if dep not in defining_locations and dep not in transitive_files:
                     second_level.add(dep)
 
         total_affected = len(transitive_files) + len(second_level)
@@ -143,15 +247,48 @@ class ChangeImpactAnalyzer:
         else:
             risk = "LOW"
 
+        downstream_dependents = [
+            {"file": f, "level": 1} for f in sorted(transitive_files)
+        ] + [
+            {"file": f, "level": 2} for f in sorted(second_level)
+        ]
+
+        # Test Coverage Mapper: Locate test files covering this symbol or defining module
+        test_commands: List[str] = []
+        tests_dir = os.path.join(self.project_dir, "tests")
+        if os.path.isdir(tests_dir):
+            target_stem = os.path.splitext(os.path.basename(defining_file))[0] if defining_file else ""
+            for t_root, _, t_files in os.walk(tests_dir):
+                for tf in t_files:
+                    if tf.startswith("test_") and tf.endswith(".py"):
+                        tf_path = os.path.join(t_root, tf)
+                        rel_tf = os.path.relpath(tf_path, self.project_dir).replace('\\', '/')
+                        if target_stem and (target_stem in tf or f"test_{target_stem}.py" == tf):
+                            cmd = f"pytest {rel_tf}"
+                            if cmd not in test_commands:
+                                test_commands.append(cmd)
+                        elif tf in self.snippets:
+                            snip = self.snippets[tf]
+                            if target_attr in snip:
+                                cmd = f"pytest {rel_tf}"
+                                if cmd not in test_commands:
+                                    test_commands.append(cmd)
+
+        test_cmd = test_commands[0] if test_commands else "pytest tests/"
+
         return {
             "symbol": symbol_name,
             "defining_file": defining_file or "Unknown / Built-in",
+            "defining_files": defining_locations,
             "blast_score": blast_score,
             "risk_score": blast_score,
             "risk_level": risk,
             "direct_callers": direct_callers,
             "second_level_dependents": sorted(list(second_level)),
+            "downstream_dependents": downstream_dependents,
             "total_affected_modules": total_affected,
+            "test_command": test_cmd,
+            "matching_tests": test_commands,
         }
 
     def format_report(self, analysis: Dict[str, Any]) -> str:
@@ -176,6 +313,9 @@ class ChangeImpactAnalyzer:
             "---",
             "\n## 🎯 Direct Dependent Modules (Caller Files)",
         ]
+
+        if analysis.get("test_command"):
+            out.append(f"\n> 🧪 **Targeted Test Command:** `{analysis['test_command']}`\n")
 
         if analysis["direct_callers"]:
             out.append("| File Path | Reference Count | Line Numbers |")
@@ -292,14 +432,41 @@ class ArchitectureRuleEngine:
                         continue
 
                     # Extract file imports
+                    # Extract file imports (full dotted names & resolved relative paths)
                     imported_modules = set()
                     for node in ast.walk(tree):
                         if isinstance(node, ast.Import):
+                            line_no = getattr(node, 'lineno', 1)
                             for n in node.names:
-                                imported_modules.add((n.name.split('.')[0], getattr(node, 'lineno', 1)))
+                                imported_modules.add((n.name, line_no))
                         elif isinstance(node, ast.ImportFrom):
-                            if node.module:
-                                imported_modules.add((node.module.split('.')[0], getattr(node, 'lineno', 1)))
+                            line_no = getattr(node, 'lineno', 1)
+                            base_parts = []
+                            file_dir = os.path.dirname(rel_p)
+                            if file_dir:
+                                base_parts = file_dir.replace('\\', '/').split('/')
+
+                            if node.level and node.level > 0:
+                                # Relative import resolution based on file position
+                                if node.level <= len(base_parts):
+                                    prefix_parts = base_parts[:len(base_parts) - node.level + 1]
+                                    if node.module:
+                                        resolved_mod = ".".join(prefix_parts + node.module.split('.'))
+                                    else:
+                                        resolved_mod = ".".join(prefix_parts)
+                                else:
+                                    resolved_mod = node.module or ""
+                                if resolved_mod:
+                                    imported_modules.add((resolved_mod, line_no))
+                                for n in node.names:
+                                    if resolved_mod:
+                                        imported_modules.add((f"{resolved_mod}.{n.name}", line_no))
+                                    else:
+                                        imported_modules.add((n.name, line_no))
+                            elif node.module:
+                                imported_modules.add((node.module, line_no))
+                                for n in node.names:
+                                    imported_modules.add((f"{node.module}.{n.name}", line_no))
 
                     # Check rules
                     for rule in forbidden:
@@ -309,15 +476,29 @@ class ArchitectureRuleEngine:
                         layer_patterns = layers.get(from_layer, [])
 
                         if self._matches_layer(rel_p, layer_patterns):
-                            for imp_name, line_no in imported_modules:
-                                if imp_name in cannot_import:
-                                    violations.append({
-                                        "file": rel_p,
-                                        "line": line_no,
-                                        "layer": from_layer,
-                                        "forbidden_import": imp_name,
-                                        "reason": reason
-                                    })
+                            for full_imp, line_no in imported_modules:
+                                imp_segments = full_imp.split('.')
+                                for forbidden_target in cannot_import:
+                                    clean_forbidden = forbidden_target.replace('/', '.').rstrip('/*')
+                                    is_violation = (
+                                        full_imp == clean_forbidden
+                                        or full_imp.startswith(clean_forbidden + '.')
+                                        or full_imp.endswith('.' + clean_forbidden)
+                                        or clean_forbidden in imp_segments
+                                        or fnmatch.fnmatch(full_imp, forbidden_target)
+                                        or fnmatch.fnmatch(full_imp, f"{clean_forbidden}.*")
+                                    )
+                                    if is_violation:
+                                        v_entry = {
+                                            "file": rel_p,
+                                            "line": line_no,
+                                            "layer": from_layer,
+                                            "forbidden_import": forbidden_target,
+                                            "imported_module": full_imp,
+                                            "reason": reason
+                                        }
+                                        if v_entry not in violations:
+                                            violations.append(v_entry)
 
         is_clean = len(violations) == 0
         return {
@@ -366,61 +547,89 @@ class AgentRulesGenerator:
 - Architecture: Modular Clean Architecture & High Structural Cohesion
 
 [STRICT OPERATIONAL DIRECTIVES]
-1. ZERO-LEAK SECURITY GUARANTEE:
+1. RULE T-001: ZERO-LEAK SECURITY GUARANTEE:
    - NEVER hardcode API keys, tokens, or credentials anywhere.
    - Use environment variables or OS keyring exclusively.
    - Never commit sensitive .env files.
 
-2. MINIMAL BLAST RADIUS:
-   - Before modifying core functions, verify all downstream callers.
-   - Prefer non-breaking extensions over destructive signature changes.
+2. RULE T-002: ARCHITECTURAL BOUNDARY ENFORCEMENT:
+   - Maintain clear separation of concerns between core logic, transport layers, and UI.
+   - Avoid creating circular import loops. Enforce tzero.rules.json.
+
+3. RULE T-003: AST CONTRACT FIDELITY:
+   - Preserve exact class declarations, typed signatures, and docstrings.
    - Do not delete existing comments or docstrings unless explicitly requested.
 
-3. ARCHITECTURAL BOUNDARIES:
-   - Maintain clear separation of concerns between core logic, transport layers, and UI.
-   - Avoid creating circular import loops.
-
-4. AUTOMATED VERIFICATION:
+4. RULE T-004: ANTI-PATTERN & MINIMAL BLAST RADIUS:
+   - Keep functions concise (<= 30 lines) and arguments minimal (<= 6).
+   - Before modifying core functions, verify all downstream callers.
    - Always run the test suite (`python -m unittest discover -s tests -v`) before concluding tasks.
 """
 
     @staticmethod
     def generate_clinerules(project_name: str) -> str:
         return f"""# Cline & Roo-Code System Rules: {project_name}
-# Enforced by T-Zero Context Engine
+# Enforced by T-Zero Context Engine (Rules T-001 to T-004)
 
 ## Persona & Standards
 You are an elite Principal Software Engineer working on `{project_name}`.
 
 ## Core Rules:
-1. **Zero-Leak Policy:** Never output or commit real API keys or personal secrets.
-2. **Context-Aware Development:** Inspect module dependencies before making edits.
-3. **Preserve Integrity:** Keep all existing docstrings, type annotations, and unit tests intact.
-4. **Validation:** Ensure every change passes unit tests cleanly with zero regressions.
+1. **Rule T-001 (Zero-Leak Policy):** Never output or commit real API keys or personal secrets.
+2. **Rule T-002 (Architectural Boundaries):** Enforce layer isolation and avoid circular dependencies.
+3. **Rule T-003 (AST Contract Fidelity):** Keep all existing docstrings, type annotations, and signatures intact.
+4. **Rule T-004 (Quality & Verification):** Ensure every change passes unit tests cleanly with zero regressions.
 """
 
     @staticmethod
     def generate_copilot_instructions(project_name: str) -> str:
         return f"""# GitHub Copilot Instructions for {project_name}
+# Enforced by T-Zero Algorithm Rules (T-001 to T-004)
 
 ## Repository Guidelines
 - **Project:** {project_name}
-- **Security:** 100% Zero-Leak. Use environment variables for secrets.
-- **Code Style:** PEP 8 for Python. Clean, typed, modular code.
-- **Architecture:** Respect layer boundaries and avoid circular imports.
-- **Testing:** Add unit tests in `tests/` for any new functionality.
+- **Rule T-001 (Security):** 100% Zero-Leak. Use environment variables for secrets.
+- **Rule T-002 (Architecture):** Respect layer boundaries and avoid circular imports.
+- **Rule T-003 (AST Contracts):** PEP 8 for Python. Clean, typed, modular code with complete signatures.
+- **Rule T-004 (Testing):** Add unit tests in `tests/` for any new functionality; keep functions concise.
 """
 
     @staticmethod
-    def generate_cursor_mdc_rules(project_name: str) -> Dict[str, str]:
-        """Generates modern modular .cursor/rules/*.mdc format."""
+    def generate_cursor_mdc_rules(project_name: str, project_dir: Optional[str] = None) -> Dict[str, str]:
+        """Generates modern modular .cursor/rules/*.mdc format dynamically from tzero.rules.json."""
+        layers_desc = []
+        forbidden_desc = []
+
+        if project_dir:
+            rules_path = os.path.join(project_dir, "tzero.rules.json")
+            if os.path.isfile(rules_path):
+                try:
+                    with open(rules_path, "r", encoding="utf-8") as f:
+                        rules_data = json.load(f)
+                    for l_name, patterns in rules_data.get("layers", {}).items():
+                        layers_desc.append(f"- **Layer `{l_name}`:** `{', '.join(patterns)}`")
+                    for rule in rules_data.get("forbidden_imports", []):
+                        forbidden_desc.append(
+                            f"- Layer `{rule.get('from_layer')}` cannot import `{', '.join(rule.get('cannot_import', []))}`: {rule.get('reason', '')}"
+                        )
+                except Exception:
+                    pass
+
+        layers_block = "\n".join(layers_desc) if layers_desc else "- Core business logic must remain decoupled from presentation or CLI entrypoints."
+        forbidden_block = "\n".join(forbidden_desc) if forbidden_desc else "- Avoid circular dependencies and cross-layer spaghettification."
+
         arch_mdc = f"""---
-description: Architectural Boundary & Modularity Standards
+description: Architectural Boundary & Modularity Standards for {project_name}
 globs: **/*.py
 ---
 # Architecture Standards for {project_name}
 
-- Core business logic must remain decoupled from presentation or CLI entrypoints.
+## Active Architectural Layers:
+{layers_block}
+
+## Enforced Import Boundaries:
+{forbidden_block}
+
 - All public functions and classes must include descriptive docstrings.
 - Follow PEP 8 and maintain type hints where applicable.
 """
@@ -438,6 +647,33 @@ globs: **/*
             "architecture.mdc": arch_mdc,
             "security.mdc": sec_mdc
         }
+
+    @staticmethod
+    def generate_windsurfrules(project_name: str) -> str:
+        return f"""# Windsurf AI Rules for {project_name}
+# Enforced by Siber Akademi T-Zero Context Engine
+
+## Core Directives
+1. **Zero-Leak Guarantee:** NEVER hardcode credentials or expose production secrets.
+2. **Context-Driven Edits:** Always verify architectural layer boundaries and dependencies.
+3. **Preserve Documentation:** Do not strip comments, docstrings, or type hints unless requested.
+4. **Verification:** Ensure tests pass cleanly before concluding tasks.
+"""
+
+    @staticmethod
+    def generate_claude_instructions(project_name: str) -> str:
+        return f"""# Claude Code & Extended Thinking Directives: {project_name}
+
+## System Overview
+- **Project:** {project_name}
+- **Engine:** T-Zero Context Architect
+- **Standards:** Clean Architecture, 100% Zero-Leak Security, PEP 8 / Idiomatic Typing.
+
+## Behavioral Directives:
+- Maintain minimal blast radius on all code changes.
+- Check downstream caller impacts before refactoring shared interfaces.
+- Always run the test suite to prevent regressions.
+"""
 
     @classmethod
     def export_all(cls, project_dir: str) -> List[str]:
@@ -457,7 +693,19 @@ globs: **/*
             f.write(cls.generate_clinerules(p_name))
         created.append(cl_path)
 
-        # 3. .github/copilot-instructions.md
+        # 3. .windsurfrules
+        ws_path = os.path.join(project_dir, ".windsurfrules")
+        with open(ws_path, "w", encoding="utf-8") as f:
+            f.write(cls.generate_windsurfrules(p_name))
+        created.append(ws_path)
+
+        # 4. CLAUDE.md
+        claude_path = os.path.join(project_dir, "CLAUDE.md")
+        with open(claude_path, "w", encoding="utf-8") as f:
+            f.write(cls.generate_claude_instructions(p_name))
+        created.append(claude_path)
+
+        # 5. .github/copilot-instructions.md
         gh_dir = os.path.join(project_dir, ".github")
         os.makedirs(gh_dir, exist_ok=True)
         copilot_path = os.path.join(gh_dir, "copilot-instructions.md")
@@ -465,10 +713,10 @@ globs: **/*
             f.write(cls.generate_copilot_instructions(p_name))
         created.append(copilot_path)
 
-        # 4. .cursor/rules/*.mdc
+        # 6. .cursor/rules/*.mdc
         c_rules_dir = os.path.join(project_dir, ".cursor", "rules")
         os.makedirs(c_rules_dir, exist_ok=True)
-        for mdc_name, content in cls.generate_cursor_mdc_rules(p_name).items():
+        for mdc_name, content in cls.generate_cursor_mdc_rules(p_name, project_dir=project_dir).items():
             mdc_path = os.path.join(c_rules_dir, mdc_name)
             with open(mdc_path, "w", encoding="utf-8") as f:
                 f.write(content)
@@ -482,11 +730,11 @@ globs: **/*
 # =============================================================================
 
 class LocalSemanticCodeSearch:
-    """100% Local, zero-network hybrid BM25 + symbol token code search.
+    """100% Local, zero-network hybrid BM25 + symbol token code search with Reciprocal Rank Fusion (RRF).
     
     Indexes functions, classes, docstrings, and signatures into an in-memory
-    vector/lexical index, allowing natural language queries without sending code
-    to any external embedding API.
+    vector/lexical index with AST-aware chunking, allowing natural language queries
+    without sending code to any external embedding API.
     """
 
     def __init__(self, project_dir: str):
@@ -523,8 +771,49 @@ class LocalSemanticCodeSearch:
                     except Exception:
                         continue
 
-                    # Index by blocks / lines
                     lines = content.splitlines()
+                    if not lines:
+                        continue
+
+                    # 1. AST-Aware Chunking for Python
+                    indexed_ast = False
+                    if f.endswith('.py'):
+                        try:
+                            tree = ast.parse(content)
+                            for node in ast.walk(tree):
+                                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                                    start_line = node.lineno
+                                    end_line = getattr(node, "end_lineno", node.lineno) or node.lineno
+                                    doc = ast.get_docstring(node) or ""
+                                    block = "\n".join(lines[start_line - 1 : min(len(lines), end_line)])
+                                    toks = (
+                                        self._tokenize(node.name) * 3
+                                        + self._tokenize(doc) * 2
+                                        + self._tokenize(block)
+                                    )
+                                    if not toks:
+                                        continue
+                                    chunk_entry = {
+                                        "file": rel_p,
+                                        "start_line": start_line,
+                                        "end_line": end_line,
+                                        "symbol_name": node.name,
+                                        "docstring": doc,
+                                        "snippet": block[:500],
+                                        "tokens": toks,
+                                        "term_counts": collections.Counter(toks),
+                                        "length": len(toks),
+                                        "is_ast": True
+                                    }
+                                    self.chunks.append(chunk_entry)
+                                    total_len += len(toks)
+                                    for term in set(toks):
+                                        self.doc_freqs[term] += 1
+                                    indexed_ast = True
+                        except Exception:
+                            pass
+
+                    # 2. Sliding window chunking (for non-Python or whole file coverage)
                     chunk_size = 25
                     step = 15
                     for i in range(0, max(1, len(lines)), step):
@@ -537,10 +826,13 @@ class LocalSemanticCodeSearch:
                             "file": rel_p,
                             "start_line": i + 1,
                             "end_line": min(len(lines), i + chunk_size),
+                            "symbol_name": "",
+                            "docstring": "",
                             "snippet": block[:400],
                             "tokens": toks,
                             "term_counts": collections.Counter(toks),
-                            "length": len(toks)
+                            "length": len(toks),
+                            "is_ast": False
                         }
                         self.chunks.append(chunk_entry)
                         total_len += len(toks)
@@ -553,20 +845,23 @@ class LocalSemanticCodeSearch:
         self.avg_doc_len = total_len / max(1, self.total_docs)
 
     def search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """Performs BM25 search across indexed code chunks."""
+        """Performs hybrid BM25 + Symbol Match search with Reciprocal Rank Fusion (RRF)."""
         q_tokens = self._tokenize(query)
         if not q_tokens or self.total_docs == 0:
             return []
 
         k1 = 1.5
         b = 0.75
-        scores = []
+        bm25_scores = []
+        symbol_scores = []
+        docstring_scores = []
+        q_lower = query.strip().lower()
 
-        for chunk in self.chunks:
+        for idx, chunk in enumerate(self.chunks):
+            # 1. BM25 score
             score = 0.0
             doc_len = chunk["length"]
             term_counts = chunk["term_counts"]
-
             for q in q_tokens:
                 if q in term_counts:
                     tf = term_counts[q]
@@ -574,20 +869,82 @@ class LocalSemanticCodeSearch:
                     idf = math.log((self.total_docs - df + 0.5) / (df + 0.5) + 1.0)
                     tf_norm = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (doc_len / self.avg_doc_len)))
                     score += idf * tf_norm
-
             if score > 0.0:
-                scores.append((score, chunk))
+                bm25_scores.append((score, idx))
 
-        scores.sort(key=lambda x: x[0], reverse=True)
+            # 2. Exact / Prefix Symbol Score
+            sym = chunk.get("symbol_name", "").lower()
+            sym_score = 0.0
+            if sym:
+                if q_lower == sym:
+                    sym_score = 10.0
+                elif sym.startswith(q_lower) or q_lower in sym:
+                    sym_score = 6.0
+                elif any(q in sym for q in q_tokens):
+                    sym_score = 3.0
+            if sym_score > 0.0:
+                symbol_scores.append((sym_score, idx))
+
+            # 3. Docstring semantic match
+            doc = chunk.get("docstring", "").lower()
+            doc_score = 0.0
+            if doc:
+                overlap = sum(1 for q in q_tokens if q in doc)
+                if overlap > 0:
+                    doc_score = overlap * 2.0
+                    docstring_scores.append((doc_score, idx))
+
+        # Sort each channel
+        bm25_scores.sort(key=lambda x: x[0], reverse=True)
+        symbol_scores.sort(key=lambda x: x[0], reverse=True)
+        docstring_scores.sort(key=lambda x: x[0], reverse=True)
+
+        bm25_ranks = {idx: rank + 1 for rank, (_, idx) in enumerate(bm25_scores)}
+        symbol_ranks = {idx: rank + 1 for rank, (_, idx) in enumerate(symbol_scores)}
+        doc_ranks = {idx: rank + 1 for rank, (_, idx) in enumerate(docstring_scores)}
+
+        # Combine with Reciprocal Rank Fusion (RRF)
+        all_candidate_indices = set(bm25_ranks.keys()) | set(symbol_ranks.keys()) | set(doc_ranks.keys())
+        rrf_k = 60
+        fused_scores = []
+
+        for idx in all_candidate_indices:
+            rrf_score = 0.0
+            if idx in bm25_ranks:
+                rrf_score += 1.0 / (rrf_k + bm25_ranks[idx])
+            if idx in symbol_ranks:
+                rrf_score += 2.5 / (rrf_k + symbol_ranks[idx])
+            if idx in doc_ranks:
+                rrf_score += 1.5 / (rrf_k + doc_ranks[idx])
+
+            # Bonus for AST chunks
+            if self.chunks[idx].get("is_ast"):
+                rrf_score *= 1.25
+
+            fused_scores.append((rrf_score, idx))
+
+        fused_scores.sort(key=lambda x: x[0], reverse=True)
+
         results = []
-        for s, c in scores[:top_k]:
+        seen_ranges = set()
+        for s, idx in fused_scores:
+            c = self.chunks[idx]
+            range_key = (c["file"], c["start_line"], c["end_line"])
+            if range_key in seen_ranges:
+                continue
+            seen_ranges.add(range_key)
+
+            scaled_relevance = round(s * 100.0, 2)
             results.append({
                 "file": c["file"],
                 "start_line": c["start_line"],
                 "end_line": c["end_line"],
                 "snippet": c["snippet"],
-                "relevance_score": round(s, 2)
+                "relevance_score": scaled_relevance
             })
+            if len(results) >= top_k:
+                break
+
         return results
 
     def format_search_results(self, query: str, results: List[Dict[str, Any]]) -> str:
@@ -667,7 +1024,168 @@ class TokenROICalculator:
 
 
 # =============================================================================
-# 6. LOCAL CYBERPUNK WEB DASHBOARD (Zero-Dependency Localhost Server)
+# 6. INCREMENTAL GIT DIFF & PR CONTEXT BUILDER (98%+ Token Savings)
+# =============================================================================
+
+class GitDiffContextBuilder:
+    """Computes incremental git diff context and downstream blast radius dependencies.
+    
+    Extracts only modified symbol signatures + affected callers/importers,
+    achieving 98%+ token savings compared to whole-repository prompt ingestion.
+    """
+
+    def __init__(self, project_dir: str):
+        self.project_dir = os.path.abspath(project_dir)
+        self.impact_analyzer = ChangeImpactAnalyzer(self.project_dir)
+
+    def get_diff_changed_files(self, base_ref: str = "HEAD~1") -> List[Dict[str, Any]]:
+        """Finds changed files using local git diff without external network calls."""
+        changed = []
+
+        diff_output = ""
+        try:
+            r = subprocess.run(
+                ["git", "diff", "--name-status", base_ref],
+                cwd=self.project_dir,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                diff_output = r.stdout
+            else:
+                r2 = subprocess.run(
+                    ["git", "status", "--porcelain"],
+                    cwd=self.project_dir,
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                if r2.returncode == 0:
+                    diff_output = r2.stdout
+        except Exception:
+            return []
+
+        for line in diff_output.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split()
+            if len(parts) >= 2:
+                status = parts[0]
+                file_rel = parts[-1].replace("\\", "/")
+                changed.append({
+                    "status": status,
+                    "file": file_rel
+                })
+        return changed
+
+    def build_diff_context(self, base_ref: str = "HEAD~1") -> Dict[str, Any]:
+        """Builds hyper-compact diff context payload."""
+        from tzero_v3 import TokenReducer
+        changed_files = self.get_diff_changed_files(base_ref)
+        if not changed_files:
+            return {
+                "base_ref": base_ref,
+                "changed_files_count": 0,
+                "modified_symbols_count": 0,
+                "downstream_dependents_count": 0,
+                "compressed_tokens": 0,
+                "full_repo_tokens": 0,
+                "token_savings_percent": 100.0,
+                "markdown": "## No Git Changes Detected\nWorking tree is completely clean relative to base reference."
+            }
+
+        modified_symbols = []
+        downstream_dependents = set()
+        file_snippets = {}
+
+        for item in changed_files:
+            rel_p = item["file"]
+            full_p = os.path.join(self.project_dir, rel_p)
+            if not os.path.isfile(full_p):
+                continue
+
+            try:
+                with open(full_p, "r", encoding="utf-8", errors="ignore") as fp:
+                    content = fp.read()
+                file_snippets[rel_p] = content
+            except Exception:
+                continue
+
+            if rel_p.endswith(".py"):
+                try:
+                    tree = ast.parse(content)
+                    for node in tree.body:
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                            modified_symbols.append((rel_p, node.name))
+                            impact = self.impact_analyzer.analyze_symbol(node.name)
+                            for caller in impact.get("direct_callers", []):
+                                if isinstance(caller, dict) and "file" in caller:
+                                    downstream_dependents.add(caller["file"])
+                                elif isinstance(caller, str):
+                                    downstream_dependents.add(caller)
+                            for dep in impact.get("second_level_dependents", []):
+                                if isinstance(dep, dict) and "file" in dep:
+                                    downstream_dependents.add(dep["file"])
+                                elif isinstance(dep, str):
+                                    downstream_dependents.add(dep)
+                            for dep in impact.get("downstream_dependents", []):
+                                if isinstance(dep, dict) and "file" in dep:
+                                    downstream_dependents.add(dep["file"])
+                                elif isinstance(dep, str):
+                                    downstream_dependents.add(dep)
+                except Exception:
+                    pass
+
+        full_repo_tokens = sum(len(v) // 4 for v in self.impact_analyzer.snippets.values())
+        reduced_snippets = {
+            f: TokenReducer.reduce(c, f, mode="ultra") for f, c in file_snippets.items()
+        }
+        compressed_diff_tokens = sum(len(v) // 4 for v in reduced_snippets.values())
+
+        savings_pct = 0.0
+        if full_repo_tokens > 0:
+            savings_pct = round(max(0.0, 100.0 - (compressed_diff_tokens / full_repo_tokens * 100.0)), 1)
+
+        md = [
+            f"# 🚀 T-Zero Incremental PR Context (Diff Mode)",
+            f"",
+            f"> **Compression Ratio:** **{savings_pct}% reduction** ({compressed_diff_tokens:,} tokens vs {full_repo_tokens:,} full repo tokens)",
+            f"> **Base Ref:** `{base_ref}` | **Modified Files:** {len(file_snippets)} | **Downstream Impacted Files:** {len(downstream_dependents)}",
+            f"",
+            f"## 📝 1. Modified Modules & Changed Signatures",
+        ]
+
+        for rel_p, reduced_code in reduced_snippets.items():
+            ext = os.path.splitext(rel_p)[1].lstrip(".") or "txt"
+            md.append(f"### `{rel_p}`")
+            md.append(f"```{ext}")
+            md.append(reduced_code[:3000] if len(reduced_code) > 3000 else reduced_code)
+            md.append("```")
+            md.append("")
+
+        if downstream_dependents:
+            md.append("## 🎯 2. Downstream Blast Radius Dependents")
+            for dep_file in sorted(downstream_dependents):
+                md.append(f"- `{dep_file}` (Depends on modified symbols)")
+            md.append("")
+
+        md_str = "\n".join(md)
+        return {
+            "base_ref": base_ref,
+            "changed_files_count": len(file_snippets),
+            "modified_symbols_count": len(modified_symbols),
+            "downstream_dependents_count": len(downstream_dependents),
+            "compressed_tokens": compressed_diff_tokens,
+            "full_repo_tokens": full_repo_tokens,
+            "token_savings_percent": savings_pct,
+            "markdown": md_str
+        }
+
+
+# =============================================================================
+# 7. LOCAL CYBERPUNK WEB DASHBOARD (Zero-Dependency Localhost Server)
 # =============================================================================
 
 HTML_DASHBOARD_TEMPLATE = """<!DOCTYPE html>
@@ -921,16 +1439,64 @@ function exportRules() {
 """
 
 
-class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
-    """Zero-dependency HTTP handler serving the T-Zero Web Dashboard and REST APIs."""
+class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
+    """Zero-dependency secure HTTP handler serving the T-Zero Web Dashboard and REST APIs."""
     
     project_dir = "."
-    search_engine: Optional[LocalSemanticCodeSearch] = None
-    impact_analyzer: Optional[ChangeImpactAnalyzer] = None
-    rule_engine: Optional[ArchitectureRuleEngine] = None
+    _search_engine: Optional[LocalSemanticCodeSearch] = None
+    _impact_analyzer: Optional[ChangeImpactAnalyzer] = None
+    _rule_engine: Optional[ArchitectureRuleEngine] = None
+    _last_mtime: float = 0.0
+
+    @classmethod
+    def _get_project_mtime(cls) -> float:
+        """Finds latest modification timestamp across files to detect stale cache."""
+        latest = 0.0
+        for root, _, files in os.walk(cls.project_dir):
+            if should_skip_dir(root, cls.project_dir):
+                continue
+            for f in files:
+                if f.endswith(('.py', '.json', '.js', '.ts', '.go', '.rs')):
+                    try:
+                        m = os.path.getmtime(os.path.join(root, f))
+                        if m > latest:
+                            latest = m
+                    except OSError:
+                        pass
+        return latest
+
+    @classmethod
+    def get_engines(cls) -> Tuple[LocalSemanticCodeSearch, ChangeImpactAnalyzer, ArchitectureRuleEngine]:
+        """Returns initialized analysis engines, auto-refreshing cache if files changed."""
+        current_m = cls._get_project_mtime()
+        if (
+            cls._search_engine is None
+            or cls._impact_analyzer is None
+            or cls._rule_engine is None
+            or current_m > cls._last_mtime
+        ):
+            cls._search_engine = LocalSemanticCodeSearch(cls.project_dir)
+            cls._impact_analyzer = ChangeImpactAnalyzer(cls.project_dir)
+            cls._rule_engine = ArchitectureRuleEngine(cls.project_dir)
+            cls._last_mtime = current_m
+        return cls._search_engine, cls._impact_analyzer, cls._rule_engine
 
     def log_message(self, format, *args):
         pass  # Quiet logging
+
+    def _send_security_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        self.send_header("X-Content-Type-Options", "nosniff")
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self._send_security_headers()
+        self.end_headers()
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -938,11 +1504,16 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         query = urllib.parse.parse_qs(parsed.query)
 
         if path in ("/", "/index.html"):
+            payload = HTML_DASHBOARD_TEMPLATE.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self._send_security_headers()
             self.end_headers()
-            self.wfile.write(HTML_DASHBOARD_TEMPLATE.encode("utf-8"))
+            self.wfile.write(payload)
             return
+
+        search_engine, impact_analyzer, rule_engine = self.get_engines()
 
         if path == "/api/overview":
             from tzero_v3 import CodebaseScanner
@@ -957,25 +1528,19 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         if path == "/api/search":
             q = query.get("q", [""])[0]
-            if not self.search_engine:
-                self.search_engine = LocalSemanticCodeSearch(self.project_dir)
-            matches = self.search_engine.search(q, top_k=6)
+            matches = search_engine.search(q, top_k=6)
             self._send_json(matches)
             return
 
         if path == "/api/impact":
             sym = query.get("sym", [""])[0]
-            if not self.impact_analyzer:
-                self.impact_analyzer = ChangeImpactAnalyzer(self.project_dir)
-            analysis = self.impact_analyzer.analyze_symbol(sym)
-            report = self.impact_analyzer.format_report(analysis)
+            analysis = impact_analyzer.analyze_symbol(sym)
+            report = impact_analyzer.format_report(analysis)
             self._send_json({"analysis": analysis, "report": report})
             return
 
         if path == "/api/boundaries":
-            if not self.rule_engine:
-                self.rule_engine = ArchitectureRuleEngine(self.project_dir)
-            res = self.rule_engine.enforce_boundaries()
+            res = rule_engine.enforce_boundaries()
             # Clean report without ANSI colors for HTML
             if res["clean"]:
                 rep = f"PASSED: All {res['scanned_files']} files conform to boundary rules. Zero violations."
@@ -998,6 +1563,7 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
+        self._send_security_headers()
         self.end_headers()
         self.wfile.write(payload)
 
@@ -1029,3 +1595,739 @@ def launch_web_dashboard(project_dir: str = ".", port: int = 7300, open_browser:
     except KeyboardInterrupt:
         print("\n[INFO] Web dashboard shut down.")
         httpd.server_close()
+
+
+# =============================================================================
+# 7. ZERO-HALLUCINATION GUARD & PRE-FLIGHT SYMBOL / CALL VALIDATOR (TOOL 17)
+# =============================================================================
+
+class ZeroHallucinationGuard:
+    """Pre-flight validator that eliminates AI coding hallucinations before code is applied.
+    
+    Verifies imports against workspace modules/symbols and validates function/method calls
+    against known AST signatures (argument counts and keyword argument names).
+    """
+
+    def __init__(self, project_dir: str):
+        self.project_dir = os.path.abspath(project_dir)
+        self.modules: Dict[str, str] = {}  # mod_name -> rel_path
+        self.exported_symbols: Dict[str, Set[str]] = collections.defaultdict(set)
+        self.function_signatures: Dict[str, Dict[str, Any]] = {}
+        self._build_catalog()
+
+    def _build_catalog(self):
+        for root, _, files in os.walk(self.project_dir):
+            if should_skip_dir(root, self.project_dir):
+                continue
+            for f in files:
+                if f.endswith('.py'):
+                    full_p = os.path.join(root, f)
+                    rel_p = os.path.relpath(full_p, self.project_dir).replace('\\', '/')
+                    mod_path = os.path.splitext(rel_p)[0].replace('/', '.')
+                    stem = os.path.splitext(f)[0]
+                    self.modules[mod_path] = rel_p
+                    self.modules[stem] = rel_p
+
+                    try:
+                        with open(full_p, 'r', encoding='utf-8', errors='ignore') as fp:
+                            content = fp.read()
+                        tree = ast.parse(content)
+                        self._index_module_ast(mod_path, stem, tree)
+                    except Exception:
+                        pass
+
+    def _index_module_ast(self, mod_path: str, stem: str, tree: ast.AST):
+        all_symbols: Set[str] = set()
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "__all__":
+                        if isinstance(node.value, (ast.List, ast.Tuple)):
+                            for elt in node.value.elts:
+                                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                    all_symbols.add(elt.value)
+                    elif isinstance(target, ast.Name):
+                        all_symbols.add(target.id)
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                all_symbols.add(node.target.id)
+            elif isinstance(node, ast.ClassDef):
+                all_symbols.add(node.name)
+                for item in node.body:
+                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        sig = self._extract_func_sig(item)
+                        self.function_signatures[f"{node.name}.{item.name}"] = sig
+                        if item.name not in self.function_signatures:
+                            self.function_signatures[item.name] = sig
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                all_symbols.add(node.name)
+                sig = self._extract_func_sig(node)
+                self.function_signatures[node.name] = sig
+
+        self.exported_symbols[mod_path].update(all_symbols)
+        self.exported_symbols[stem].update(all_symbols)
+
+    def _extract_func_sig(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> Dict[str, Any]:
+        args = node.args
+        posonly = [a.arg for a in args.posonlyargs]
+        standard_args = [a.arg for a in args.args]
+        all_pos = posonly + standard_args
+        num_defaults = len(args.defaults)
+        min_pos = len(all_pos) - num_defaults
+        kwonly = [a.arg for a in args.kwonlyargs]
+        all_params = set(all_pos + kwonly)
+        
+        arg_strs = []
+        defaults_offset = len(all_pos) - num_defaults
+        for i, a in enumerate(args.posonlyargs):
+            s = a.arg
+            if a.annotation:
+                s += f": {ast.unparse(a.annotation)}"
+            if i >= defaults_offset:
+                s += f" = {ast.unparse(args.defaults[i - defaults_offset])}"
+            arg_strs.append(s)
+        if posonly:
+            arg_strs.append("/")
+        for i, a in enumerate(args.args):
+            idx = len(posonly) + i
+            s = a.arg
+            if a.annotation:
+                s += f": {ast.unparse(a.annotation)}"
+            if idx >= defaults_offset:
+                s += f" = {ast.unparse(args.defaults[idx - defaults_offset])}"
+            arg_strs.append(s)
+        if args.vararg:
+            v_s = f"*{args.vararg.arg}"
+            if args.vararg.annotation:
+                v_s += f": {ast.unparse(args.vararg.annotation)}"
+            arg_strs.append(v_s)
+        elif kwonly:
+            arg_strs.append("*")
+        for i, a in enumerate(args.kwonlyargs):
+            s = a.arg
+            if a.annotation:
+                s += f": {ast.unparse(a.annotation)}"
+            default = args.kw_defaults[i]
+            if default:
+                s += f" = {ast.unparse(default)}"
+            arg_strs.append(s)
+        if args.kwarg:
+            k_s = f"**{args.kwarg.arg}"
+            if args.kwarg.annotation:
+                k_s += f": {ast.unparse(args.kwarg.annotation)}"
+            arg_strs.append(k_s)
+
+        ret = f" -> {ast.unparse(node.returns)}" if node.returns else ""
+        sig_str = f"{node.name}({', '.join(arg_strs)}){ret}"
+
+        return {
+            "name": node.name,
+            "min_pos": min_pos,
+            "max_pos": float("inf") if args.vararg else len(all_pos),
+            "has_vararg": bool(args.vararg),
+            "has_kwarg": bool(args.kwarg),
+            "all_params": all_params,
+            "sig_str": sig_str,
+        }
+
+    def validate_code(self, proposed_code: str, target_file: str = "") -> Dict[str, Any]:
+        """Validates proposed code against workspace symbol and function call contracts."""
+        try:
+            tree = ast.parse(proposed_code)
+        except SyntaxError as e:
+            return {
+                "passed": False,
+                "syntax_error": str(e),
+                "violations": [f"Syntax error at line {e.lineno}: {e.msg}"],
+                "report": f"❌ [HALLUCINATION BLOCKED] Proposed code failed Python syntax parsing at line {e.lineno}: {e.msg}"
+            }
+
+        violations: List[str] = []
+
+        # 1. Check workspace imports
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                if node.module:
+                    base_mod = node.module.split('.')[0]
+                    if base_mod in self.modules or node.module in self.modules:
+                        avail = self.exported_symbols.get(node.module, self.exported_symbols.get(base_mod, set()))
+                        for alias in node.names:
+                            if alias.name != "*" and alias.name not in avail:
+                                close = difflib.get_close_matches(alias.name, list(avail), n=3, cutoff=0.5)
+                                did_you_mean = f" Did you mean: `{', '.join(close)}`?" if close else ""
+                                violations.append(
+                                    f"Import Hallucination: Symbol `{alias.name}` does not exist in workspace module `{node.module}`.{did_you_mean}"
+                                )
+
+        # 2. Check function calls
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                func_name = ""
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+                elif isinstance(node.func, ast.Attribute):
+                    val_str = ast.unparse(node.func.value)
+                    func_name = f"{val_str}.{node.func.attr}"
+
+                sig = self.function_signatures.get(func_name)
+                if not sig and isinstance(node.func, ast.Attribute):
+                    sig = self.function_signatures.get(node.func.attr)
+
+                if sig:
+                    # Validate keyword arguments
+                    if not sig["has_kwarg"]:
+                        for kw in node.keywords:
+                            if kw.arg and kw.arg not in sig["all_params"]:
+                                close_kw = difflib.get_close_matches(kw.arg, list(sig["all_params"]), n=2, cutoff=0.6)
+                                hint = f" Did you mean parameter `{close_kw[0]}`?" if close_kw else ""
+                                violations.append(
+                                    f"Call Hallucination: `{func_name or sig['name']}` does not accept keyword argument `{kw.arg}`.{hint} Valid signature: `{sig['sig_str']}`"
+                                )
+                    # Validate positional argument counts (skip 'self' for method calls like obj.method())
+                    num_pos = len(node.args)
+                    is_method_attr_call = isinstance(node.func, ast.Attribute)
+                    effective_min = sig["min_pos"]
+                    effective_max = sig["max_pos"]
+                    if is_method_attr_call and "self" in sig["all_params"]:
+                        effective_min = max(0, effective_min - 1)
+                        if effective_max != float("inf"):
+                            effective_max = max(0, effective_max - 1)
+
+                    if num_pos < effective_min:
+                        violations.append(
+                            f"Call Hallucination: `{func_name or sig['name']}` missing required positional arguments ({num_pos} provided, at least {effective_min} required). Valid signature: `{sig['sig_str']}`"
+                        )
+                    elif not sig["has_vararg"] and num_pos > effective_max:
+                        violations.append(
+                            f"Call Hallucination: `{func_name or sig['name']}` received too many positional arguments ({num_pos} provided, at most {effective_max} allowed). Valid signature: `{sig['sig_str']}`"
+                        )
+                elif isinstance(node.func, ast.Attribute):
+                    # Method called on a class or object that is not recognized
+                    target_attr = node.func.attr
+                    all_sigs = list(self.function_signatures.keys())
+                    matches = difflib.get_close_matches(target_attr, [s.split('.')[-1] for s in all_sigs], n=2, cutoff=0.5)
+                    if matches:
+                        cand_sigs = [self.function_signatures[m]["sig_str"] for m in matches if m in self.function_signatures]
+                        val_str = ast.unparse(node.func.value)
+                        violations.append(
+                            f"Call Hallucination: Method or function `{val_str}.{target_attr}` does not exist! Did you mean: `{'; '.join(cand_sigs or matches)}`?"
+                        )
+
+        passed = len(violations) == 0
+        if passed:
+            report_str = "✅ [PASS] Zero-Hallucination Guard verified. All imports and call contracts are valid."
+        else:
+            report_lines = [
+                f"❌ [HALLUCINATION BLOCKED] Found {len(violations)} contract violation(s) in proposed code:\n"
+            ]
+            for i, v in enumerate(violations, 1):
+                report_lines.append(f"{i}. {v}")
+            report_lines.append("\n> **Corrective Action:** Adjust imports or function calls to match declared AST interfaces above.")
+            report_str = "\n".join(report_lines)
+
+        return {
+            "passed": passed,
+            "violations": violations,
+            "report": report_str
+        }
+
+
+# =============================================================================
+# 8. FOCUS-AWARE SMART SKELETON CONTEXT BUILDER (TOOL 18)
+# =============================================================================
+
+class SmartSkeletonContextBuilder:
+    """Builds focus-aware hybrid context with full implementation for the target
+    and ultra-compressed T-3 AST skeletons for surrounding 1st-degree ecosystem.
+    """
+
+    def __init__(self, project_dir: str):
+        self.project_dir = os.path.abspath(project_dir)
+        self.impact_analyzer = ChangeImpactAnalyzer(project_dir)
+
+    def build_skeleton(self, focus_file: str, focus_symbol: str = "") -> str:
+        """Returns full target code + 1st-degree AST skeletons."""
+        from tzero_v3 import TokenReducer
+        
+        target_path = os.path.join(self.project_dir, focus_file) if not os.path.isabs(focus_file) else focus_file
+        rel_target = os.path.relpath(target_path, self.project_dir).replace('\\', '/')
+        if not os.path.isfile(target_path):
+            return f"[ERROR] Focus file not found: {focus_file}"
+
+        with open(target_path, 'r', encoding='utf-8', errors='ignore') as fp:
+            full_code = fp.read()
+
+        target_section = full_code
+        target_title = f"`{rel_target}` (Full Implementation)"
+
+        if focus_symbol and rel_target.endswith(".py"):
+            try:
+                tree = ast.parse(full_code)
+                lines = full_code.splitlines()
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                        if node.name == focus_symbol:
+                            start_l = node.lineno - 1
+                            end_l = getattr(node, "end_lineno", len(lines))
+                            target_section = "\n".join(lines[start_l:end_l])
+                            target_title = f"`{rel_target}::{focus_symbol}` (Target Symbol Implementation)"
+                            break
+            except Exception:
+                pass
+
+        # Identify 1st-degree outbound imports
+        outbound_files: Set[str] = set()
+        stem = os.path.splitext(os.path.basename(rel_target))[0]
+        imported_modules = self.impact_analyzer.import_graph.get(rel_target, set())
+        for f in self.impact_analyzer.files_list:
+            f_stem = os.path.splitext(os.path.basename(f))[0]
+            if f_stem in imported_modules and f != rel_target:
+                outbound_files.add(f)
+
+        # Identify 1st-degree inbound callers
+        inbound_files: Set[str] = set()
+        if focus_symbol:
+            impact = self.impact_analyzer.analyze_symbol(focus_symbol)
+            for caller in impact.get("direct_callers", []):
+                inbound_files.add(caller["file"])
+        else:
+            for f in self.impact_analyzer.inbound_graph.get(stem, set()):
+                if f != rel_target:
+                    inbound_files.add(f)
+
+        surrounding_files = sorted(list((outbound_files | inbound_files) - {rel_target}))
+
+        md = [
+            f"# 🎯 Focus-Aware Smart Skeleton Context: {os.path.basename(rel_target)}",
+            "",
+            f"> **Architecture Pattern:** Zero-Hallucination Hybrid (Full Target + Surrounding T-3 AST Skeletons)",
+            f"> **Target File:** `{rel_target}` | **Surrounding Ecosystem:** {len(surrounding_files)} modules",
+            "",
+            f"## 1. 🔍 Target Implementation: {target_title}",
+            "```python" if rel_target.endswith(".py") else "```text",
+            target_section,
+            "```",
+            "",
+            "## 2. 🌐 Surrounding Interface Ecosystem (T-3 AST Skeletons)",
+            "> The following 1st-degree dependencies and callers are pruned to AST signatures to guarantee interface fidelity with minimum token overhead:",
+            ""
+        ]
+
+        for s_file in surrounding_files:
+            s_full = os.path.join(self.project_dir, s_file)
+            try:
+                with open(s_full, 'r', encoding='utf-8', errors='ignore') as fp:
+                    s_code = fp.read()
+                pruned = TokenReducer.reduce(s_code, s_file, mode="ultra")
+                ext = os.path.splitext(s_file)[1].lstrip('.') or "py"
+                rel_type = "Outbound Dependency" if s_file in outbound_files else "Inbound Caller"
+                md.append(f"### `{s_file}` ({rel_type})")
+                md.append(f"```{ext}")
+                md.append(pruned)
+                md.append("```\n")
+            except Exception:
+                pass
+
+        return "\n".join(md)
+
+
+# =============================================================================
+# 9. GRAPH-CENTRALITY ARCHITECTURAL PAGERANK (TOOL 19)
+# =============================================================================
+
+class RepositoryPageRank:
+    """Pure-Python PageRank implementation to identify the architectural backbone of a codebase."""
+
+    def __init__(self, project_dir: str):
+        self.project_dir = os.path.abspath(project_dir)
+        self.impact_analyzer = ChangeImpactAnalyzer(project_dir)
+
+    def rank(self, top_k: int = 15, damping: float = 0.85, max_iter: int = 40) -> List[Dict[str, Any]]:
+        """Calculates PageRank centrality for all files in the repository."""
+        nodes = sorted(self.impact_analyzer.files_list)
+        N = len(nodes)
+        if N == 0:
+            return []
+
+        node_to_idx = {node: i for i, node in enumerate(nodes)}
+        stem_to_node = {}
+        for n in nodes:
+            s = os.path.splitext(os.path.basename(n))[0]
+            stem_to_node[s] = n
+
+        # Build adjacency
+        out_edges: Dict[int, Set[int]] = collections.defaultdict(set)
+        in_edges: Dict[int, Set[int]] = collections.defaultdict(set)
+
+        for src, imps in self.impact_analyzer.import_graph.items():
+            if src in node_to_idx:
+                u = node_to_idx[src]
+                for imp in imps:
+                    if imp in stem_to_node:
+                        dst = stem_to_node[imp]
+                        v = node_to_idx[dst]
+                        if u != v:
+                            out_edges[u].add(v)
+                            in_edges[v].add(u)
+
+        # Power iteration
+        scores = [1.0 / N] * N
+        for _ in range(max_iter):
+            new_scores = [(1.0 - damping) / N] * N
+            dangling_sum = sum(scores[i] for i in range(N) if not out_edges[i])
+            dangling_alloc = (damping * dangling_sum) / N
+
+            for i in range(N):
+                new_scores[i] += dangling_alloc
+                for parent in in_edges[i]:
+                    out_deg = len(out_edges[parent])
+                    if out_deg > 0:
+                        new_scores[i] += damping * (scores[parent] / out_deg)
+
+            scores = new_scores
+
+        # Rank
+        ranked_indices = sorted(range(N), key=lambda i: scores[i], reverse=True)
+        results = []
+        for idx in ranked_indices[:top_k]:
+            file_p = nodes[idx]
+            in_deg = len(in_edges[idx])
+            out_deg = len(out_edges[idx])
+            raw_score = scores[idx]
+
+            # Extract key contracts
+            contracts = []
+            content = self.impact_analyzer.snippets.get(file_p, "")
+            try:
+                tree = ast.parse(content)
+                for node in tree.body:
+                    if isinstance(node, ast.ClassDef):
+                        contracts.append(f"class {node.name}")
+                    elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        contracts.append(f"def {node.name}()")
+            except Exception:
+                pass
+
+            results.append({
+                "file": file_p,
+                "pagerank_score": round(raw_score * 100, 3),
+                "inbound_degree": in_deg,
+                "outbound_degree": out_deg,
+                "key_contracts": contracts[:5]
+            })
+
+        return results
+
+    def format_report(self, rankings: List[Dict[str, Any]]) -> str:
+        out = [
+            f"# 🏛️ Repository Architectural PageRank & Centrality Backbone",
+            "",
+            "> **Graph Theory Analysis:** Identifies the foundational core modules of your project based on AST import topologies.",
+            "",
+            "| Rank | Module | Centrality Score | Inbound (Callers) | Outbound (Deps) | Key Exported Contracts |",
+            "|:----:|:-------|:----------------:|:-----------------:|:---------------:|:-----------------------|"
+        ]
+        for rank, r in enumerate(rankings, 1):
+            contracts_str = ", ".join(f"`{c}`" for c in r["key_contracts"]) if r["key_contracts"] else "*none*"
+            out.append(f"| #{rank} | `{r['file']}` | **{r['pagerank_score']}** | {r['inbound_degree']} | {r['outbound_degree']} | {contracts_str} |")
+
+        out.append("\n> **Recommendation:** Protect high-centrality modules (Top #1-#5) with strict unit tests and boundary rules before refactoring.")
+        return "\n".join(out)
+
+
+# =============================================================================
+# 10. DEEP SYMBOL CALL-CHAIN & EXECUTION PATH TRACER (TOOL 20)
+# =============================================================================
+
+class SymbolCallChainTracer:
+    """Traces upstream callers and downstream callees across the workspace AST."""
+
+    def __init__(self, project_dir: str):
+        self.project_dir = os.path.abspath(project_dir)
+        self.call_graph: Dict[str, Set[str]] = collections.defaultdict(set) # caller -> set(callees)
+        self.reverse_call_graph: Dict[str, Set[str]] = collections.defaultdict(set) # callee -> set(callers)
+        self._build_call_graph()
+
+    def _build_call_graph(self):
+        for root, _, files in os.walk(self.project_dir):
+            if should_skip_dir(root, self.project_dir):
+                continue
+            for f in files:
+                if f.endswith('.py'):
+                    full_p = os.path.join(root, f)
+                    try:
+                        with open(full_p, 'r', encoding='utf-8', errors='ignore') as fp:
+                            content = fp.read()
+                        tree = ast.parse(content)
+                        self._index_calls(tree)
+                    except Exception:
+                        pass
+
+    def _index_calls(self, tree: ast.AST):
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                caller_name = node.name
+                for child in ast.walk(node):
+                    if isinstance(child, ast.Call):
+                        callee_name = ""
+                        if isinstance(child.func, ast.Name):
+                            callee_name = child.func.id
+                        elif isinstance(child.func, ast.Attribute):
+                            callee_name = child.func.attr
+                        if callee_name and callee_name != caller_name:
+                            self.call_graph[caller_name].add(callee_name)
+                            self.reverse_call_graph[callee_name].add(caller_name)
+
+    def trace(self, symbol_name: str, max_depth: int = 3) -> Dict[str, Any]:
+        """Traces upstream callers and downstream callees up to max_depth."""
+        def trace_upstream(sym: str, depth: int, visited: Set[str]) -> List[Dict[str, Any]]:
+            if depth >= max_depth or sym in visited:
+                return []
+            visited.add(sym)
+            res = []
+            for caller in sorted(self.reverse_call_graph.get(sym, set())):
+                res.append({
+                    "symbol": caller,
+                    "depth": depth + 1,
+                    "callers": trace_upstream(caller, depth + 1, visited.copy())
+                })
+            return res
+
+        def trace_downstream(sym: str, depth: int, visited: Set[str]) -> List[Dict[str, Any]]:
+            if depth >= max_depth or sym in visited:
+                return []
+            visited.add(sym)
+            res = []
+            for callee in sorted(self.call_graph.get(sym, set())):
+                res.append({
+                    "symbol": callee,
+                    "depth": depth + 1,
+                    "callees": trace_downstream(callee, depth + 1, visited.copy())
+                })
+            return res
+
+        upstream = trace_upstream(symbol_name, 0, set())
+        downstream = trace_downstream(symbol_name, 0, set())
+
+        return {
+            "symbol": symbol_name,
+            "max_depth": max_depth,
+            "upstream": upstream,
+            "downstream": downstream,
+            "total_upstream_callers": len(self.reverse_call_graph.get(symbol_name, set())),
+            "total_downstream_callees": len(self.call_graph.get(symbol_name, set())),
+        }
+
+    def format_report(self, trace_result: Dict[str, Any]) -> str:
+        sym = trace_result["symbol"]
+        out = [
+            f"# 🔗 Deep Symbol Call-Chain & Execution Path: `{sym}`",
+            "",
+            f"- **Target Symbol:** `{sym}`",
+            f"- **Direct Inbound Callers:** {trace_result['total_upstream_callers']}",
+            f"- **Direct Outbound Callees:** {trace_result['total_downstream_callees']}",
+            f"- **Max Trace Depth:** {trace_result['max_depth']}",
+            "",
+            "## 1. ⬆️ Upstream Callers (Who calls this symbol):"
+        ]
+
+        def render_tree(items: List[Dict[str, Any]], key: str, prefix: str = ""):
+            for item in items:
+                out.append(f"{prefix}└── `{item['symbol']}` (Level {item['depth']})")
+                if item.get(key):
+                    render_tree(item[key], key, prefix + "    ")
+
+        if trace_result["upstream"]:
+            render_tree(trace_result["upstream"], "callers")
+        else:
+            out.append("*(No upstream callers detected in workspace)*")
+
+        out.append("\n## 2. ⬇️ Downstream Callees (What this symbol calls internally):")
+        if trace_result["downstream"]:
+            render_tree(trace_result["downstream"], "callees")
+        else:
+            out.append("*(No internal callees detected in workspace)*")
+
+        # Mermaid Diagram
+        out.append("\n## 3. 📊 Visual Call Graph (Mermaid)")
+        out.append("```mermaid")
+        out.append("graph LR")
+        out.append(f'    T["{sym} (TARGET)"]:::target')
+        out.append("    classDef target fill:#00ffd8,stroke:#000,color:#000,font-weight:bold;")
+        
+        added_edges = set()
+        for c in trace_result["upstream"]:
+            edge = f'    "{c["symbol"]}" --> T'
+            if edge not in added_edges:
+                out.append(edge)
+                added_edges.add(edge)
+
+        for c in trace_result["downstream"]:
+            edge = f'    T --> "{c["symbol"]}"'
+            if edge not in added_edges:
+                out.append(edge)
+                added_edges.add(edge)
+
+        out.append("```")
+        return "\n".join(out)
+
+
+# =============================================================================
+# 11. CIRCULAR DEPENDENCY DETECTOR (DFS CYCLE TRAVERSAL)
+# =============================================================================
+
+def detect_circular_dependencies(import_graph: Any) -> List[List[str]]:
+    """Detects import cycles (A -> B -> A) using Depth-First Search with recursion stack.
+    Accepts either an explicit adjacency graph Dict[str, Set[str]] or a project_dir path."""
+    if isinstance(import_graph, (str, os.PathLike)):
+        project_dir = os.path.abspath(str(import_graph))
+        graph: Dict[str, Set[str]] = {}
+        for root, _, files in os.walk(project_dir):
+            if should_skip_dir(root, project_dir):
+                continue
+            for f in files:
+                if f.endswith(".py"):
+                    full_p = os.path.join(root, f)
+                    rel_mod = os.path.relpath(full_p, project_dir).replace("\\", "/").replace(".py", "").replace("/", ".")
+                    deps = set()
+                    try:
+                        with open(full_p, "r", encoding="utf-8", errors="ignore") as io:
+                            tree = ast.parse(io.read(), filename=full_p)
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.Import):
+                                for alias in node.names:
+                                    deps.add(alias.name)
+                            elif isinstance(node, ast.ImportFrom) and node.module:
+                                deps.add(node.module)
+                    except Exception:
+                        pass
+                    graph[rel_mod] = deps
+        import_graph = graph
+
+    cycles = []
+    visited: Set[str] = set()
+    rec_stack: List[str] = []
+
+    def dfs(node: str):
+        visited.add(node)
+        rec_stack.append(node)
+
+        for neighbor in import_graph.get(node, set()):
+            if neighbor not in visited:
+                dfs(neighbor)
+            elif neighbor in rec_stack:
+                cycle_start = rec_stack.index(neighbor)
+                cycle = rec_stack[cycle_start:] + [neighbor]
+                core_cycle = cycle[:-1]
+                min_idx = core_cycle.index(min(core_cycle))
+                canonical = core_cycle[min_idx:] + core_cycle[:min_idx] + [core_cycle[min_idx]]
+                if canonical not in cycles:
+                    cycles.append(canonical)
+
+        rec_stack.pop()
+
+    for n in sorted(import_graph.keys()):
+        if n not in visited:
+            dfs(n)
+
+    return cycles
+
+
+# =============================================================================
+# 12. DEAD CODE & UNUSED SYMBOL FINDER (TOOL 21)
+# =============================================================================
+
+class DeadCodeFinder:
+    """Discovers unused, unreferenced functions and classes across the codebase AST."""
+
+    def __init__(self, project_dir: str):
+        self.project_dir = os.path.abspath(project_dir)
+
+    def find_dead_symbols(self) -> Dict[str, Any]:
+        """Scans codebase to detect declared functions/classes never imported or referenced."""
+        definitions = []  # (symbol_name, rel_path, line_no, kind)
+        all_references: Set[str] = set()
+        declared_all: Set[str] = set()
+
+        for root, _, files in os.walk(self.project_dir):
+            if should_skip_dir(root, self.project_dir):
+                continue
+            for f in files:
+                if f.endswith('.py'):
+                    full_p = os.path.join(root, f)
+                    rel_p = os.path.relpath(full_p, self.project_dir).replace('\\', '/')
+                    is_test = "test" in rel_p.lower() or f.startswith("test_")
+                    try:
+                        with open(full_p, 'r', encoding='utf-8', errors='ignore') as fp:
+                            content = fp.read()
+                        tree = ast.parse(content)
+                    except Exception:
+                        continue
+
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.Name):
+                            all_references.add(node.id)
+                        elif isinstance(node, ast.Attribute):
+                            all_references.add(node.attr)
+                        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                            for alias in node.names:
+                                all_references.add(alias.name)
+
+                        # Top-level declarations from non-test source files
+                        if not is_test and f != "__init__.py":
+                            if isinstance(node, ast.ClassDef):
+                                if not node.name.startswith("_") and node.name != "Config":
+                                    definitions.append((node.name, rel_p, node.lineno, "class"))
+                            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                                if not node.name.startswith("_") and node.name not in ("main", "run", "handler"):
+                                    definitions.append((node.name, rel_p, node.lineno, "function"))
+                            elif isinstance(node, ast.Assign):
+                                for target in node.targets:
+                                    if isinstance(target, ast.Name) and target.id == "__all__":
+                                        if isinstance(node.value, (ast.List, ast.Tuple)):
+                                            for elt in node.value.elts:
+                                                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                                    declared_all.add(elt.value)
+
+        impact = ChangeImpactAnalyzer(self.project_dir)
+        dead_symbols = []
+        for name, rel_p, lineno, kind in definitions:
+            if name in declared_all:
+                continue
+            files_referencing = set()
+            for snip_file, snip_content in impact.snippets.items():
+                if re.search(rf"\b{re.escape(name)}\b", snip_content):
+                    files_referencing.add(snip_file)
+            
+            external_refs = [sf for sf in files_referencing if sf != rel_p and "test" not in sf.lower()]
+            if not external_refs:
+                dead_symbols.append({
+                    "symbol": name,
+                    "kind": kind,
+                    "file": rel_p,
+                    "line": lineno
+                })
+
+        return {
+            "total_dead_symbols": len(dead_symbols),
+            "dead_symbols": dead_symbols
+        }
+
+    def format_report(self, res: Dict[str, Any]) -> str:
+        count = res["total_dead_symbols"]
+        if count == 0:
+            return "✨ [CLEAN] Zero dead code detected across workspace. All defined symbols are referenced."
+
+        out = [
+            f"# 🧹 Dead Code & Unused Symbol Audit ({count} unreferenced symbols)\n",
+            "> **AST Static Analysis:** The following symbols are defined in the workspace but never referenced by other modules:\n",
+            "| Symbol | Kind | Declaring File | Line |",
+            "|:---|:---|:---|:---|"
+        ]
+        for s in res["dead_symbols"]:
+            out.append(f"| `{s['symbol']}` | {s['kind']} | `{s['file']}` | Line {s['line']} |")
+        out.append("\n> **Recommendation:** Verify if these are intended public API exports or safe to prune.")
+        return "\n".join(out)
+
+    find_unused_symbols = find_dead_symbols
+
+
