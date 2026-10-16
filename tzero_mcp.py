@@ -25,6 +25,11 @@ import re
 import ast
 import inspect
 import logging
+try:
+    from mcp.types import ToolAnnotations
+except ImportError:
+    ToolAnnotations = None
+
 from typing import Dict, List, Optional, Any
 try:
     from typing import Annotated
@@ -234,8 +239,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Ingest repository architecture and signatures into prompt context at the start of a coding session or before large refactors (80-95% token savings).\n"
             "- Sibling Routing: For a fast single-page class/method symbol index, use 'generate_repo_map'. For full implementation of an active file with 1st-degree caller/callee skeletons, use 'get_smart_skeleton_context'. For arbitrary in-memory snippets, use 'prune_code_snippet'.\n\n"
-            "Returns: Structured Markdown containing directory tree, module outlines, and AST signatures up to max_tokens."
-        )
+            "Returns: Structured Markdown containing directory tree, module outlines, and AST signatures up to max_tokens."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def get_project_context_tree(
         project_root: Annotated[str, Field(default=".", description="Target repository root path to scan (default: current working directory).")] = ".",
@@ -337,8 +342,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run before refactoring, moving, or removing a module to inspect inbound dependents (who imports this) and outbound dependencies (what this imports).\n"
             "- Sibling Routing: For deep recursive function/method call chains (caller -> callee call graph), use 'trace_symbol_call_chain'. To test whether imports violate layer boundary rules, use 'enforce_architecture_boundaries'.\n\n"
-            "Returns: Markdown report detailing inbound referrers, outbound imports, and the workspace dependency pool."
-        )
+            "Returns: Markdown report detailing inbound referrers, outbound imports, and the workspace dependency pool."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def query_module_dependencies(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository to scan (default: current directory).")] = ".",
@@ -433,8 +438,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Consult before designing new features or adding imports to understand layer isolation rules (e.g. presentation cannot import database models) and avoid architecture violations.\n"
             "- Sibling Routing: To actively validate workspace code against these rules and detect violations, use 'enforce_architecture_boundaries'. To view complete Mermaid topology blueprints, use 'generate_architecture_blueprint'.\n\n"
-            "Returns: Markdown specification of architectural layers, allowed/forbidden import directions, and security constraints."
-        )
+            "Returns: Markdown specification of architectural layers, allowed/forbidden import directions, and security constraints."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def query_architecture_boundaries(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository where tzero.rules.json is located (default: current directory).")] = ".",
@@ -476,8 +481,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Create or update system architecture documentation and visual Mermaid flow diagrams for onboarding or RFC review.\n"
             "- Sibling Routing: For checking rule compliance against defined boundaries, use 'enforce_architecture_boundaries'. For basic dependency trees, use 'query_module_dependencies'.\n\n"
-            "Returns: Comprehensive Markdown document with live Mermaid diagrams, layer classifications, and component interfaces."
-        )
+            "Returns: Comprehensive Markdown document with live Mermaid diagrams, layer classifications, and component interfaces."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def generate_architecture_blueprint(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository to analyze and document (default: current directory).")] = ".",
@@ -538,8 +543,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Provide the LLM with an immediate high-level index of all classes and functions across the repository in minimal tokens (~5-15 tokens per file).\n"
             "- Sibling Routing: For full function signatures with parameter types and docstrings, use 'get_project_context_tree'. For 1st-degree context around a specific focus file, use 'get_smart_skeleton_context'.\n\n"
-            "Returns: Compact Markdown symbol map indexed by file path."
-        )
+            "Returns: Compact Markdown symbol map indexed by file path."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def generate_repo_map(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository to map (default: current directory).")] = ".",
@@ -586,8 +591,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run as a pre-commit or pre-PR code health audit to identify complex routines (> 30 lines, > 5 args), missing docstrings, architectural boundary violations, and hardcoded secrets.\n"
             "- Sibling Routing: If you only need to verify zero hardcoded secrets/API keys, use 'verify_zero_leak_security'. If you only want unused function detection, use 'find_dead_code'. If you only want duplicate logic blocks, use 'find_code_duplicity'.\n\n"
-            "Returns: Comprehensive diagnostic Markdown report with severity ratings (T-001 Security, T-002 Boundaries, T-003 Contracts, T-004 Complexity), line numbers, and actionable remediation steps."
-        )
+            "Returns: Comprehensive diagnostic Markdown report with severity ratings (T-001 Security, T-002 Boundaries, T-003 Contracts, T-004 Complexity), line numbers, and actionable remediation steps."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def audit_codebase_quality(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository to audit (default: current directory).")] = ".",
@@ -706,8 +711,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run during refactoring sprints to locate redundant copy-pasted code blocks suitable for extraction into shared utility functions.\n"
             "- Sibling Routing: For full codebase quality and complexity audits, use 'audit_codebase_quality'. For unused unreferenced code, use 'find_dead_code'.\n\n"
-            "Returns: Markdown report detailing duplicate code clusters with file paths, line ranges, and side-by-side code snippets."
-        )
+            "Returns: Markdown report detailing duplicate code clusters with file paths, line ranges, and side-by-side code snippets."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def find_code_duplicity(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository to scan (default: current directory).")] = ".",
@@ -772,8 +777,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Estimate prompt token volume and dollar costs before sending large codebase context to commercial LLM APIs.\n"
             "- Sibling Routing: To track team monthly/annual cumulative ROI savings and compression metrics over time, use 'get_token_savings_metrics'.\n\n"
-            "Returns: Markdown table comparing per-million token rates and total estimated costs across major models."
-        )
+            "Returns: Markdown table comparing per-million token rates and total estimated costs across major models."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def estimate_token_cost(
         text: Annotated[str, Field(default="", description="Optional raw text to estimate. If empty, analyzes context generated from project_root.")] = "",
@@ -840,8 +845,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run BEFORE renaming, refactoring, or modifying a function or class to determine which caller modules could break.\n"
             "- Sibling Routing: For deep recursive caller/callee trees with visual Mermaid graphs, use 'trace_symbol_call_chain'. For file-level module dependencies, use 'query_module_dependencies'.\n\n"
-            "Returns: Structured Markdown report with blast radius score, risk tier, direct dependents, and transitive impact paths."
-        )
+            "Returns: Structured Markdown report with blast radius score, risk tier, direct dependents, and transitive impact paths."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def analyze_change_impact(
         target_symbol: Annotated[str, Field(description="Name of the function, class, or method to analyze for change blast radius.")],
@@ -867,8 +872,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run in CI/CD pipelines or before committing to verify that presentation/UI layers do not import internal database/storage modules directly.\n"
             "- Sibling Routing: To view active boundary rules without evaluating code, use 'query_architecture_boundaries'. For general code quality smells, use 'audit_codebase_quality'.\n\n"
-            "Returns: Compliance report detailing pass/fail status, violating file paths, line numbers, layer names, and allowed import directions."
-        )
+            "Returns: Compliance report detailing pass/fail status, violating file paths, line numbers, layer names, and allowed import directions."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def enforce_architecture_boundaries(
         project_root: Annotated[str, Field(default=".", description="Workspace root to validate against architectural rules (default: current directory).")] = ".",
@@ -896,8 +901,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Find functions, classes, or logic snippets using conceptual natural language queries (e.g. 'authentication jwt token verify', 'rate limit algorithm').\n"
             "- Sibling Routing: For exact string or regex matches, use IDE grep or ripgrep. For finding unused code, use 'find_dead_code'.\n\n"
-            "Returns: Ranked Markdown list of matching code snippets with file locations, match scores, and surrounding context."
-        )
+            "Returns: Ranked Markdown list of matching code snippets with file locations, match scores, and surrounding context."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def search_codebase_semantic(
         query: Annotated[str, Field(description="Natural language or technical keyword query describing the desired code logic.")],
@@ -924,8 +929,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run when setting up a repository for AI pair-programming with Cursor, Claude Code, Cline, Windsurf, or GitHub Copilot.\n"
             "- Sibling Routing: To view architectural boundaries without writing files to disk, use 'query_architecture_boundaries'.\n\n"
-            "Returns: Confirmation message listing all generated rule file paths."
-        )
+            "Returns: Confirmation message listing all generated rule file paths."),
+        annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def export_agent_rules(
         project_root: Annotated[str, Field(default=".", description="Target workspace directory where agent rule files will be created (default: current directory).")] = ".",
@@ -951,8 +956,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Quantify efficiency gains and financial savings from T-Zero context compression for team reports and engineering leadership.\n"
             "- Sibling Routing: For per-model single-prompt cost comparisons (OpenAI vs Anthropic vs Gemini), use 'estimate_token_cost'.\n\n"
-            "Returns: Markdown executive summary with token reduction percentages, monthly developer cost savings, and annual ROI projections."
-        )
+            "Returns: Markdown executive summary with token reduction percentages, monthly developer cost savings, and annual ROI projections."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def get_token_savings_metrics(
         project_root: Annotated[str, Field(default=".", description="Target workspace directory to measure (default: current directory).")] = ".",
@@ -988,8 +993,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Provide focused context during code review, PR description generation, or bug hunting for pending changes with 98%+ token reduction.\n"
             "- Sibling Routing: For full repository context, use 'get_project_context_tree'. For single-symbol impact analysis, use 'analyze_change_impact'.\n\n"
-            "Returns: Structured Markdown diff context with changed symbol signatures, diff hunks, and caller references."
-        )
+            "Returns: Structured Markdown diff context with changed symbol signatures, diff hunks, and caller references."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def get_incremental_diff_context(
         base_ref: Annotated[str, Field(default="HEAD~1", description="Git revision or branch to diff against (default: 'HEAD~1').")] = "HEAD~1",
@@ -1015,8 +1020,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Compress in-memory code blocks or clipboard buffers before passing them into LLM chat prompts.\n"
             "- Sibling Routing: To scan and compress entire directories or repositories on disk, use 'get_project_context_tree' or 'get_smart_skeleton_context'.\n\n"
-            "Returns: Markdown fenced code block with pruned signatures and precise token reduction percentage."
-        )
+            "Returns: Markdown fenced code block with pruned signatures and precise token reduction percentage."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def prune_code_snippet(
         code: Annotated[str, Field(description="Raw source code content to prune.")],
@@ -1062,8 +1067,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run before git commit, push, or public release to guarantee zero secret leaks.\n"
             "- Sibling Routing: For broad code quality audits including complexity, docstrings, and layer rules, use 'audit_codebase_quality'.\n\n"
-            "Returns: Security pass/fail report with masked secret snippets, affected file paths, and line numbers."
-        )
+            "Returns: Security pass/fail report with masked secret snippets, affected file paths, and line numbers."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def verify_zero_leak_security(
         project_root: Annotated[str, Field(default=".", description="Workspace root directory to scan for secret leaks (default: current directory).")] = ".",
@@ -1129,8 +1134,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run BEFORE applying AI-generated code to prevent hallucinated module imports, missing functions, or wrong argument counts.\n"
             "- Sibling Routing: To enforce layer boundary separation rules, use 'enforce_architecture_boundaries'.\n\n"
-            "Returns: Verification status report with specific contract mismatches and 'did you mean' fuzzy suggestions."
-        )
+            "Returns: Verification status report with specific contract mismatches and 'did you mean' fuzzy suggestions."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def verify_hallucination_guard(
         proposed_code: Annotated[str, Field(description="Python code proposed to be written or edited.")],
@@ -1164,8 +1169,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run when editing a specific file to provide the LLM with full implementation context plus compact interface skeletons of adjacent modules.\n"
             "- Sibling Routing: For repository-wide context, use 'get_project_context_tree'. For symbol index without file contents, use 'generate_repo_map'.\n\n"
-            "Returns: Structured Markdown with full focus file source code and 1st-degree AST skeletons for imported and caller modules."
-        )
+            "Returns: Structured Markdown with full focus file source code and 1st-degree AST skeletons for imported and caller modules."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def get_smart_skeleton_context(
         focus_file: Annotated[str, Field(description="Target file path to focus on and retain with full implementation.")],
@@ -1198,8 +1203,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run when exploring an unfamiliar codebase to immediately identify the core architectural modules versus peripheral utilities.\n"
             "- Sibling Routing: For direct pairwise dependencies of a file, use 'query_module_dependencies'. For blast radius of a single function, use 'analyze_change_impact'.\n\n"
-            "Returns: Ranked Markdown table with PageRank centrality scores, inbound/outbound degrees, and architectural significance notes."
-        )
+            "Returns: Ranked Markdown table with PageRank centrality scores, inbound/outbound degrees, and architectural significance notes."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def rank_repository_pagerank(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository to analyze (default: current directory).")] = ".",
@@ -1231,8 +1236,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run when debugging execution flows, tracing data paths into a function, or seeing everything a complex method calls recursively.\n"
             "- Sibling Routing: For quick single-symbol blast radius scoring (0-100), use 'analyze_change_impact'. For module-level import relations, use 'query_module_dependencies'.\n\n"
-            "Returns: Markdown report containing recursive ASCII execution tree, caller/callee counts, and copy-pasteable Mermaid flowchart syntax."
-        )
+            "Returns: Markdown report containing recursive ASCII execution tree, caller/callee counts, and copy-pasteable Mermaid flowchart syntax."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def trace_symbol_call_chain(
         symbol_name: Annotated[str, Field(description="Exact function or method name to trace across the codebase call graph.")],
@@ -1266,8 +1271,8 @@ def create_mcp_server():
             "Usage Guidelines:\n"
             "- When to use: Run during technical debt cleanup to locate deprecated, dead, or forgotten functions and classes ready for safe removal.\n"
             "- Sibling Routing: For copy-pasted duplicate logic blocks, use 'find_code_duplicity'. For general complexity and linting, use 'audit_codebase_quality'.\n\n"
-            "Returns: Markdown report listing candidate orphaned symbols with file paths, line numbers, and symbol types."
-        )
+            "Returns: Markdown report listing candidate orphaned symbols with file paths, line numbers, and symbol types."),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     )
     def find_dead_code(
         project_root: Annotated[str, Field(default=".", description="Root directory of the repository to scan for unreferenced symbols (default: current directory).")] = "."

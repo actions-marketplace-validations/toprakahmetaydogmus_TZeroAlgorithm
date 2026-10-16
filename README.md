@@ -134,6 +134,12 @@ python tzero.py --savings
 
 T-Zero V3 natively embeds a standard **Model Context Protocol (MCP)** server (`tzero_mcp.py`) operating over `stdio`. This empowers AI agents in **Cursor**, **Claude Desktop**, **Antigravity IDE**, and **Cline** to autonomously inspect, prune, and query your project's codebase before writing a single line of code.
 
+<p align="center">
+  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm">
+    <img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/card.svg" alt="tzero-mcp MCP server – quality and maintenance score on Glama" />
+  </a>
+</p>
+
 ### 🛠 Available MCP Tools (21 Autonomous Tools)
 
 | Tool Name | Parameters | Purpose |
@@ -755,6 +761,12 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ## 🤖 Model Context Protocol (MCP) Sunucusu
 
 T-Zero V3, Anthropic'in standart **Model Context Protocol (MCP)** SDK'sını kullanarak `stdio` üzerinden haberleşen yerel bir sunucu (`tzero_mcp.py`) sunar. Bu sayede **Cursor**, **Claude Desktop**, **Antigravity IDE** ve **Cline** gibi yapay zeka ajanları, projede herhangi bir kod üretmeden veya değiştirmeden önce projenin hiyerarşik mimarisini, bağımlılık grafiğini ve sınırlarını sorgulayabilir.
+
+<p align="center">
+  <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm">
+    <img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/card.svg" alt="tzero-mcp MCP sunucusu – Glama kalite ve bakım skoru" />
+  </a>
+</p>
 
 ### 🛠 Sunulan MCP Araçları (21 Otonom Araç)
 
