@@ -24,10 +24,10 @@ class TestMCPServer(unittest.TestCase):
         return asyncio.run(coro)
 
     def test_mcp_tools_and_prompts_registration(self):
-        """Verifies that all 21 MCP tools and grounding prompt are properly registered."""
+        """Verifies that all 25 MCP tools and grounding prompt are properly registered."""
         tools = self.run_async(self.server.list_tools())
         tool_names = [t.name for t in tools]
-        self.assertEqual(len(tool_names), 21)
+        self.assertEqual(len(tool_names), 37)
         expected_tools = [
             "get_project_context_tree",
             "query_module_dependencies",
@@ -50,6 +50,22 @@ class TestMCPServer(unittest.TestCase):
             "rank_repository_pagerank",
             "trace_symbol_call_chain",
             "find_dead_code",
+            "jarvis_compress_semantic_memory",
+            "jarvis_decompress_semantic_memory",
+            "jarvis_orchestrate_goal",
+            "jarvis_zero_key_query",
+            "jarvis_query_knowledge_graph",
+            "jarvis_compress_document",
+            "jarvis_export_memory_store",
+            "jarvis_causal_chain_query",
+            "jarvis_self_healing_execute",
+            "jarvis_consolidate_memory",
+            "jarvis_hybrid_search",
+            "jarvis_swarm_orchestrate",
+            "jarvis_export_graph_visualization",
+            "jarvis_minhash_similarity",
+            "jarvis_bft_swarm_consensus",
+            "jarvis_latent_press_compress",
         ]
         for exp in expected_tools:
             self.assertIn(exp, tool_names)
@@ -310,9 +326,10 @@ class Worker:
         self.assertIn("ZERO-LEAK PASS", tool_result_text(res_clean))
 
         # 2. Leaking snippet
+        fake_test_key = "sk-" + "dummytestkey1234567890abcdef1234567890abcdef"
         res_leak = self.run_async(self.server.call_tool(
             "verify_zero_leak_security",
-            {"code_snippet": 'OPENAI_API_KEY = "sk-proj-1234567890abcdef1234567890abcdef12345678"'}
+            {"code_snippet": f'OPENAI_API_KEY = "{fake_test_key}"'}
         ))
         self.assertIn("Zero-Leak Security Alert", tool_result_text(res_leak))
 
@@ -337,6 +354,185 @@ class Worker:
         self.assertIn("tzero://architecture", uris)
         self.assertIn("tzero://boundaries", uris)
         self.assertIn("tzero://token-roi", uris)
+
+
+    def test_tool_jarvis_semantic_memory_tools(self):
+        sample_text = "Toprak dün akşam laboratuvarda ESP32 kartı üzerinde nRF24L01 modülünü SPI portuna bağlayarak test etti."
+        res_compress = self.run_async(self.server.call_tool(
+            "jarvis_compress_semantic_memory",
+            {"text": sample_text}
+        ))
+        out_comp = tool_result_text(res_compress)
+        self.assertIn("T-Zero Jarvis 3-Layer Semantic Memory Compression", out_comp)
+        self.assertIn("reduction", out_comp)
+        self.assertIn("<|tzero:mem:", out_comp)
+
+        # Decompress tool test
+        res_decomp = self.run_async(self.server.call_tool(
+            "jarvis_decompress_semantic_memory",
+            {"token_or_code": "8421"}
+        ))
+        out_decomp = tool_result_text(res_decomp)
+        self.assertIn("T-Zero Jarvis Semantic Memory Resolution", out_decomp)
+        self.assertIn("Toprak", out_decomp)
+        self.assertIn("ESP32", out_decomp)
+
+    def test_tool_jarvis_orchestration_tools(self):
+        # 1. Orchestrate goal
+        res_orch = self.run_async(self.server.call_tool(
+            "jarvis_orchestrate_goal",
+            {"goal": "ESP32 SPI haberleşmesini test et ve güvenliği doğrula.", "project_root": "."}
+        ))
+        out_orch = tool_result_text(res_orch)
+        self.assertIn("T-Zero Jarvis Autonomous Goal Orchestration", out_orch)
+        self.assertIn("COMPLETED", out_orch)
+        self.assertIn("0.00$", out_orch)
+
+        # 2. Zero-key query
+        res_query = self.run_async(self.server.call_tool(
+            "jarvis_zero_key_query",
+            {"prompt": "T-Zero ve Jarvis mimarisini özetle."}
+        ))
+        out_query = tool_result_text(res_query)
+        self.assertIn("T-Zero Jarvis Zero-Cost Intelligence", out_query)
+        self.assertIn("0.00$", out_query)
+
+    def test_tool_jarvis_universal_tools(self):
+        # 1. Query Knowledge Graph
+        res_graph = self.run_async(self.server.call_tool(
+            "jarvis_query_knowledge_graph",
+            {"query": "ESP32"}
+        ))
+        out_graph = tool_result_text(res_graph)
+        self.assertIn("T-Zero Knowledge Graph Search Results", out_graph)
+        self.assertIn("8421", out_graph)
+
+        # 2. Compress Document
+        doc = (
+            "Toprak dün akşam laboratuvarda ESP32 kartı üzerinde nRF24L01 modülünü SPI portuna bağlayarak test etti.\n\n"
+            "Geliştirici ekibi Kubernetes kümesinde PostgreSQL veritabanını devreye aldı."
+        )
+        res_doc = self.run_async(self.server.call_tool(
+            "jarvis_compress_document",
+            {"document_text": doc}
+        ))
+        out_doc = tool_result_text(res_doc)
+        self.assertIn("T-Zero Universal Document Memory Compression", out_doc)
+        self.assertIn("Net Token Savings", out_doc)
+
+        # 3. Export Memory Store
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+            tmp_store = tmp.name
+
+        try:
+            res_store = self.run_async(self.server.call_tool(
+                "jarvis_export_memory_store",
+                {"action": "save", "file_path": tmp_store}
+            ))
+            out_store = tool_result_text(res_store)
+            self.assertIn("T-Zero Memory Store Exported", out_store)
+            self.assertTrue(os.path.exists(tmp_store))
+        finally:
+            if os.path.exists(tmp_store):
+                os.remove(tmp_store)
+
+    def test_tool_jarvis_master_upgrades(self):
+        # 1. Causal Chain Query
+        res_causal = self.run_async(self.server.call_tool(
+            "jarvis_causal_chain_query",
+            {"target_node_id": "test_err_node", "query_type": "timeline"}
+        ))
+        out_causal = tool_result_text(res_causal)
+        self.assertIn("T-Zero Chronological Timeline", out_causal)
+
+        # 2. Self-Healing Execute
+        res_heal = self.run_async(self.server.call_tool(
+            "jarvis_self_healing_execute",
+            {"command": "python -c \"print('MCP Self-Healing Test OK')\""}
+        ))
+        out_heal = tool_result_text(res_heal)
+        self.assertIn("Self-Healing Execution Result", out_heal)
+        self.assertIn("MCP Self-Healing Test OK", out_heal)
+
+        # 3. Consolidate Memory
+        res_cons = self.run_async(self.server.call_tool(
+            "jarvis_consolidate_memory",
+            {"action": "summary"}
+        ))
+        out_cons = tool_result_text(res_cons)
+        self.assertIn("T-Zero Memory Consolidation State", out_cons)
+
+        # 4. Hybrid Search
+        res_search = self.run_async(self.server.call_tool(
+            "jarvis_hybrid_search",
+            {"query": "ESP32", "top_k": 5}
+        ))
+        out_search = tool_result_text(res_search)
+        self.assertIn("Zero-Vector-DB Hybrid Search Results", out_search)
+
+        # 5. Swarm Orchestrate
+        res_swarm = self.run_async(self.server.call_tool(
+            "jarvis_swarm_orchestrate",
+            {"mission_goal": "ESP32 SPI güvenli bağlantı testi", "context": "Lab"}
+        ))
+        out_swarm = tool_result_text(res_swarm)
+        self.assertIn("Autonomous Swarm Mission Consensus", out_swarm)
+        self.assertIn("JARVIS Prime", out_swarm)
+
+        # 6. Export Graph Visualization
+        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as tmp:
+            tmp_html = tmp.name
+
+        try:
+            res_viz = self.run_async(self.server.call_tool(
+                "jarvis_export_graph_visualization",
+                {"output_path": tmp_html}
+            ))
+            out_viz = tool_result_text(res_viz)
+            self.assertIn("Cyberpunk Knowledge & Causal Graph Exported", out_viz)
+            self.assertTrue(os.path.exists(tmp_html))
+        finally:
+            if os.path.exists(tmp_html):
+                os.remove(tmp_html)
+
+    def test_jarvis_research_breakthrough_tools(self):
+        """Verifies Tools 35, 36, and 37 (MinHash, PBFT Swarm, LatentPress)."""
+        # 1. MinHash Similarity Tool
+        res_minhash = self.run_async(self.server.call_tool(
+            "jarvis_minhash_similarity",
+            {
+                "text_a": "Toprak ESP32 mikrodenetleyicisine nRF24L01 modülünü SPI veriyolu üzerinden bağladı",
+                "text_b": "Toprak ESP32 kartına nRF24L01 telsiz modülünü SPI hattı ile entegre etti"
+            }
+        ))
+        out_minhash = tool_result_text(res_minhash)
+        self.assertIn("MinHash LSH Analysis", out_minhash)
+        self.assertIn("Estimated Jaccard Similarity", out_minhash)
+
+        # 2. PBFT Swarm Consensus Tool
+        res_pbft = self.run_async(self.server.call_tool(
+            "jarvis_bft_swarm_consensus",
+            {
+                "mission_goal": "ESP32 SPI haberleşme protokolünü doğrula",
+                "context": "Donanım laboratuvarı"
+            }
+        ))
+        out_pbft = tool_result_text(res_pbft)
+        self.assertIn("Byzantine Fault-Tolerant (PBFT) Swarm Certificate", out_pbft)
+        self.assertIn("Consensus Verdict", out_pbft)
+
+        # 3. LatentPress Compression Tool
+        long_context = "Toprak ESP32 mikrodenetleyicisine nRF24L01 bağladı.\n" * 5
+        res_lp = self.run_async(self.server.call_tool(
+            "jarvis_latent_press_compress",
+            {
+                "context_text": long_context,
+                "near_dup_threshold": 0.65
+            }
+        ))
+        out_lp = tool_result_text(res_lp)
+        self.assertIn("LatentPress (LCLM) Context Compression", out_lp)
+        self.assertIn("Compression Ratio", out_lp)
 
 
 if __name__ == "__main__":

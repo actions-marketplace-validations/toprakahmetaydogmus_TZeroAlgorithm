@@ -5,7 +5,7 @@ color 0E
 
 echo.
 echo ============================================================
-echo   SIBER AKADEMI T-ZERO 4.1.0 EXECUTABLE BUILDER
+echo   SIBER AKADEMI T-ZERO 6.0.0 MASTER EXECUTABLE BUILDER
 echo   Builds TZeroAlgorithm.exe, TZeroMCP.exe, and AddMCP.exe
 echo ============================================================
 echo.
