@@ -28,6 +28,7 @@ brag-output/
 *.backup.json
 .nvidia_nim_config.json
 .tzero_config.json
+*memory_store.json
 
 # IDEs
 .vscode/

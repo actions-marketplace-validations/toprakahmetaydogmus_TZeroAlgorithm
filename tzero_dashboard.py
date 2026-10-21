@@ -516,7 +516,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             stats = {
-                "version": "6.0.0",
+                "version": "6.1.0",
                 "tools_count": 37,
                 "token_savings": "95.0%",
                 "security": "100% Zero-Leak Keyring",
