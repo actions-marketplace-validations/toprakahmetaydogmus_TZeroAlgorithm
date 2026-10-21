@@ -9,18 +9,18 @@
 
 <p align="center">
   <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/stargazers"><img src="https://img.shields.io/github/stars/toprakahmetaydogmus/TZeroAlgorithm?style=for-the-badge&logo=github&color=ffd700" alt="GitHub Stars" /></a>
+  <a href="https://tzero-indol.vercel.app"><img src="https://img.shields.io/badge/Web%20App-Interactive%20Live%20Demo-00ffd8?style=for-the-badge&logo=vercel" alt="Vercel Live Demo" /></a>
   <a href="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm"><img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/score.svg" alt="T-Zero MCP server on Glama" height="28" /></a>
-  <a href="https://mcpservers.org/servers/toprakahmetaydogmus/tzeroalgorithm"><img src="https://img.shields.io/badge/mcpservers.org-verified-2563eb?style=for-the-badge&logo=server" alt="Listed on mcpservers.org" /></a>
   <a href="https://pypi.org/project/tzero-mcp/"><img src="https://img.shields.io/pypi/v/tzero-mcp?color=00ffd8&style=for-the-badge&logo=pypi" alt="PyPI Version" /></a>
-  <a href="https://huggingface.co/spaces/toprakke4/tzero-token-reducer"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-ffd21e?style=for-the-badge" alt="Hugging Face Spaces Live Demo" /></a>
+  <a href="https://huggingface.co/spaces/toprakke4/tzero-token-reducer"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-ffd21e?style=for-the-badge" alt="Hugging Face Spaces Live Demo" /></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-v6.0.0%20Master-8b5cf6?style=for-the-badge" alt="Version 6.0.0 Master" />
+  <img src="https://img.shields.io/badge/Version-v6.1.0%20Master-8b5cf6?style=for-the-badge" alt="Version 6.1.0 Master" />
   <img src="https://img.shields.io/badge/MCP-37%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 37 Tools Ready" />
   <img src="https://img.shields.io/badge/Security-100%25%20Zero--Leak%20Keyring-50fa7b?style=for-the-badge&logo=shield" alt="Zero Leak Security" />
   <img src="https://img.shields.io/badge/Autonomous-PBFT%20Swarm%20%7C%20LCLM-00f0ff?style=for-the-badge" alt="PBFT Swarm and LCLM" />
-  <img src="https://img.shields.io/badge/Tests-167%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 167 Passing" />
+  <img src="https://img.shields.io/badge/Tests-174%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 174 Passing" />
   <img src="https://img.shields.io/badge/License-MIT-f1fa8c?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-ff79c6?style=for-the-badge" alt="Platform" />
 </p>
