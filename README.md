@@ -1,5 +1,5 @@
 <a id="top"></a>
-# ⚡  T-ZERO CONTEXT ARCHITECT V4
+# ⚡ T-ZERO CONTEXT ARCHITECT V6.0 MASTER EDITION
 
 <p align="center">
   <a href="#english"><img src="https://img.shields.io/badge/Language-🇬🇧%20English-007acc?style=for-the-badge&logo=gitbook&logoColor=white" alt="English Documentation" /></a>
@@ -16,10 +16,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MCP-21%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 21 Tools Ready" />
+  <img src="https://img.shields.io/badge/Version-v6.0.0%20Master-8b5cf6?style=for-the-badge" alt="Version 6.0.0 Master" />
+  <img src="https://img.shields.io/badge/MCP-37%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 37 Tools Ready" />
   <img src="https://img.shields.io/badge/Security-100%25%20Zero--Leak%20Keyring-50fa7b?style=for-the-badge&logo=shield" alt="Zero Leak Security" />
-  <img src="https://img.shields.io/badge/Mobile-Swift%20%7C%20Kotlin-f05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift and Kotlin Support" />
-  <img src="https://img.shields.io/badge/Tests-134%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 134 Passing" />
+  <img src="https://img.shields.io/badge/Autonomous-PBFT%20Swarm%20%7C%20LCLM-00f0ff?style=for-the-badge" alt="PBFT Swarm and LCLM" />
+  <img src="https://img.shields.io/badge/Tests-160%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 160 Passing" />
   <img src="https://img.shields.io/badge/License-MIT-f1fa8c?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-ff79c6?style=for-the-badge" alt="Platform" />
 </p>
@@ -401,18 +402,18 @@ docker run -i --rm tzero-mcp
 flowchart TD
     A["Source Code Repository"] --> B["CodebaseScanner"]
     B --> C{"Token Reducer"}
-    C -->|"Ultra Mode"| D["Function & Class Signatures Only"]
-    C -->|"Balanced Mode"| E["Signatures + Control Flow Lines"]
+    C -->|"Ultra Mode"| D["Function and Class Signatures Only"]
+    C -->|"Balanced Mode"| E["Signatures and Control Flow Lines"]
     C -->|"None Mode"| F["Full Original Source Code"]
     
     B --> G["AST Static Code Auditor"]
-    G --> H["Code Smells & Complexity Report"]
+    G --> H["Code Smells and Complexity Report"]
     
     B --> I["Dependency Analyzer"]
-    I --> J["Import Graph & Module Tree"]
+    I --> J["Import Graph and Module Tree"]
     
     B --> K["Workspace Duplicity Finder"]
-    K --> L["Clone & Duplicate Code Blocks"]
+    K --> L["Clone and Duplicate Code Blocks"]
 
     D --> M{"Context Generator"}
     J --> M
@@ -420,10 +421,18 @@ flowchart TD
     M -->|"Offline Dry-Run"| N["Local T-Zero Context Tree"]
     M -->|"AI Provider Mode"| O["LLM Prompt Synthesizer"]
     O --> P["NVIDIA NIM / OpenAI / Gemini / Anthropic / Ollama"]
-    P --> Q["High-Fidelity README.md, AGENTS.md, & ARCHITECTURE.md"]
+    P --> Q["High-Fidelity README.md, AGENTS.md, ARCHITECTURE.md"]
 
-    M --> R["Model Context Protocol (MCP)"]
+    M --> R["Model Context Protocol MCP Server - 37 Tools"]
     R --> S["Cursor / Claude Desktop / Antigravity / Cline"]
+
+    subgraph V6_ENGINE["⚡ T-Zero v6.0 Master Autonomous Layer"]
+        M --> LP["LatentPress LCLM Context Compression"]
+        M --> LSH["Sub-Microsecond MinHash LSH"]
+        M --> PBFT["PBFT 5-Agent Swarm Consensus"]
+        M --> SH["AST Self-Healing Code Execution"]
+        M --> CTG["4D Causal and Temporal Knowledge Graph"]
+    end
 ```
 
 ---
@@ -1023,29 +1032,37 @@ docker run -i --rm tzero-mcp
 flowchart TD
     A["Kaynak Kod Deposu"] --> B["CodebaseScanner"]
     B --> C{"Token Reducer"}
-    C -->|"Ultra Mod"| D["Yalnızca Fonksiyon & Sınıf İmzaları"]
-    C -->|"Balanced Mod"| E["İmzalar + Temel Kontrol Akışı"]
+    C -->|"Ultra Mod"| D["Yalnizca Fonksiyon ve Sinif Imzalari"]
+    C -->|"Balanced Mod"| E["Imzalar + Temel Kontrol Akisi"]
     C -->|"None Mod"| F["Tam Orijinal Kaynak Kod"]
     
-    B --> G["AST Statik Kod Denetçisi"]
-    G --> H["Kod Kokuları & Karmaşıklık Raporu"]
+    B --> G["AST Statik Kod Denetcisi"]
+    G --> H["Kod Kokulari ve Karmasiklik Raporu"]
     
-    B --> I["Bağımlılık Analizörü"]
-    I --> J["Import Grafı & Modül Haritası"]
+    B --> I["Bagimlilik Analizoru"]
+    I --> J["Import Grafi ve Modul Haritasi"]
     
     B --> K["Workspace Duplicity Finder"]
-    K --> L["Tekrar Eden Kod Blokları"]
+    K --> L["Tekrar Eden Kod Bloklari"]
 
     D --> M{"Context Generator"}
     J --> M
     L --> M
-    M -->|"Çevrimdışı Dry-Run"| N["Yerel T-Zero Context Ağacı"]
+    M -->|"Cevrimdisi Dry-Run"| N["Yerel T-Zero Context Agaci"]
     M -->|"AI API Modu"| O["LLM Prompt Sentezleyici"]
     O --> P["NVIDIA NIM / OpenAI / Gemini / Anthropic / Ollama"]
-    P --> Q["Yüksek Sadakatli README.md, AGENTS.md & ARCHITECTURE.md"]
+    P --> Q["Yuksek Sadakatli README.md, AGENTS.md ve ARCHITECTURE.md"]
 
-    M --> R["Model Context Protocol (MCP)"]
+    M --> R["Model Context Protocol MCP Sunucusu - 37 Arac"]
     R --> S["Cursor / Claude Desktop / Antigravity / Cline"]
+
+    subgraph V6_ENGINE_TR["⚡ T-Zero v6.0 Master Otonom Katmani"]
+        M --> LP_TR["LatentPress LCLM Baglam Sikistirma"]
+        M --> LSH_TR["Sub-Mikrosaniye MinHash LSH"]
+        M --> PBFT_TR["PBFT 5-Ajanli Suru Konsensusu"]
+        M --> SH_TR["AST Self-Healing Otomatik Onarim"]
+        M --> CTG_TR["4D Nedensel ve Zamansal Bilgi Cizgesi"]
+    end
 ```
 
 ---

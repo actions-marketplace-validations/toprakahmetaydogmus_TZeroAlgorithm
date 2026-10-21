@@ -1,8 +1,8 @@
 {
   "$schema": "https://smithery.ai/docs/config/schema.json",
   "name": "tzero-mcp",
-  "displayName": "Siber Akademi T-Zero Context Engine",
-  "description": "Enterprise-Grade Codebase Context Builder, AST Signatures Analyzer, and Token Reducer for LLMs. Reduces context tokens by up to 95% while keeping structural architecture outlines.",
+  "displayName": "T-Zero Autonomous Context Engine & MCP Server",
+  "description": "Enterprise-grade AST codebase context engine and 37-tool autonomous MCP server for Claude, Cursor, and AI agents. Reduces context tokens by up to 95% with 4D Causal Graphs, PBFT Swarm Consensus, and Zero-Leak security.",
   "repository": "https://github.com/toprakahmetaydogmus/TZeroAlgorithm",
   "startCommand": {
     "type": "stdio",

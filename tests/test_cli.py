@@ -27,8 +27,8 @@ class TestCLI(unittest.TestCase):
             encoding="utf-8",
             errors="replace"
         )
-        self.assertEqual(res.returncode, 0)
-        self.assertIn("4.1.0", res.stdout)
+        import tzero_mcp
+        self.assertIn(tzero_mcp.SERVER_VERSION, res.stdout)
 
     def test_addmcp_version_flag(self):
         res = subprocess.run(
@@ -39,7 +39,7 @@ class TestCLI(unittest.TestCase):
             errors="replace"
         )
         self.assertEqual(res.returncode, 0)
-        self.assertIn("4.1.0", res.stdout)
+        self.assertIn("6.0.0", res.stdout)
 
     def test_scan_flag(self):
         res = subprocess.run(

@@ -108,46 +108,45 @@ def build_binary():
     icon_file = generate_siber_akademi_icon()
     
     try:
-        if not os.path.exists(main_binary):
-            main_script = "main.py"
-            build_args = [
-                sys.executable, "-m", "PyInstaller",
-                "--onefile",
-                "--noconsole",
-                "--clean",
-                "--noconfirm",
-                "--name=TZeroAlgorithm",
-                "--distpath=dist",
-                "--workpath=build/TZeroAlgorithm",
-                "--specpath=build/specs",
-                "--hidden-import=tzero_v3",
-                "--hidden-import=tzero_features",
-                "--hidden-import=tzero_deps",
-                "--hidden-import=addmcp",
-                "--hidden-import=tzero_mcp",
-                "--hidden-import=win32ctypes.core",
-                "--collect-all=keyring",
-                "--collect-all=win32ctypes",
-                "--collect-all=pygments",
-                "--collect-all=requests",
-                "--collect-all=urllib3",
-                "--collect-all=certifi",
-                "--collect-all=PIL",
-                "--collect-all=darkdetect",
-                "--copy-metadata=keyring",
-                "--copy-metadata=requests",
-                "--copy-metadata=pygments",
-                "--copy-metadata=Pillow",
-            ]
-            if icon_file:
-                abs_icon = os.path.abspath(icon_file)
-                build_args.append(f"--icon={abs_icon}")
-                build_args.append(f"--add-data={abs_icon}{os.pathsep}.")
-            build_args.append(main_script)
-            prepare_target_file("TZeroAlgorithm.exe" if os.name == "nt" else "TZeroAlgorithm")
-            subprocess.run(build_args, check=True)
-        else:
-            logger.info("Main desktop binary already built and verified: %s", main_binary)
+        main_script = "main.py"
+        build_args = [
+            sys.executable, "-m", "PyInstaller",
+            "--onefile",
+            "--noconsole",
+            "--clean",
+            "--noconfirm",
+            "--name=TZeroAlgorithm",
+            "--distpath=dist",
+            "--workpath=build/TZeroAlgorithm",
+            "--specpath=build/specs",
+            "--hidden-import=tzero_v3",
+            "--hidden-import=tzero_features",
+            "--hidden-import=tzero_deps",
+            "--hidden-import=addmcp",
+            "--hidden-import=tzero_mcp",
+            "--hidden-import=tzero_jarvis",
+            "--hidden-import=win32ctypes.core",
+            "--collect-all=tzero_jarvis",
+            "--collect-all=keyring",
+            "--collect-all=win32ctypes",
+            "--collect-all=pygments",
+            "--collect-all=requests",
+            "--collect-all=urllib3",
+            "--collect-all=certifi",
+            "--collect-all=PIL",
+            "--collect-all=darkdetect",
+            "--copy-metadata=keyring",
+            "--copy-metadata=requests",
+            "--copy-metadata=pygments",
+            "--copy-metadata=Pillow",
+        ]
+        if icon_file:
+            abs_icon = os.path.abspath(icon_file)
+            build_args.append(f"--icon={abs_icon}")
+            build_args.append(f"--add-data={abs_icon}{os.pathsep}.")
+        build_args.append(main_script)
+        prepare_target_file("TZeroAlgorithm.exe" if os.name == "nt" else "TZeroAlgorithm")
+        subprocess.run(build_args, check=True)
 
         server_args = [
             sys.executable, "-m", "PyInstaller",
@@ -161,7 +160,9 @@ def build_binary():
             "--hidden-import=tzero_v3",
             "--hidden-import=tzero_features",
             "--hidden-import=tzero_deps",
+            "--hidden-import=tzero_jarvis",
             "--hidden-import=win32ctypes.core",
+            "--collect-all=tzero_jarvis",
             "--collect-submodules=mcp.server",
             "--collect-submodules=mcp.types",
             "--collect-data=mcp",
