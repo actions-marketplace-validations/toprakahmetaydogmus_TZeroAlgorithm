@@ -1993,6 +1993,15 @@ def main():
             sys.stderr.write("[ERROR] tzero_deps module not found.\n")
             sys.exit(1)
 
+    if "--dashboard" in sys.argv[1:] or "--web" in sys.argv[1:]:
+        try:
+            import tzero_dashboard
+            tzero_dashboard.main()
+            return
+        except Exception as e:
+            sys.stderr.write(f"[ERROR] Failed to launch T-Zero Dashboard: {e}\n")
+            sys.exit(1)
+
     if "--install" in sys.argv[1:] or "--add-mcp" in sys.argv[1:]:
         try:
             import addmcp

@@ -1551,6 +1551,9 @@ class TokenReducer:
             return PolyglotSignatureExtractor.reduce_kotlin(code, mode)
         elif ext == ".swift":
             return PolyglotSignatureExtractor.reduce_swift(code, mode)
+        elif ext == ".sol":
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_solidity(code, mode)
             
         return TokenReducer._default_trim(code)
 
@@ -7723,7 +7726,7 @@ def main():
     parser.add_argument("--export-agent-rules", action="store_true", help="Generate all native AI agent rules (.cursorrules, .cursor/rules/*.mdc, .clinerules, Copilot)")
     parser.add_argument("--savings", action="store_true", help="Calculate token reduction metrics and economic developer team ROI")
     parser.add_argument("--diff", "--pr", nargs="?", const="HEAD~1", default=None, metavar="REF", help="Generate incremental git diff context payload (98%%+ token savings)")
-    parser.add_argument("--web", nargs="?", const=7300, type=int, default=None, metavar="PORT", help="Launch local Cyberpunk web dashboard on localhost:7300")
+    parser.add_argument("--web", "--dashboard", nargs="?", const=8421, type=int, default=None, metavar="PORT", dest="web", help="Launch local JARVIS Cyberpunk web dashboard on localhost:8421")
     parser.add_argument("--format", choices=["text", "json", "sarif"], default="text", help="Output format for audit/scan reports (default: text)")
     parser.add_argument("--pr-report", nargs="?", const="HEAD~1", default=None, metavar="REF", help="Generate GitHub PR summary report with Blast Radius and Security tables")
     parser.add_argument("--mcp", action="store_true", help="Start Model Context Protocol (MCP) stdio server for Cursor/Claude/Antigravity")
@@ -7731,12 +7734,12 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect V4.1.0")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v6.0.0 Master Edition (engine v4.1.0)")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v4.1.0
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v6.0.0 MASTER (engine v4.1.0)
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 
@@ -7809,8 +7812,17 @@ def main():
         import tzero_mcp
         tzero_mcp.main()
     elif args.web is not None:
-        from tzero_features import launch_web_dashboard
-        launch_web_dashboard(args.dir, port=args.web)
+        try:
+            from tzero_dashboard import start_dashboard_server
+            server = start_dashboard_server(port=args.web, open_browser=True)
+            try:
+                server.serve_forever()
+            except KeyboardInterrupt:
+                print("\n[⚡ T-ZERO JARVIS DASHBOARD] Shutting down.")
+                server.server_close()
+        except Exception:
+            from tzero_features import launch_web_dashboard
+            launch_web_dashboard(args.dir, port=args.web)
     elif args.impact:
         from tzero_features import ChangeImpactAnalyzer
         analyzer = ChangeImpactAnalyzer(args.dir)

@@ -1,0 +1,21 @@
+name: T-Zero Codebase & Security Guard
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tzero-guard:
+    name: AST Context & Zero-Leak Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run T-Zero Action
+        uses: ./
+        with:
+          audit-level: 'strict'
+          enforce-boundaries: 'false'
