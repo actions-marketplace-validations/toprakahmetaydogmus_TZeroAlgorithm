@@ -1,5 +1,26 @@
 # Changelog
 
+## [6.1.0] - 2026-10-21
+
+### Added & Enhanced (Universal Polyglot Engine, JARVIS Dashboard & Marketplace Action)
+
+- **Universal Polyglot AST Engine (`tzero_polyglot.py`):**
+  - High-precision structural signature extractors across Rust (`.rs`), Go (`.go`), Solidity (`.sol`), C/C++ (`.cpp`, `.hpp`, `.h`), Java/C# (`.java`, `.cs`), Python, and TypeScript/JavaScript.
+  - Prunes function and contract bodies down to contracts and signatures, saving up to 95% token overhead.
+- **JARVIS Control Center Web Dashboard (`tzero_dashboard.py`):**
+  - Zero-dependency local web dashboard running on `http://localhost:8421` via `tzero --dashboard` or `tzero --web`.
+  - Interactive HTML5 canvas with real-time 4D causal graph pulse animations, PBFT swarm consensus monitors, and a live code pruning sandbox.
+- **Official GitHub Action (`action.yml`):**
+  - Published composite action enabling automated pull request security and architectural boundary audits via `uses: toprakahmetaydogmus/TZeroAlgorithm@main`.
+  - Generates rich Markdown summaries into GitHub Actions Step Summaries.
+- **Universal 1-Line Installers:**
+  - `install.sh`: Single-command curl installer for Linux, macOS, and WSL.
+  - `install.ps1`: Single-command PowerShell installer (`irm ... | iex`) for Windows.
+- **Native VS Code & Cursor Extension Scaffold (`vscode-extension/`):**
+  - Adds status bar item (`⚡ T-Zero: 95% Saved`) linking directly to `localhost:8421`.
+  - Command palette shortcuts: `T-Zero: Scan Codebase Context`, `T-Zero: Run Zero-Leak Audit`, `T-Zero: Export AI Rules`.
+- **Test Suite Expansion:** 167 unit and integration tests passing 100% green.
+
 ## [6.0.0] - 2026-10-20
 
 ### Released (Official V6.0.0 Master Release: SOTA Autonomous Engine & PBFT Swarm)

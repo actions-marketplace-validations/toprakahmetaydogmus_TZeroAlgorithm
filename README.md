@@ -20,7 +20,7 @@
   <img src="https://img.shields.io/badge/MCP-37%20Tools%20Ready-ff69b4?style=for-the-badge&logo=anthropic" alt="MCP Server 37 Tools Ready" />
   <img src="https://img.shields.io/badge/Security-100%25%20Zero--Leak%20Keyring-50fa7b?style=for-the-badge&logo=shield" alt="Zero Leak Security" />
   <img src="https://img.shields.io/badge/Autonomous-PBFT%20Swarm%20%7C%20LCLM-00f0ff?style=for-the-badge" alt="PBFT Swarm and LCLM" />
-  <img src="https://img.shields.io/badge/Tests-160%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 160 Passing" />
+  <img src="https://img.shields.io/badge/Tests-167%20Passing-00f0ff?style=for-the-badge&logo=githubactions" alt="Tests 167 Passing" />
   <img src="https://img.shields.io/badge/License-MIT-f1fa8c?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-ff79c6?style=for-the-badge" alt="Platform" />
 </p>
@@ -50,7 +50,17 @@
 
 > Run it yourself offline ($0 cost): `python tzero.py --savings`
 
-### 🚀 1-Line Quickstart
+### ⚡ 1-Line Universal Installers (Zero-Config)
+
+```bash
+# Linux, macOS, WSL:
+curl -fsSL https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/main/install.sh | bash
+
+# Windows PowerShell:
+irm https://raw.githubusercontent.com/toprakahmetaydogmus/TZeroAlgorithm/main/install.ps1 | iex
+```
+
+### 🚀 Instant Quickstart (uvx / pip)
 
 ```bash
 # Run instantly with uvx (zero installation required)
@@ -58,6 +68,9 @@ uvx tzero-mcp
 
 # Or install via pip / pipx
 pip install tzero-mcp
+
+# Launch local JARVIS Cyberpunk Web Dashboard on localhost:8421
+tzero --dashboard
 ```
 
 Or configure directly into your MCP Client (**Cursor**, **Claude Desktop**, **Windsurf**, or **Antigravity IDE**):
@@ -669,11 +682,51 @@ python -m unittest discover -s tests -v
 
 Expected output:
 ```
-Ran 79 tests in ~4s
-OK (the GUI smoke test is skipped when no display is available)
+Ran 167 tests in ~35s
+OK (100% passing across Python 3.10, 3.11, 3.12, and 3.13)
 ```
 
-GitHub Actions automatically runs this test suite on every push and pull request across Ubuntu and Windows runners under Python 3.10, 3.11, and 3.12.
+GitHub Actions automatically runs this test suite on every push and pull request across Ubuntu and Windows runners.
+
+---
+
+## 🌐 Universal Polyglot AST Engine
+
+T-Zero features dedicated zero-cost regex/AST signature pruning across major enterprise languages:
+
+- 🐍 **Python**: Class/def signatures, multiline docstring stripping, type hints.
+- 🦀 **Rust**: Structs, enums, traits, impl blocks, and `pub async fn` signatures (`.rs`).
+- 🐹 **Go**: Types, interfaces, structs, method signatures (`.go`).
+- 💎 **Solidity**: Smart contract definitions, events, modifiers, function headers (`.sol`).
+- ⚡ **C / C++**: Header declarations, class skeletons, method headers (`.cpp`, `.hpp`, `.h`).
+- ☕ **Java & C#**: Interface definitions, class declarations, method prototypes (`.java`, `.cs`).
+- 📜 **TypeScript & JavaScript**: Interface, type, class, export, and function signatures (`.ts`, `.tsx`, `.js`).
+
+---
+
+## 📊 JARVIS Control Center Web Dashboard (localhost:8421)
+
+Launch the zero-dependency interactive Cyberpunk visualization dashboard:
+
+```bash
+tzero --dashboard
+# Or:
+tzero --web
+```
+
+- **Interactive 4D Causal Graph Canvas**: Real-time pulsing node and edge topology viewer.
+- **PBFT Swarm Quorum Monitor**: Live Byzantine Fault Tolerant multi-agent consensus visualizer.
+- **Live Code Pruning Sandbox**: Test token reduction ratios on arbitrary code snippets with live metrics.
+
+---
+
+## 🔌 VS Code & Cursor Extension
+
+T-Zero includes a native IDE extension scaffold located in `vscode-extension/`:
+
+- Real-time status bar token savings tracker (`⚡ T-Zero: 95% Saved`).
+- 1-click launch of the JARVIS Web Dashboard on `localhost:8421`.
+- Command palette shortcuts: `T-Zero: Scan Codebase Context`, `T-Zero: Run Zero-Leak Audit`, `T-Zero: Export AI Rules`.
 
 ---
 
@@ -693,7 +746,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: T-Zero Architecture & Quality Guard
-        uses: toprakahmetaydogmus/TZeroAlgorithm@v4.1.0
+        uses: toprakahmetaydogmus/TZeroAlgorithm@main
         with:
           workspace: '.'
           audit: 'true'
