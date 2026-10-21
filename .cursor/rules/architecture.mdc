@@ -1,9 +1,18 @@
 ---
-description: Architectural Boundary & Modularity Standards
+description: Architectural Boundary & Modularity Standards for TZeroAlgorithm
 globs: **/*.py
 ---
 # Architecture Standards for TZeroAlgorithm
 
-- Core business logic must remain decoupled from presentation or CLI entrypoints.
+## Active Architectural Layers:
+- **Layer `core`:** `core/*, engine/*`
+- **Layer `api`:** `api/*, tzero_mcp.py, server/*`
+- **Layer `cli`:** `main.py, compile.py, cli/*`
+- **Layer `ui`:** `gui/*, views/*`
+
+## Enforced Import Boundaries:
+- Layer `core` cannot import `ui, views`: Core domain logic must never have visual UI dependencies.
+- Layer `models` cannot import `views, controllers`: Data models must remain decoupled from presentation layers.
+
 - All public functions and classes must include descriptive docstrings.
 - Follow PEP 8 and maintain type hints where applicable.
