@@ -7724,6 +7724,7 @@ def main():
     parser.add_argument("--enforce-boundaries", "--enforce-rules", nargs="?", const="tzero.rules.json", default=None, metavar="CONFIG", dest="enforce_boundaries", help="Enforce architectural boundary rules in CI (exits with code 1 if violated)")
     parser.add_argument("--search", metavar="QUERY", help="Run private local hybrid semantic code search (BM25 RAG)")
     parser.add_argument("--export-agent-rules", action="store_true", help="Generate all native AI agent rules (.cursorrules, .cursor/rules/*.mdc, .clinerules, Copilot)")
+    parser.add_argument("--orchestrate-workspace", "--jarvis-orchestrate", nargs="?", const=".", default=None, metavar="DIR", dest="orchestrate_workspace", help="Autonomous Master Workspace Orchestration & Executive Governance (.cursorrules, AGENT.md, ARCHITECTURE.md, PBFT Swarm)")
     parser.add_argument("--savings", action="store_true", help="Calculate token reduction metrics and economic developer team ROI")
     parser.add_argument("--diff", "--pr", nargs="?", const="HEAD~1", default=None, metavar="REF", help="Generate incremental git diff context payload (98%%+ token savings)")
     parser.add_argument("--web", "--dashboard", nargs="?", const=8421, type=int, default=None, metavar="PORT", dest="web", help="Launch local JARVIS Cyberpunk web dashboard on localhost:8421")
@@ -7850,6 +7851,12 @@ def main():
         for p in created:
             print(f"  - {os.path.relpath(p, args.dir)}")
         print("\033[0m")
+    elif args.orchestrate_workspace is not None:
+        from tzero_jarvis.workspace_orchestrator import WorkspaceOrchestrator
+        target_dir = args.orchestrate_workspace or args.dir
+        orch = WorkspaceOrchestrator(workspace_root=target_dir)
+        res = orch.orchestrate_workspace(auto_apply_rules=True, run_swarm=True)
+        print(res["executive_report_markdown"])
     elif args.savings:
         from tzero_features import TokenROICalculator
         scanner = CodebaseScanner()

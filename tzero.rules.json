@@ -1,22 +1,44 @@
 {
-  "version": "1.0",
-  "description": "T-Zero Architectural Boundary Rules for Modular Integrity",
+  "version": "5.0.0",
+  "project_name": "TZeroAlgorithm",
+  "architecture_pattern": "Autonomous CLI / Tool Architecture",
   "layers": {
-    "core": ["core/*", "engine/*"],
-    "api": ["api/*", "tzero_mcp.py", "server/*"],
-    "cli": ["main.py", "compile.py", "cli/*"],
-    "ui": ["gui/*", "views/*"]
+    "tests": [
+      "tests/**"
+    ],
+    "core": [
+      "tzero_jarvis/**",
+      "main.py",
+      "tzero_v3.py"
+    ],
+    "cli": [
+      "addmcp.py",
+      "tzero_dashboard.py"
+    ],
+    "api": [
+      "app.py",
+      "tzero_mcp.py"
+    ],
+    "services": [
+      "tzero_features.py"
+    ]
   },
   "forbidden_imports": [
     {
       "from_layer": "core",
-      "cannot_import": ["ui", "views"],
-      "reason": "Core domain logic must never have visual UI dependencies."
-    },
-    {
-      "from_layer": "models",
-      "cannot_import": ["views", "controllers"],
-      "reason": "Data models must remain decoupled from presentation layers."
+      "cannot_import": [
+        "api",
+        "cli"
+      ],
+      "reason": "Çekirdek iş mantığı giriş/çıkış arayüzlerinden izole kalmalıdır."
     }
-  ]
+  ],
+  "security": {
+    "zero_leak_enforced": true,
+    "disallow_hardcoded_keys": true
+  },
+  "testing": {
+    "default_test_command": "python -m unittest discover -s tests -p \"test_*.py\"",
+    "default_lint_command": "flake8 ."
+  }
 }

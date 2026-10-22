@@ -1,11 +1,17 @@
-# Claude Code & Extended Thinking Directives: TZeroAlgorithm
+# Claude Code Guidelines: TZeroAlgorithm
 
-## System Overview
-- **Project:** TZeroAlgorithm
-- **Engine:** T-Zero Context Architect
-- **Standards:** Clean Architecture, 100% Zero-Leak Security, PEP 8 / Idiomatic Typing.
+## Project Overview
+- **Name:** TZeroAlgorithm
+- **Primary Language:** Python
+- **Frameworks:** Standard Library
+- **Pattern:** Autonomous CLI / Tool Architecture
 
-## Behavioral Directives:
-- Maintain minimal blast radius on all code changes.
-- Check downstream caller impacts before refactoring shared interfaces.
-- Always run the test suite to prevent regressions.
+## Key Commands
+- **Test:** `python -m unittest discover -s tests -p "test_*.py"`
+- **Lint:** `flake8 .`
+- **Build:** `python -m build`
+
+## Engineering Principles
+- Follow idiomatic conventions for Python.
+- Maintain 100% Zero-Leak security policy.
+- Run tests and ensure zero regressions before reporting completion.

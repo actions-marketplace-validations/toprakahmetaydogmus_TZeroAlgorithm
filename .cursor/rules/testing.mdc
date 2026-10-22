@@ -1,0 +1,8 @@
+---
+description: Testing and Quality Assurance Protocols
+globs: **/*
+---
+# Testing Protocols for TZeroAlgorithm
+- Always run `python -m unittest discover -s tests -p "test_*.py"` before finishing tasks.
+- Keep tests modular, self-contained, and fast.
+- Never disable or bypass failing tests without explicit authorization.
