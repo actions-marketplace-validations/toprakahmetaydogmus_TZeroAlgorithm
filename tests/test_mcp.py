@@ -27,7 +27,7 @@ class TestMCPServer(unittest.TestCase):
         """Verifies that all 25 MCP tools and grounding prompt are properly registered."""
         tools = self.run_async(self.server.list_tools())
         tool_names = [t.name for t in tools]
-        self.assertEqual(len(tool_names), 37)
+        self.assertEqual(len(tool_names), 42)
         expected_tools = [
             "get_project_context_tree",
             "query_module_dependencies",
@@ -66,6 +66,11 @@ class TestMCPServer(unittest.TestCase):
             "jarvis_minhash_similarity",
             "jarvis_bft_swarm_consensus",
             "jarvis_latent_press_compress",
+            "prune_schema_definition",
+            "generate_smart_micro_patch",
+            "generate_zero_waste_prompt_context",
+            "compress_stream_tokens",
+            "install_git_security_guard",
         ]
         for exp in expected_tools:
             self.assertIn(exp, tool_names)
@@ -533,6 +538,67 @@ class Worker:
         out_lp = tool_result_text(res_lp)
         self.assertIn("LatentPress (LCLM) Context Compression", out_lp)
         self.assertIn("Compression Ratio", out_lp)
+
+    def test_tool_prune_schema_definition(self):
+        res = self.run_async(self.server.call_tool(
+            "prune_schema_definition",
+            {
+                "content": "CREATE TABLE ledger (id INT PRIMARY KEY, amount NUMERIC);\nINSERT INTO ledger VALUES (1, 500);",
+                "schema_type_or_filename": "schema.sql"
+            }
+        ))
+        out = tool_result_text(res)
+        self.assertIn("Infrastructure Schema Reduction", out)
+        self.assertIn("CREATE TABLE ledger", out)
+
+    def test_tool_generate_smart_micro_patch(self):
+        diff_text = """
+diff --git a/core.py b/core.py
+--- a/core.py
++++ b/core.py
+@@ -10,3 +10,3 @@ def run():
+-    val = 10
++    val = 20
+"""
+        res = self.run_async(self.server.call_tool(
+            "generate_smart_micro_patch",
+            {"diff_content": diff_text}
+        ))
+        out = tool_result_text(res)
+        self.assertIn("T-Zero AST Smart Micro-Patch", out)
+        self.assertIn("[core.py]", out)
+
+    def test_tool_generate_zero_waste_prompt_context(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_a = os.path.join(temp_dir, "entry.py")
+            with open(file_a, "w", encoding="utf-8") as f:
+                f.write("def helper():\n    return 1\ndef main():\n    return helper()\n")
+            res = self.run_async(self.server.call_tool(
+                "generate_zero_waste_prompt_context",
+                {"target_dir": temp_dir, "entrypoints": ["entry.py"]}
+            ))
+            out = tool_result_text(res)
+            self.assertIn("T-ZERO ZERO-WASTE PROMPT CONTEXT", out)
+            self.assertIn("def helper():", out)
+
+    def test_tool_compress_stream_tokens(self):
+        code = "def heavy_work():\n    # useless comment\n    return 42\n"
+        res = self.run_async(self.server.call_tool(
+            "compress_stream_tokens",
+            {"content": code, "filename_hint": "script.py", "tier": "T-3"}
+        ))
+        out = tool_result_text(res)
+        self.assertIn("def heavy_work", out)
+
+    def test_tool_install_git_security_guard(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            os.makedirs(os.path.join(temp_dir, ".git"), exist_ok=True)
+            res = self.run_async(self.server.call_tool(
+                "install_git_security_guard",
+                {"repo_dir": temp_dir}
+            ))
+            out = tool_result_text(res)
+            self.assertIn("Pre-Commit Guard", out)
 
 
 if __name__ == "__main__":

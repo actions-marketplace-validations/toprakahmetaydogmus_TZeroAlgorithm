@@ -722,6 +722,31 @@ globs: **/*
                 f.write(content)
             created.append(mdc_path)
 
+        # 7. AGENT.md / AGENTS.md (Antigravity & Autonomous Orchestrator Directive)
+        from tzero_jarvis.workspace_orchestrator import WorkspaceProfiler, WorkspaceGovernanceSynthesizer
+        try:
+            prof = WorkspaceProfiler(project_dir).profile()
+            agent_md_content = WorkspaceGovernanceSynthesizer.generate_agent_md(prof)
+            
+            agent_p = os.path.join(project_dir, "AGENT.md")
+            with open(agent_p, "w", encoding="utf-8") as f:
+                f.write(agent_md_content)
+            created.append(agent_p)
+
+            agents_p = os.path.join(project_dir, "AGENTS.md")
+            with open(agents_p, "w", encoding="utf-8") as f:
+                f.write(agent_md_content)
+            created.append(agents_p)
+
+            # 8. ARCHITECTURE.md if not exists
+            arch_p = os.path.join(project_dir, "ARCHITECTURE.md")
+            if not os.path.isfile(arch_p):
+                with open(arch_p, "w", encoding="utf-8") as f:
+                    f.write(WorkspaceGovernanceSynthesizer.generate_architecture_md(prof))
+                created.append(arch_p)
+        except Exception:
+            pass
+
         return created
 
 

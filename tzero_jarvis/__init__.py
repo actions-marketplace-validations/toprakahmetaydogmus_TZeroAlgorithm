@@ -69,6 +69,12 @@ from .latent_press import (
     LatentPressCompressor,
     LatentPressResult
 )
+from .workspace_orchestrator import (
+    WorkspaceOrchestrator,
+    WorkspaceProfiler,
+    WorkspaceProfile,
+    WorkspaceGovernanceSynthesizer
+)
 
 ZeroKeyRouter = ZeroKeyAIRouter
 AutonomousGoalOrchestrator = JarvisOrchestrator
@@ -110,5 +116,9 @@ __all__ = [
     "ByzantineFaultTolerantSwarm",
     "BFTConsensusCertificate",
     "LatentPressCompressor",
-    "LatentPressResult"
+    "LatentPressResult",
+    "WorkspaceOrchestrator",
+    "WorkspaceProfiler",
+    "WorkspaceProfile",
+    "WorkspaceGovernanceSynthesizer"
 ]

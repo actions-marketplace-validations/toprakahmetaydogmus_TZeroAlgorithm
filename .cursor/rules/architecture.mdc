@@ -5,14 +5,14 @@ globs: **/*.py
 # Architecture Standards for TZeroAlgorithm
 
 ## Active Architectural Layers:
-- **Layer `core`:** `core/*, engine/*`
-- **Layer `api`:** `api/*, tzero_mcp.py, server/*`
-- **Layer `cli`:** `main.py, compile.py, cli/*`
-- **Layer `ui`:** `gui/*, views/*`
+- **Layer `tests`:** `tests/**`
+- **Layer `core`:** `tzero_jarvis/**, main.py, tzero_v3.py`
+- **Layer `cli`:** `addmcp.py, tzero_dashboard.py`
+- **Layer `api`:** `app.py, tzero_mcp.py`
+- **Layer `services`:** `tzero_features.py`
 
 ## Enforced Import Boundaries:
-- Layer `core` cannot import `ui, views`: Core domain logic must never have visual UI dependencies.
-- Layer `models` cannot import `views, controllers`: Data models must remain decoupled from presentation layers.
+- Layer `core` cannot import `api, cli`: Çekirdek iş mantığı giriş/çıkış arayüzlerinden izole kalmalıdır.
 
 - All public functions and classes must include descriptive docstrings.
 - Follow PEP 8 and maintain type hints where applicable.

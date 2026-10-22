@@ -27,6 +27,7 @@ from typing import Dict, List, Optional, Any, Callable
 
 from .semantic_compressor import get_global_compressor
 from .zero_key_router import ZeroKeyAIRouter
+from .workspace_orchestrator import WorkspaceOrchestrator, WorkspaceProfile
 
 # Core T-Zero Import
 try:
@@ -79,6 +80,7 @@ class JarvisOrchestrator:
         self.workspace_root = os.path.abspath(workspace_root)
         self.compressor = get_global_compressor()
         self.router = ZeroKeyAIRouter()
+        self.workspace_orchestrator = WorkspaceOrchestrator(self.workspace_root)
 
     def execute_terminal(self, command: str, cwd: Optional[str] = None, timeout: int = 40) -> Dict[str, Any]:
         """PowerShell / Komut satırı üzerinden komut çalıştırır."""
@@ -190,11 +192,110 @@ class JarvisOrchestrator:
         result.security_passed = True
         result.add_step("ZERO_LEAK_SECURITY", "T-Zero 100% Zero-Leak güvenlik denetimi tamamlandı: Sıfır sızıntı.")
 
+        # 5. Aşama: Eğer hedef bir çalışma alanı yönetimi / kural düzenleme ise Workspace Orchestrator'ı devreye sok
+        goal_lower = goal.lower()
+        if any(k in goal_lower for k in ("workspace", "ayarla", "yönet", "kuralları", "rules", "cursor", "agent.md", "architecture.md", "orchestrate")):
+            ws_res = self.orchestrate_workspace(auto_apply_rules=True, run_swarm=True)
+            result.add_step(
+                "WORKSPACE_ORCHESTRATION",
+                f"Çalışma alanı otonom olarak yönetildi ({ws_res['workspace_name']}, {ws_res['profile']['primary_language']}). "
+                f"{len(ws_res['applied_rule_files'])} kural dosyası uygulandı.",
+                details={"applied_files": ws_res["applied_rule_files"], "swarm": ws_res.get("swarm_consensus", {})}
+            )
+
         result.success = True
         result.add_step("FINALIZATION", "Tüm görev aşamaları sıfır maliyetle başarıyla tamamlandı.")
         return result
 
     execute_goal = orchestrate_goal
 
+    def orchestrate_workspace(
+        self,
+        auto_apply_rules: bool = True,
+        run_swarm: bool = True,
+        run_diagnostics: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Çalışma alanını (workspace) bir yönetici (executive orchestrator) gibi analiz eder,
+        tüm AI kural dosyalarını (.cursorrules, AGENT.md, ARCHITECTURE.md vb.) üretir/günceller,
+        PBFT konsensüsü ile denetler ve kendi kendini iyileştirir.
+        """
+        return self.workspace_orchestrator.orchestrate_workspace(
+            auto_apply_rules=auto_apply_rules,
+            run_swarm=run_swarm,
+            run_diagnostics=run_diagnostics
+        )
+
+    def profile_workspace(self) -> Dict[str, Any]:
+        """Çalışma alanının detaylı profilini sözlük olarak döner."""
+        return self.workspace_orchestrator.profile_workspace().to_dict()
+
+    def tune_workspace_rules(self, auto_apply: bool = True) -> Dict[str, Any]:
+        """Yalnızca yönetişim ve AI kural dosyalarını (.md) sentezler ve uygular."""
+        profile = self.workspace_orchestrator.profile_workspace()
+        rules = self.workspace_orchestrator.synthesize_rules(profile)
+        applied = []
+        if auto_apply:
+            applied = self.workspace_orchestrator.apply_governance_rules(rules, overwrite=True)
+        return {
+            "project_name": profile.project_name,
+            "generated_rules": list(rules.keys()),
+            "applied_files": applied,
+            "profile": profile.to_dict()
+        }
+
+    def diagnose_and_heal_workspace(self, command: Optional[str] = None) -> Dict[str, Any]:
+        """Çalışma alanı test/derleme komutunu çalıştırır ve otonom cerrahi yamalar uygular."""
+        return self.workspace_orchestrator.run_workspace_diagnostics_and_heal(command)
+
+    def generate_plan(self, goal: str = "", context: str = "") -> Dict[str, Any]:
+        """Hedefe veya projeye özel çok fazlı mühendislik eylem planı hazırlar."""
+        return self.workspace_orchestrator.generate_executive_plan(goal, context)
+
+    def present_capabilities(self) -> str:
+        """Jarvis'in çalışma alanındaki yetenek kataloğunu sunar."""
+        return self.workspace_orchestrator.format_capabilities_catalog()
+
+
 AutonomousGoalOrchestrator = JarvisOrchestrator
+
+
+def main():
+    """CLI Giriş Noktası: python -m tzero_jarvis.orchestrator --workspace . --apply"""
+    import argparse
+    parser = argparse.ArgumentParser(description="T-Zero Jarvis Master Workspace Orchestrator & Executive Manager")
+    parser.add_argument("--workspace", "-w", default=".", help="Hedef çalışma alanı dizini")
+    parser.add_argument("--apply", "-a", action="store_true", help="Üretilen .md ve kural dosyalarını diske yaz")
+    parser.add_argument("--no-swarm", action="store_true", help="PBFT Sürü denetimini atla")
+    parser.add_argument("--diagnose", action="store_true", help="Çalışma alanı testlerini çalıştır ve kendi kendini iyileştir")
+    parser.add_argument("--goal", "-g", help="Otonom mühendislik hedefi")
+    parser.add_argument("--plan", "-p", action="store_true", help="Yönetici eylem planı ve yetenek kataloğunu sun")
+
+    args = parser.parse_args()
+    orch = JarvisOrchestrator(workspace_root=args.workspace)
+
+    if args.plan:
+        plan = orch.generate_plan(args.goal or "")
+        print(plan["markdown"])
+    elif args.goal:
+        res = orch.orchestrate_goal(args.goal)
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+    else:
+        res = orch.orchestrate_workspace(
+            auto_apply_rules=args.apply,
+            run_swarm=not args.no_swarm,
+            run_diagnostics=args.diagnose
+        )
+        print(f"\n🚀 [T-ZERO JARVIS MASTER WORKSPACE ORCHESTRATOR]")
+        print(f"Workspace: {res['workspace_name']} ({res['profile']['primary_language']})")
+        print(f"Pattern:   {res['profile']['architecture_pattern']}")
+        print(f"Swarm:     {res.get('swarm_consensus', {}).get('consensus_verdict', 'N/A')}")
+        print(f"Rules:     {len(res['applied_rule_files'])} applied")
+        for f in res['applied_rule_files']:
+            print(f"  ✓ {f}")
+        print(f"\nExecution Time: {res['duration_ms']} ms | Zero Cost: $0.00 | %100 Zero-Leak\n")
+
+
+if __name__ == "__main__":
+    main()
 
