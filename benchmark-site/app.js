@@ -245,23 +245,41 @@ from pathlib import Path
 // ==========================================
 // THREE.JS PARTICLE SYSTEM
 // ==========================================
+// ==========================================
+// THREE.JS PARTICLE SYSTEM (BACKGROUND AMBIENT)
+// ==========================================
 function initParticleSystem() {
   const canvas = document.getElementById("hero-canvas");
   if (!canvas || typeof THREE === "undefined") return;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  // Particle system
-  const particleCount = 800;
+  // Circular glowing star sprite texture (prevents square quads)
+  const circleCanvas = document.createElement("canvas");
+  circleCanvas.width = 32;
+  circleCanvas.height = 32;
+  const cctx = circleCanvas.getContext("2d");
+  const radGrad = cctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  radGrad.addColorStop(0, "rgba(255, 255, 255, 1)");
+  radGrad.addColorStop(0.35, "rgba(0, 240, 255, 0.8)");
+  radGrad.addColorStop(0.75, "rgba(0, 240, 255, 0.15)");
+  radGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+  cctx.fillStyle = radGrad;
+  cctx.beginPath();
+  cctx.arc(16, 16, 16, 0, Math.PI * 2);
+  cctx.fill();
+  const circleTexture = new THREE.CanvasTexture(circleCanvas);
+
+  // Elegant subtle particle count
+  const particleCount = 100;
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(particleCount * 3);
   const velocities = new Float32Array(particleCount * 3);
   const colors = new Float32Array(particleCount * 3);
-  const sizes = new Float32Array(particleCount);
 
   const cyanColor = new THREE.Color(0x00f0ff);
   const purpleColor = new THREE.Color(0xa855f7);
@@ -269,13 +287,14 @@ function initParticleSystem() {
 
   for (let i = 0; i < particleCount; i++) {
     const i3 = i * 3;
-    positions[i3] = (Math.random() - 0.5) * 40;
-    positions[i3 + 1] = (Math.random() - 0.5) * 30;
-    positions[i3 + 2] = (Math.random() - 0.5) * 20 - 5;
+    // Keep particles well behind camera (camera at z=40)
+    positions[i3] = (Math.random() - 0.5) * 60;
+    positions[i3 + 1] = (Math.random() - 0.5) * 45;
+    positions[i3 + 2] = -Math.random() * 25 - 5; // z between -30 and -5
 
-    velocities[i3] = (Math.random() - 0.5) * 0.005;
-    velocities[i3 + 1] = (Math.random() - 0.5) * 0.005;
-    velocities[i3 + 2] = (Math.random() - 0.5) * 0.003;
+    velocities[i3] = (Math.random() - 0.5) * 0.008;
+    velocities[i3 + 1] = (Math.random() - 0.5) * 0.008;
+    velocities[i3 + 2] = (Math.random() - 0.5) * 0.004;
 
     const colorChoice = Math.random();
     let color;
@@ -286,19 +305,17 @@ function initParticleSystem() {
     colors[i3] = color.r;
     colors[i3 + 1] = color.g;
     colors[i3 + 2] = color.b;
-
-    sizes[i] = Math.random() * 3 + 0.5;
   }
 
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
 
   const material = new THREE.PointsMaterial({
-    size: 2,
+    size: 1.2,
+    map: circleTexture,
     vertexColors: true,
     transparent: true,
-    opacity: 0.6,
+    opacity: 0.35,
     blending: THREE.AdditiveBlending,
     sizeAttenuation: true,
     depthWrite: false,
@@ -307,7 +324,7 @@ function initParticleSystem() {
   const particles = new THREE.Points(geometry, material);
   scene.add(particles);
 
-  // Connection lines
+  // Ambient connection lines
   const lineGeometry = new THREE.BufferGeometry();
   const linePositions = new Float32Array(particleCount * 6);
   const lineColors = new Float32Array(particleCount * 6);
@@ -317,7 +334,7 @@ function initParticleSystem() {
   const lineMaterial = new THREE.LineBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.15,
+    opacity: 0.08,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
@@ -325,7 +342,7 @@ function initParticleSystem() {
   const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
   scene.add(lines);
 
-  camera.position.z = 15;
+  camera.position.z = 40;
 
   let mouseX = 0, mouseY = 0;
   document.addEventListener("mousemove", (e) => {
@@ -351,20 +368,20 @@ function initParticleSystem() {
       posArr[i3 + 1] += velocities[i3 + 1];
       posArr[i3 + 2] += velocities[i3 + 2];
 
-      // Boundaries
-      if (Math.abs(posArr[i3]) > 20) velocities[i3] *= -1;
-      if (Math.abs(posArr[i3 + 1]) > 15) velocities[i3 + 1] *= -1;
-      if (Math.abs(posArr[i3 + 2] + 5) > 10) velocities[i3 + 2] *= -1;
+      // Strict boundaries ensuring particles NEVER approach camera z=40
+      if (posArr[i3] > 32 || posArr[i3] < -32) velocities[i3] *= -1;
+      if (posArr[i3 + 1] > 24 || posArr[i3 + 1] < -24) velocities[i3 + 1] *= -1;
+      if (posArr[i3 + 2] > 2 || posArr[i3 + 2] < -32) velocities[i3 + 2] *= -1;
     }
 
     // Update connections
     lineIndex = 0;
     const lp = lines.geometry.attributes.position.array;
     const lc = lines.geometry.attributes.color.array;
-    const maxDist = 4;
+    const maxDist = 7;
 
-    for (let i = 0; i < Math.min(particleCount, 100); i++) {
-      for (let j = i + 1; j < Math.min(particleCount, 100); j++) {
+    for (let i = 0; i < Math.min(particleCount, 40); i++) {
+      for (let j = i + 1; j < Math.min(particleCount, 40); j++) {
         const i3 = i * 3, j3 = j * 3;
         const dx = posArr[i3] - posArr[j3];
         const dy = posArr[i3 + 1] - posArr[j3 + 1];
@@ -398,9 +415,9 @@ function initParticleSystem() {
     lines.geometry.attributes.position.needsUpdate = true;
     lines.geometry.attributes.color.needsUpdate = true;
 
-    // Smooth mouse follow
-    particles.rotation.y += (mouseX * 0.1 - particles.rotation.y) * 0.02;
-    particles.rotation.x += (-mouseY * 0.05 - particles.rotation.x) * 0.02;
+    // Smooth subtle mouse follow
+    particles.rotation.y += (mouseX * 0.05 - particles.rotation.y) * 0.02;
+    particles.rotation.x += (-mouseY * 0.03 - particles.rotation.x) * 0.02;
     lines.rotation.y = particles.rotation.y;
     lines.rotation.x = particles.rotation.x;
 
