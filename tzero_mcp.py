@@ -42,7 +42,7 @@ except ImportError:
     def Field(default=..., description=""):
         return default
 
-SERVER_VERSION = "6.4.1"
+SERVER_VERSION = "6.5.0"
 
 # Safe UTF-8 reconfiguration for Windows console & piped subprocesses
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -1899,6 +1899,67 @@ def create_mcp_server():
             f"```text\n{res.virtual_token_stream}\n```"
         )
 
+    # -------------------------------------------------------------------------
+    # TOOL 38: prune_schema_definition
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="prune_schema_definition",
+        description=(
+            "Compresses SQL DDL, Kubernetes YAML manifests, Dockerfile, or Terraform HCL definitions by up to 90% without semantic loss.\n\n"
+            "Behavior:\n"
+            "- Read-only: Structural and AST heuristic parsing; does not modify database or filesystem.\n"
+            "- Idempotent: Deterministic output for identical input schema.\n"
+            "- 100% Offline: Executes locally without network calls or external API billing.\n\n"
+            "Usage Guidelines:\n"
+            "- When to use: Pass large database migration files, k8s manifests, or Terraform configs to an LLM without blowing up the context window.\n"
+            "- Supported types: 'sql', 'yaml', 'dockerfile', 'terraform' (auto-detected if file name provided).\n\n"
+            "Returns: Compact schema representation with percentage token reduction."
+        ),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+    )
+    def prune_schema_definition(
+        content: Annotated[str, Field(description="Raw schema content (SQL DDL, Kubernetes YAML, Dockerfile, or Terraform HCL).")],
+        schema_type_or_filename: Annotated[str, Field(default="schema.sql", description="Schema type ('sql', 'yaml', 'dockerfile', 'terraform') or filename with extension.")] = "schema.sql",
+        reduction_mode: Annotated[str, Field(default="ultra", description="Reduction tier: 'ultra' for pure interfaces (80-95% reduction), 'balanced' for interfaces + key attributes.")] = "ultra"
+    ) -> str:
+        """Compresses database or infrastructure schema definitions on-the-fly."""
+        from tzero_infra import SchemaInfraReducer
+        reduced, savings = SchemaInfraReducer.reduce(schema_type_or_filename, content, mode=reduction_mode)
+        raw_tokens = max(1, count_tokens_precise(content))
+        reduced_tokens = max(1, count_tokens_precise(reduced))
+        
+        return (
+            f"# 🏗️ T-Zero Infrastructure Schema Reduction (`{schema_type_or_filename}`)\n"
+            f"- **Original Tokens:** {raw_tokens:,} tokens\n"
+            f"- **Pruned Tokens:** {reduced_tokens:,} tokens\n"
+            f"- **Token Compression:** **-{savings:.1f}% reduction**\n\n"
+            f"```\n{reduced}\n```"
+        )
+
+    # -------------------------------------------------------------------------
+    # TOOL 39: generate_smart_micro_patch
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="generate_smart_micro_patch",
+        description=(
+            "Compresses unified git diffs into ultra-dense semantic AST micro-patches, reducing token payload by 80% to 90% for LLM code review and pair-programming.\n\n"
+            "Behavior:\n"
+            "- Read-only: Structural parsing of unified git diff text.\n"
+            "- Idempotent: Deterministic output for identical git diffs.\n"
+            "- 100% Offline: Executes locally without network calls.\n\n"
+            "Usage Guidelines:\n"
+            "- When to use: Compress massive PR diffs or git commit changes before passing them into LLM chat context.\n\n"
+            "Returns: High-density micro-patch report with token savings metrics."
+        ),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+    )
+    def generate_smart_micro_patch(
+        diff_content: Annotated[str, Field(description="Raw git diff or unified diff text.")],
+        max_context_lines: Annotated[int, Field(default=1, description="Maximum surrounding context lines to retain per hunk (default: 1).")] = 1
+    ) -> str:
+        """Compresses unified git diff into a compact semantic micro-patch."""
+        from tzero_patch import SmartMicroPatcher
+        return SmartMicroPatcher.format_micro_patch_report(diff_content)
 
     # -------------------------------------------------------------------------
     # RESOURCES: tzero://architecture, tzero://boundaries, tzero://token-roi

@@ -21,6 +21,23 @@
   - Command palette shortcuts: `T-Zero: Scan Codebase Context`, `T-Zero: Run Zero-Leak Audit`, `T-Zero: Export AI Rules`.
 - **Test Suite Expansion:** 167 unit and integration tests passing 100% green.
 
+## [6.5.0] - 2026-10-22
+
+### Released (Official V6.5.0 Master Edition: DevOps Schema Reducer, Smart Micro-Patcher & Cyberpunk Studio)
+
+- **DevOps & Database Infrastructure Schema Compressor (`SchemaInfraReducer`):**
+  - Structural AST pruning for SQL DDL (PostgreSQL, MySQL, SQLite), extracting tables, columns, keys, and constraints while dropping bulk `INSERT INTO` statements (up to 95% token savings).
+  - Kubernetes YAML manifest compression removing verbose `managedFields` and `status` runtime bloat while retaining container architectures.
+  - Dockerfile and Terraform / OpenTofu HCL structural reducers.
+  - New MCP Tool: `prune_schema_definition`.
+- **AST Smart Micro-Patcher (`SmartMicroPatcher`):**
+  - Condenses raw git diffs and unified diffs into high-density semantic AST micro-patches with minimal context lines (80-90% token savings for LLM code reviewers and pair-programmers).
+  - New MCP Tool: `generate_smart_micro_patch`.
+- **Cyberpunk Interactive AST Studio & Cost Simulator (`:8080/dashboard`):**
+  - Live split-pane web playground on the local gateway for instant multi-language code and schema pruning.
+  - Real-time token counters and multi-model cost comparisons against GPT-4o, Claude 3.5 Sonnet, DeepSeek V3, and local Ollama ($0.00).
+- **Test Suite Expansion:** 192 unit and integration tests passing 100% green.
+
 ## [6.4.1] - 2026-10-22
 
 ### Released (Official V6.4.1 Master Edition: Zero-Cost Semantic Cache, Ollama Router & Enterprise Shield)

@@ -27,7 +27,7 @@ class TestMCPServer(unittest.TestCase):
         """Verifies that all 25 MCP tools and grounding prompt are properly registered."""
         tools = self.run_async(self.server.list_tools())
         tool_names = [t.name for t in tools]
-        self.assertEqual(len(tool_names), 37)
+        self.assertEqual(len(tool_names), 39)
         expected_tools = [
             "get_project_context_tree",
             "query_module_dependencies",
@@ -66,6 +66,8 @@ class TestMCPServer(unittest.TestCase):
             "jarvis_minhash_similarity",
             "jarvis_bft_swarm_consensus",
             "jarvis_latent_press_compress",
+            "prune_schema_definition",
+            "generate_smart_micro_patch",
         ]
         for exp in expected_tools:
             self.assertIn(exp, tool_names)
@@ -533,6 +535,35 @@ class Worker:
         out_lp = tool_result_text(res_lp)
         self.assertIn("LatentPress (LCLM) Context Compression", out_lp)
         self.assertIn("Compression Ratio", out_lp)
+
+    def test_tool_prune_schema_definition(self):
+        res = self.run_async(self.server.call_tool(
+            "prune_schema_definition",
+            {
+                "content": "CREATE TABLE ledger (id INT PRIMARY KEY, amount NUMERIC);\nINSERT INTO ledger VALUES (1, 500);",
+                "schema_type_or_filename": "schema.sql"
+            }
+        ))
+        out = tool_result_text(res)
+        self.assertIn("Infrastructure Schema Reduction", out)
+        self.assertIn("CREATE TABLE ledger", out)
+
+    def test_tool_generate_smart_micro_patch(self):
+        diff_text = """
+diff --git a/core.py b/core.py
+--- a/core.py
++++ b/core.py
+@@ -10,3 +10,3 @@ def run():
+-    val = 10
++    val = 20
+"""
+        res = self.run_async(self.server.call_tool(
+            "generate_smart_micro_patch",
+            {"diff_content": diff_text}
+        ))
+        out = tool_result_text(res)
+        self.assertIn("T-Zero AST Smart Micro-Patch", out)
+        self.assertIn("[core.py]", out)
 
 
 if __name__ == "__main__":
