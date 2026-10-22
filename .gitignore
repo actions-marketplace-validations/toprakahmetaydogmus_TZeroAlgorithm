@@ -44,9 +44,24 @@ Desktop.ini
 # Node & Video Outputs
 node_modules/
 tzero-showcase/node_modules/
-tzero-showcase/out/*.mp4
-tzero-showcase/out/*.mp3
+tzero-showcase/out/
+tzero-showcase/public/*.mp4
+*.mp4
+*.mp3
 # Automation & Profiles
 .reddit_profile/
+# Private B2B Gateway & Outreach Engine (Strictly Private - Never Push)
+tzero_gateway.py
+auto_outreach.py
+gateway_savings.json
+outreach_status.json
+.outreach_config.json
+test_gateway_client.py
+whatsapp_ai_agent/
+enterprise_onprem/
+auto_onprem_outreach.py
+onprem_outreach_status.json
+.tzero_cache.db
+*.db
 
 

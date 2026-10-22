@@ -8,7 +8,7 @@ Hoş geldiniz! Bu proje **T-Zero (Token Zero)** kurumsal seviye context mühendi
 
 Bu proje Google Antigravity için resmi workspace olarak yapılandırılmıştır:
 - **Web / Telefon Bağlantı Adresi:** [https://antigravity.google.com](https://antigravity.google.com)
-- **Hesap:** `toprakahmetileq@gmail.com`
+- **Hesap:** `siberakademi@org.tr` (Authorized Account)
 - **Uzak Cihaz / Instance:** `toprak-zero-vertex`
 - **Workspace:** `TZeroAlgorithm`
 - **Daemon Durumu:** `agy --remote-control status` veya `agy remote-control status`

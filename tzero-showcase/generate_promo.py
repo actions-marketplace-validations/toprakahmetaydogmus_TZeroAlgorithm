@@ -24,23 +24,27 @@ OUT_DIR = os.path.join(BASE_DIR, "out")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 NARRATION_EN = (
-  "Are your AI coding prompts bleeding money and choking on context window limits? "
-  "Meet T-Zero. "
-  "Powered by a mathematical AST engine, T-Zero slashes prompt context by up to 95 percent across 10 polyglot languages. "
+  "POV: You spent months building an algorithm that slashes AI coding bills by up to 95 percent... "
+  "and your GitHub repo is currently sitting at 9 stars. "
+  "Let me show you why this is actually insane. "
+  "Instead of sending 67,000 raw tokens to Claude or Cursor, T-Zero prunes your codebase down to 3,800 tokens with zero semantic loss. "
   "Packed with 37 autonomous Model Context Protocol tools for deep memory synthesis, architecture mapping, and zero-leak security. "
   "Guarded by a 4D causal graph and Byzantine fault-tolerant swarm consensus, guaranteeing zero hallucinations. "
-  "Saving engineering teams over 400,000 dollars a year. "
-  "Run pip install tzero-mcp or download the standalone executable. Scale your AI today."
+  "Saving an 8-developer engineering team over 400,000 dollars a year on prompt bills. "
+  "Don't let this stay at 9 stars. "
+  "Star the repository on GitHub, run pip install tzero-mcp, and try the live sandbox today."
 )
 
 NARRATION_TR = (
-  "Yapay zeka kodlama araçlarınız yüksek token maliyetiyle bütçenizi mi tüketiyor? "
-  "Karşınızda T-Zero. "
-  "Matematiksel AST motoruyla kod context boyutunu yüzde 95'e kadar düşürün. On farklı dilde tam optimizasyon. "
-  "Otuz yedi otonom Model Context Protocol aracıyla mimari haritalama, hafıza sentezi ve sıfır sızıntı güvenliği. "
-  "Dört boyutlu nedensellik ağı ve Bizans hata toleranslı sürü konsensüsüyle sıfır halüsinasyon güvencesi. "
-  "Yazılım ekiplerine yılda dörtyüz bin doların üzerinde net tasarruf. "
-  "Pip install tzero-mcp ile tek komutta kurun veya bağımsız binary'yi indirin."
+  "Yapay zeka prompt maliyetlerini yüzde 95 düşüren bir algoritma geliştirdiniz... "
+  "ve GitHub reponuz şu anda sadece 9 yıldızda kaldı. "
+  "Size bunun neden inanılmaz olduğunu göstereyim. "
+  "T-Zero, projenizi Claude veya Cursor'a gönderirken 67 bin tokenlik kodu semantik kayıp olmadan 3 bin 800 tokene indirir. "
+  "Otuz yedi otonom Model Context Protocol aracıyla mimari haritalama, hafıza sentezi ve sıfır sızıntı güvenliği sağlar. "
+  "Dört boyutlu nedensellik ağı ve Bizans hata toleranslı konsensüs ile donatılmıştır. "
+  "Yazılım ekiplerine yılda dörtyüz bin doların üzerinde net tasarruf sağlar. "
+  "Bunun 9 yıldızda kalmasına izin vermeyin. "
+  "GitHub'da bir yıldız bırakın, pip install tzero-mcp ile tek komutta kurun ve hemen deneyin."
 )
 
 def run_cmd(cmd, cwd=BASE_DIR):
@@ -66,14 +70,10 @@ def generate_voiceover(lang="en"):
         return None
     return out_audio
 
-def render_remotion_video(force=False):
+def render_remotion_video(force=True):
     out_video = os.path.join(OUT_DIR, "tzero_visual.mp4")
-    if os.path.exists(out_video) and os.path.getsize(out_video) > 1000000 and not force:
-        print(f"\n[2/3] Visual video already rendered ({os.path.getsize(out_video):,} bytes): {out_video}")
-        return out_video
-
-    print("\n[2/3] Rendering 1080p 35s Remotion Video Composition (TZeroPromo)...")
-    cmd = f'npx remotion render TZeroPromo "{out_video}" --codec h264'
+    print("\n[2/3] Rendering 1080p 38s Viral Remotion Video Composition (TZeroPromo)...")
+    cmd = f'npx remotion render TZeroPromo "{out_video}" --codec h264 --port=3033'
     if not run_cmd(cmd):
         return None
     return out_video

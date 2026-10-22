@@ -21,6 +21,23 @@
   - Command palette shortcuts: `T-Zero: Scan Codebase Context`, `T-Zero: Run Zero-Leak Audit`, `T-Zero: Export AI Rules`.
 - **Test Suite Expansion:** 167 unit and integration tests passing 100% green.
 
+## [6.4.1] - 2026-10-22
+
+### Released (Official V6.4.1 Master Edition: Zero-Cost Semantic Cache, Ollama Router & Enterprise Shield)
+
+- **Zero-Cost Semantic LSH Cache:**
+  - Integrated local in-memory LRU and SQLite-persisted Locality-Sensitive Hashing cache.
+  - Sub-millisecond (<2ms) deduplication for repetitive codebase prompts and architectural scans with $0.00 cost.
+  - 100% token savings on cache hits without requiring Redis or external cloud services.
+- **Smart Multi-Model Cost Orchestrator (Ollama & Free Local Inference):**
+  - Seamless auto-detection and routing to local Ollama endpoints (`localhost:11434`) for Qwen 2.5 Coder, Llama 3.3, and DeepSeek-R1.
+  - Dynamic fallback to upstream OpenAI / Anthropic with transparent AST context pruning.
+- **Real-Time Zero-Leak Security Shield v6.4.1:**
+  - High-entropy and multi-regex heuristic scanner intercepting API keys (OpenAI, AWS, GitHub, Stripe, HuggingFace), private keys, and DB credentials before dispatch.
+  - Redacts sensitive secrets on-the-fly with `[ZERO_LEAK_MASKED_SECRET]`.
+- **4-Tier Adaptive AST Hierarchical Compressor:**
+  - Automatically selects compression depth (T-1 Signatures to T-4 Clean Code) based on context window pressure and token budget.
+
 ## [6.0.0] - 2026-10-20
 
 ### Released (Official V6.0.0 Master Release: SOTA Autonomous Engine & PBFT Swarm)
