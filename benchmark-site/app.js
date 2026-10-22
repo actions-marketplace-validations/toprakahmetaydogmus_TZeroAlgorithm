@@ -448,21 +448,114 @@ function initScrollAnimations() {
 }
 
 // ==========================================
-// NAVBAR SCROLL EFFECT
+// TOAST NOTIFICATION & SAFE CLIPBOARD HELPER
+// ==========================================
+function showToast(message, icon = "⚡") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.innerHTML = `<span style="font-size:16px">${icon}</span><span>${message}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(10px) scale(0.95)";
+    setTimeout(() => toast.remove(), 300);
+  }, 2700);
+}
+
+function copyTextWithToast(text, successMessage = "Copied to clipboard!") {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text).then(() => {
+      showToast(successMessage, "✓");
+      return true;
+    }).catch(() => fallbackCopy(text, successMessage));
+  } else {
+    return fallbackCopy(text, successMessage);
+  }
+}
+
+function fallbackCopy(text, successMessage) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    if (ok) {
+      showToast(successMessage, "✓");
+      return Promise.resolve(true);
+    }
+  } catch (e) {}
+  showToast("Please copy manually", "ℹ️");
+  return Promise.resolve(false);
+}
+
+// ==========================================
+// NAVBAR SCROLL & MOBILE MENU & SCROLLSPY
 // ==========================================
 function initNavbarScroll() {
   const navbar = document.getElementById("navbar");
-  if (!navbar) return;
+  const mobileBtn = document.getElementById("mobile-menu-btn");
+  const navLinks = document.getElementById("nav-links");
+  const links = document.querySelectorAll(".nav-link");
 
-  let lastScroll = 0;
+  if (mobileBtn && navLinks) {
+    mobileBtn.addEventListener("click", () => {
+      mobileBtn.classList.toggle("active");
+      navLinks.classList.toggle("nav-open");
+    });
+
+    links.forEach(link => {
+      link.addEventListener("click", () => {
+        mobileBtn.classList.remove("active");
+        navLinks.classList.remove("nav-open");
+      });
+    });
+  }
+
+  // Rock-solid ScrollSpy calculation
+  const sectionEls = Array.from(document.querySelectorAll("section[id]"));
+  function updateScrollSpy() {
+    const scrollPos = window.scrollY + 140;
+    let currentId = "";
+    for (const sec of sectionEls) {
+      const top = sec.offsetTop;
+      const height = sec.offsetHeight;
+      if (scrollPos >= top && scrollPos < top + height) {
+        currentId = sec.getAttribute("id");
+        break;
+      }
+    }
+    if (currentId) {
+      links.forEach(link => {
+        if (link.getAttribute("href") === `#${currentId}`) {
+          link.classList.add("active");
+        } else {
+          link.classList.remove("active");
+        }
+      });
+    }
+  }
+
+  window.addEventListener("scroll", updateScrollSpy, { passive: true });
+  updateScrollSpy();
+
   window.addEventListener("scroll", () => {
-    const currentScroll = window.scrollY;
-    if (currentScroll > 50) {
+    if (!navbar) return;
+    if (window.scrollY > 40) {
       navbar.classList.add("scrolled");
     } else {
       navbar.classList.remove("scrolled");
     }
-    lastScroll = currentScroll;
   }, { passive: true });
 }
 
@@ -632,10 +725,10 @@ function updateInspectorView() {
   const reductionEl = document.getElementById("active-reduction");
   const titleEl = document.getElementById("editor-title");
 
-  if (!display || !filenameEl || !tokensEl || !reductionEl || !titleEl) return;
+  if (!display || !tokensEl || !reductionEl || !titleEl) return;
 
   const data = BENCHMARK_DATA.find(d => d.file === currentFile) || BENCHMARK_DATA[0];
-  filenameEl.textContent = data.file;
+  if (filenameEl) filenameEl.textContent = data.file;
 
   if (currentMode === "ultra") {
     display.textContent = data.ultraSample;
@@ -664,31 +757,82 @@ function initCalculator() {
   const reqVal = document.getElementById("req-val");
   const devVal = document.getElementById("dev-val");
   const modelChips = document.querySelectorAll(".model-chip");
+  const reqPresets = document.querySelectorAll("#req-presets .calc-preset-btn");
+  const devPresets = document.querySelectorAll("#dev-presets .calc-preset-btn");
+  const copyBtn = document.getElementById("calc-copy-btn");
+
+  if (!reqSlider || !devSlider) return;
 
   let currentModelCost = 2.50;
+  let currentModelName = "OpenAI GPT-4o";
+
+  function updateSliderTrack(slider) {
+    const min = parseFloat(slider.min) || 0;
+    const max = parseFloat(slider.max) || 100;
+    const val = parseFloat(slider.value) || 0;
+    const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+    slider.style.background = `linear-gradient(to right, var(--accent-cyan) 0%, var(--accent-cyan) ${pct}%, rgba(20, 28, 48, 0.8) ${pct}%, rgba(20, 28, 48, 0.8) 100%)`;
+  }
 
   modelChips.forEach(chip => {
     chip.addEventListener("click", () => {
       modelChips.forEach(c => c.classList.remove("active"));
       chip.classList.add("active");
       currentModelCost = parseFloat(chip.dataset.cost);
+      currentModelName = chip.dataset.name || chip.querySelector(".model-name")?.textContent?.trim() || "LLM";
+      calculateROI();
+    });
+  });
+
+  reqPresets.forEach(btn => {
+    btn.addEventListener("click", () => {
+      reqPresets.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const val = parseInt(btn.dataset.val);
+      reqSlider.value = val;
+      if (reqVal) reqVal.textContent = `${val.toLocaleString()} requests`;
+      updateSliderTrack(reqSlider);
+      calculateROI();
+    });
+  });
+
+  devPresets.forEach(btn => {
+    btn.addEventListener("click", () => {
+      devPresets.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const count = parseInt(btn.dataset.val);
+      devSlider.value = count;
+      if (devVal) devVal.textContent = `${count} ${count === 1 ? 'developer' : 'developers'}`;
+      updateSliderTrack(devSlider);
       calculateROI();
     });
   });
 
   reqSlider.addEventListener("input", (e) => {
-    reqVal.textContent = `${parseInt(e.target.value).toLocaleString()} requests`;
+    const val = parseInt(e.target.value);
+    if (reqVal) reqVal.textContent = `${val.toLocaleString()} requests`;
+    reqPresets.forEach(b => {
+      if (parseInt(b.dataset.val) === val) b.classList.add("active");
+      else b.classList.remove("active");
+    });
+    updateSliderTrack(reqSlider);
     calculateROI();
   });
 
   devSlider.addEventListener("input", (e) => {
-    devVal.textContent = `${e.target.value} people`;
+    const count = parseInt(e.target.value);
+    if (devVal) devVal.textContent = `${count} ${count === 1 ? 'developer' : 'developers'}`;
+    devPresets.forEach(b => {
+      if (parseInt(b.dataset.val) === count) b.classList.add("active");
+      else b.classList.remove("active");
+    });
+    updateSliderTrack(devSlider);
     calculateROI();
   });
 
   function calculateROI() {
-    const monthlyRequestsPerDev = parseInt(reqSlider.value);
-    const devCount = parseInt(devSlider.value);
+    const monthlyRequestsPerDev = parseInt(reqSlider.value) || 5000;
+    const devCount = parseInt(devSlider.value) || 3;
     const totalRequests = monthlyRequestsPerDev * devCount;
 
     const rawTokensPerReq = 102265;
@@ -702,15 +846,39 @@ function initCalculator() {
     const monthlySavings = monthlyRawCost - monthlyTzeroCost;
     const annualSavings = monthlySavings * 12;
 
-    document.getElementById("calc-raw-tokens").textContent = `${totalRawTokens.toLocaleString()} tokens`;
-    document.getElementById("calc-tzero-tokens").textContent = `${totalTzeroTokens.toLocaleString()} tokens`;
+    const rawTokensEl = document.getElementById("calc-raw-tokens");
+    const tzeroTokensEl = document.getElementById("calc-tzero-tokens");
+    const rawCostEl = document.getElementById("calc-raw-cost");
+    const tzeroCostEl = document.getElementById("calc-tzero-cost");
+    const annualSavingsEl = document.getElementById("calc-annual-savings");
+
+    if (rawTokensEl) rawTokensEl.textContent = `${totalRawTokens.toLocaleString()} tokens`;
+    if (tzeroTokensEl) tzeroTokensEl.textContent = `${totalTzeroTokens.toLocaleString()} tokens`;
     
-    document.getElementById("calc-raw-cost").textContent = `$${monthlyRawCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / mo`;
-    document.getElementById("calc-tzero-cost").textContent = `$${monthlyTzeroCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / mo`;
+    if (rawCostEl) rawCostEl.textContent = `$${monthlyRawCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / mo`;
+    if (tzeroCostEl) tzeroCostEl.textContent = `$${monthlyTzeroCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / mo`;
     
-    document.getElementById("calc-annual-savings").textContent = `$${annualSavings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / YEAR`;
+    if (annualSavingsEl) {
+      annualSavingsEl.textContent = `$${annualSavings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / YEAR`;
+    }
   }
 
+  if (copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      const devCount = devSlider.value;
+      const savings = document.getElementById("calc-annual-savings")?.textContent || "";
+      const text = `🚀 T-Zero AST Token Reduction ROI Report:\n` +
+        `• Engineering Team Size: ${devCount} developers\n` +
+        `• Target Model: ${currentModelName} ($${currentModelCost}/1M tokens)\n` +
+        `• Monthly Prompt Requests: ${parseInt(reqSlider.value).toLocaleString()}\n` +
+        `• Net Annual Savings: ${savings}\n` +
+        `• Payback Period: Instant (Day 1, 100% Free T-Zero)`;
+      copyTextWithToast(text, "ROI Summary copied to clipboard!");
+    });
+  }
+
+  updateSliderTrack(reqSlider);
+  updateSliderTrack(devSlider);
   calculateROI();
 }
 
@@ -722,12 +890,7 @@ function initCopyButtons() {
   const heroCopy = document.getElementById("hero-copy-btn");
   if (heroCopy) {
     heroCopy.addEventListener("click", () => {
-      navigator.clipboard.writeText("pip install tzero-mcp").then(() => {
-        heroCopy.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
-        setTimeout(() => {
-          heroCopy.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
-        }, 2000);
-      });
+      copyTextWithToast("pip install tzero-mcp", "pip install command copied!");
     });
   }
 
@@ -735,10 +898,7 @@ function initCopyButtons() {
   const cmdCopy = document.getElementById("cmd-copy-btn");
   if (cmdCopy) {
     cmdCopy.addEventListener("click", () => {
-      navigator.clipboard.writeText("pip install tzero-mcp").then(() => {
-        cmdCopy.textContent = "Copied! ✓";
-        setTimeout(() => cmdCopy.textContent = "Copy", 2000);
-      });
+      copyTextWithToast("pip install tzero-mcp", "pip install command copied!");
     });
   }
 
@@ -746,11 +906,8 @@ function initCopyButtons() {
   const codeCopy = document.getElementById("copy-code-btn");
   if (codeCopy) {
     codeCopy.addEventListener("click", () => {
-      const code = document.getElementById("code-display").textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        codeCopy.textContent = "Copied! ✓";
-        setTimeout(() => codeCopy.textContent = "Copy", 2000);
-      });
+      const code = document.getElementById("code-display")?.textContent || "";
+      copyTextWithToast(code, "Pruned code snippet copied!");
     });
   }
 }
@@ -1108,10 +1265,7 @@ function initSandbox() {
 
   if (copyBtn) {
     copyBtn.addEventListener("click", () => {
-      navigator.clipboard.writeText(outputCodeEl.textContent).then(() => {
-        copyBtn.textContent = "Copied! ✓";
-        setTimeout(() => (copyBtn.textContent = "Copy Output"), 2000);
-      });
+      copyTextWithToast(outputCodeEl.textContent, "Pruned code copied to clipboard!");
     });
   }
 
@@ -1297,16 +1451,12 @@ function initCausalHUD() {
   }
 
   // Mouse interaction
-  canvas.addEventListener("mousemove", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
+  function updateHoverAt(mx, my) {
     let found = null;
     for (const node of nodes) {
       const pos = getNodePos(node);
       const dist = Math.hypot(mx - pos.x, my - pos.y);
-      if (dist < 30) {
+      if (dist < 32) {
         found = node;
         break;
       }
@@ -1327,7 +1477,36 @@ function initCausalHUD() {
     } else {
       canvas.style.cursor = "default";
     }
+    return found;
+  }
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    updateHoverAt(e.clientX - rect.left, e.clientY - rect.top);
   });
+
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const found = updateHoverAt(e.clientX - rect.left, e.clientY - rect.top);
+    if (found) {
+      showToast(`Selected Node: ${found.label} (${found.role})`, found.icon);
+    }
+  });
+
+  // Touch support for mobile and tablets
+  canvas.addEventListener("touchstart", (e) => {
+    if (!e.touches.length) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    updateHoverAt(touch.clientX - rect.left, touch.clientY - rect.top);
+  }, { passive: true });
+
+  canvas.addEventListener("touchmove", (e) => {
+    if (!e.touches.length) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    updateHoverAt(touch.clientX - rect.left, touch.clientY - rect.top);
+  }, { passive: true });
 
   // Simulate PBFT Vote
   if (simulateBtn) {
@@ -1340,6 +1519,7 @@ function initCausalHUD() {
       const randomRound = `#${Math.floor(8000 + Math.random() * 1999)}-${["OMEGA", "DELTA", "SIGMA", "ALPHA"][Math.floor(Math.random() * 4)]}`;
       if (roundEl) roundEl.textContent = randomRound;
 
+      showToast(`Quorum achieved: 5/5 nodes validated round ${randomRound}`, "🛡️");
       simulateBtn.innerHTML = '<span style="color:var(--accent-emerald)">Quorum Achieved (5/5) ✓</span>';
       setTimeout(() => {
         simulateBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Trigger PBFT Vote';
@@ -1351,6 +1531,7 @@ function initCausalHUD() {
   if (traceBtn) {
     traceBtn.addEventListener("click", () => {
       traceActive = true;
+      showToast("4D Causal-Temporal Trace Initiated across Nodes", "⚡");
       traceBtn.innerHTML = '<span style="color:var(--accent-cyan)">Tracing 4D Path... ⚡</span>';
       clearTimeout(traceTimer);
       traceTimer = setTimeout(() => {
@@ -1466,16 +1647,7 @@ function initMCPTools() {
       `;
 
       card.querySelector(".tool-sig").addEventListener("click", () => {
-        navigator.clipboard.writeText(tool.sig).then(() => {
-          const codeEl = card.querySelector("code");
-          const oldText = codeEl.textContent;
-          codeEl.textContent = "Copied to clipboard! ✓";
-          codeEl.style.color = "var(--accent-emerald)";
-          setTimeout(() => {
-            codeEl.textContent = oldText;
-            codeEl.style.color = "";
-          }, 1800);
-        });
+        copyTextWithToast(tool.sig, `Copied ${tool.name} signature!`);
       });
 
       container.appendChild(card);
@@ -1506,7 +1678,7 @@ function initMCPTools() {
 // ==========================================
 const AGENT_CONFIGS = {
   claude: {
-    path: "~/Library/Application Support/Claude/claude_desktop_config.json",
+    path: "Windows: %APPDATA%\\Claude\\claude_desktop_config.json | macOS: ~/Library/Application Support/Claude/claude_desktop_config.json",
     code: `{
   "mcpServers": {
     "tzero": {
@@ -1517,7 +1689,18 @@ const AGENT_CONFIGS = {
 }`
   },
   cursor: {
-    path: ".cursor/mcp.json",
+    path: ".cursor/mcp.json (Workspace Root)",
+    code: `{
+  "mcpServers": {
+    "tzero": {
+      "command": "python",
+      "args": ["-m", "tzero_mcp"]
+    }
+  }
+}`
+  },
+  antigravity: {
+    path: "~/.gemini/config/mcp_config.json",
     code: `{
   "mcpServers": {
     "tzero": {
@@ -1585,10 +1768,7 @@ function initAgentSetupTabs() {
 
   if (copyBtn) {
     copyBtn.addEventListener("click", () => {
-      navigator.clipboard.writeText(codeEl.textContent).then(() => {
-        copyBtn.textContent = "Copied! ✓";
-        setTimeout(() => (copyBtn.textContent = "Copy Configuration"), 2000);
-      });
+      copyTextWithToast(codeEl.textContent, "Agent configuration copied to clipboard!");
     });
   }
 
@@ -1600,17 +1780,22 @@ function initAgentSetupTabs() {
 // 5. STANDALONE DOWNLOAD CENTER
 // ==========================================
 function initDownloadCenter() {
+  // Download button click feedback
+  const dlButtons = document.querySelectorAll(".downloads-grid a.btn");
+  dlButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = btn.dataset.name || "Executable";
+      showToast(`Initiating download for ${name}...`, "🚀");
+    });
+  });
+
   // Checksum copy links
-  const shaLinks = document.querySelectorAll(".dl-sha code");
+  const shaLinks = document.querySelectorAll(".sha-copy");
   shaLinks.forEach((code) => {
     code.style.cursor = "pointer";
-    code.title = "Click to copy verified SHA-256";
     code.addEventListener("click", () => {
-      navigator.clipboard.writeText(code.textContent).then(() => {
-        const orig = code.textContent;
-        code.textContent = "Copied! ✓";
-        setTimeout(() => (code.textContent = orig), 1800);
-      });
+      const fullSha = code.dataset.sha || code.textContent.trim();
+      copyTextWithToast(fullSha, "Verified SHA-256 Checksum copied!");
     });
   });
 }

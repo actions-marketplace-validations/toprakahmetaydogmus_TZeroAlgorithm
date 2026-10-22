@@ -45,14 +45,15 @@
           <span class="brand-sub">AST CONTEXT ARCHITECT</span>
         </div>
       </a>
-      <nav class="nav-links">
-        <a href="#stats" class="nav-link">Benchmarks</a>
-        <a href="#sandbox" class="nav-link nav-highlight">⚡ Live Sandbox</a>
-        <a href="#causal-hud" class="nav-link">4D Swarm HUD</a>
-        <a href="#tools" class="nav-link">37 MCP Tools</a>
-        <a href="#agent-setup" class="nav-link">Agent Setup</a>
-        <a href="#calculator" class="nav-link">Calculator</a>
-        <a href="#downloads" class="nav-link">Downloads</a>
+      <nav class="nav-links" id="nav-links">
+        <a href="#stats" class="nav-link active" data-section="stats">Benchmarks</a>
+        <a href="#sandbox" class="nav-link" data-section="sandbox">⚡ Live Sandbox</a>
+        <a href="#causal-hud" class="nav-link" data-section="causal-hud">4D Swarm HUD</a>
+        <a href="#files-section" class="nav-link" data-section="files-section">Module Breakdown</a>
+        <a href="#tools" class="nav-link" data-section="tools">37 MCP Tools</a>
+        <a href="#agent-setup" class="nav-link" data-section="agent-setup">Agent Setup</a>
+        <a href="#calculator" class="nav-link" data-section="calculator">Calculator</a>
+        <a href="#downloads" class="nav-link" data-section="downloads">Downloads</a>
       </nav>
       <div class="nav-actions">
         <a href="https://pypi.org/project/tzero-mcp/" target="_blank" rel="noopener" class="btn btn-outline-sm">
@@ -373,6 +374,35 @@
         <!-- Rendered by JavaScript -->
       </div>
     </div>
+
+    <!-- Interactive AST Code Inspector -->
+    <div class="inspector-widget animate-on-scroll">
+      <div class="inspector-header">
+        <div class="file-tabs" id="file-tabs">
+          <button class="tab-btn active" data-file="tzero_v3.py">📄 tzero_v3.py (6,008L)</button>
+          <button class="tab-btn" data-file="tzero_features.py">📄 tzero_features.py (1,031L)</button>
+          <button class="tab-btn" data-file="app.py">📄 app.py (1,750L)</button>
+          <button class="tab-btn" data-file="tzero_deps.py">📄 tzero_deps.py (235L)</button>
+          <button class="tab-btn" data-file="main.py">📄 main.py (54L)</button>
+        </div>
+        <div class="mode-tabs" id="mode-tabs">
+          <button class="mode-btn active" data-mode="ultra">⚡ Ultra AST (-94%)</button>
+          <button class="mode-btn" data-mode="balanced">⚖️ Balanced (-55%)</button>
+          <button class="mode-btn" data-mode="raw">📄 Raw Source</button>
+        </div>
+      </div>
+      <div class="inspector-meta-bar">
+        <div class="inspector-meta-left">
+          <span id="editor-title" style="font-weight: 600; color: var(--accent-cyan);">tzero_v3.py — Ultra AST Signatures (-94.4%)</span>
+          <span class="badge badge-success" id="active-reduction">-94.40%</span>
+          <span id="active-tokens" style="font-family: var(--font-mono); color: var(--text-muted);">3,800 tokens</span>
+        </div>
+        <button class="copy-btn-sm" id="copy-code-btn">Copy Pruned Code</button>
+      </div>
+      <div class="inspector-code-wrap">
+        <pre><code id="code-display">// AST pruned code will load here...</code></pre>
+      </div>
+    </div>
   </section>
 
   <!-- 37 Native MCP Tools Suite -->
@@ -422,6 +452,9 @@
         <button class="agent-tab" data-target="cursor">
           <span class="agent-icon">⚡</span> Cursor IDE
         </button>
+        <button class="agent-tab" data-target="antigravity">
+          <span class="agent-icon">🚀</span> Antigravity IDE
+        </button>
         <button class="agent-tab" data-target="windsurf">
           <span class="agent-icon">🌊</span> Windsurf
         </button>
@@ -465,34 +498,63 @@
         <div class="control-group">
           <label for="req-slider">Monthly Code Queries / Prompts: <span id="req-val" class="slider-val">5,000 requests</span></label>
           <input type="range" id="req-slider" min="500" max="50000" step="500" value="5000">
+          <div class="calc-presets" id="req-presets">
+            <button class="calc-preset-btn" data-type="req" data-val="1000">1,000 / mo</button>
+            <button class="calc-preset-btn active" data-type="req" data-val="5000">5,000 / mo</button>
+            <button class="calc-preset-btn" data-type="req" data-val="15000">15,000 / mo</button>
+            <button class="calc-preset-btn" data-type="req" data-val="30000">30,000 / mo</button>
+            <button class="calc-preset-btn" data-type="req" data-val="50000">50,000 / mo</button>
+          </div>
         </div>
 
         <div class="control-group">
           <label for="dev-slider">Engineering Team Size: <span id="dev-val" class="slider-val">3 developers</span></label>
           <input type="range" id="dev-slider" min="1" max="50" step="1" value="3">
+          <div class="calc-presets" id="dev-presets">
+            <button class="calc-preset-btn" data-type="dev" data-val="1">1 Solo</button>
+            <button class="calc-preset-btn active" data-type="dev" data-val="3">3 Startup</button>
+            <button class="calc-preset-btn" data-type="dev" data-val="8">8 Squad</button>
+            <button class="calc-preset-btn" data-type="dev" data-val="20">20 Scale</button>
+            <button class="calc-preset-btn" data-type="dev" data-val="50">50 Org</button>
+          </div>
         </div>
 
         <div class="control-group">
           <label>Target LLM Model:</label>
           <div class="model-cards" id="model-selector">
             <div class="model-chip active" data-cost="2.50" data-name="OpenAI GPT-4o">
-              <span class="model-name">GPT-4o</span>
+              <div class="model-chip-left">
+                <span class="model-check">✓</span>
+                <span class="model-name">GPT-4o</span>
+              </div>
               <span class="model-rate">$2.50 / 1M tokens</span>
             </div>
             <div class="model-chip" data-cost="3.00" data-name="Claude 3.5 Sonnet">
-              <span class="model-name">Claude 3.5 Sonnet</span>
+              <div class="model-chip-left">
+                <span class="model-check">✓</span>
+                <span class="model-name">Claude 3.5 Sonnet</span>
+              </div>
               <span class="model-rate">$3.00 / 1M tokens</span>
             </div>
             <div class="model-chip" data-cost="1.25" data-name="Gemini 1.5 Pro">
-              <span class="model-name">Gemini 1.5 Pro</span>
+              <div class="model-chip-left">
+                <span class="model-check">✓</span>
+                <span class="model-name">Gemini 1.5 Pro</span>
+              </div>
               <span class="model-rate">$1.25 / 1M tokens</span>
             </div>
             <div class="model-chip" data-cost="0.88" data-name="NVIDIA NIM 70B">
-              <span class="model-name">NVIDIA NIM 70B</span>
+              <div class="model-chip-left">
+                <span class="model-check">✓</span>
+                <span class="model-name">NVIDIA NIM 70B</span>
+              </div>
               <span class="model-rate">$0.88 / 1M tokens</span>
             </div>
             <div class="model-chip" data-cost="0.14" data-name="DeepSeek V3">
-              <span class="model-name">DeepSeek V3</span>
+              <div class="model-chip-left">
+                <span class="model-check">✓</span>
+                <span class="model-name">DeepSeek V3</span>
+              </div>
               <span class="model-rate">$0.14 / 1M tokens</span>
             </div>
           </div>
@@ -532,6 +594,11 @@
           <div class="savings-amount" id="calc-annual-savings">$43,645.92 / YEAR</div>
           <div class="savings-note">ROI Payback Period: <strong>Instant (Day 1)</strong></div>
         </div>
+
+        <button class="btn btn-outline-sm" id="calc-copy-btn" style="width: 100%; margin-top: 16px; justify-content: center; padding: 12px; font-weight: 600;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy ROI Report Summary
+        </button>
       </div>
     </div>
   </section>
@@ -553,16 +620,16 @@
         <h3 class="dl-name">TZeroAlgorithm.exe</h3>
         <p class="dl-desc">Standalone GUI, Codebase Scanner, Token Reducer &amp; offline audit dashboard suite.</p>
         <div class="dl-meta">
-          <span>Size: <strong>37.67 MB</strong></span>
+          <span>Size: <strong>59.44 MB</strong></span>
           <span>Version: <strong>v6.1.0</strong></span>
         </div>
-        <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroAlgorithm.exe" class="btn btn-dl">
+        <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroAlgorithm.exe" target="_blank" rel="noopener noreferrer" download class="btn btn-dl" data-name="TZeroAlgorithm.exe">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download Executable
         </a>
         <div class="dl-sha">
-          <span>SHA-256: <code>a486f4e6b77b...</code></span>
-          <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroAlgorithm.exe.sha256" target="_blank" class="sha-link">Verify</a>
+          <span>SHA-256: <code class="sha-copy" data-sha="1df21de5bc7f8a19c8c5ecb40abd75bd52aaed95170420030d56aede3125dfb7" title="Click to copy full SHA-256">1df21de5bc7f... 📋</code></span>
+          <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroAlgorithm.exe.sha256" target="_blank" rel="noopener noreferrer" class="sha-link">Verify</a>
         </div>
       </div>
 
@@ -572,16 +639,16 @@
         <h3 class="dl-name">TZeroMCP.exe</h3>
         <p class="dl-desc">Standalone Model Context Protocol server exposing all 37 tools directly over stdio.</p>
         <div class="dl-meta">
-          <span>Size: <strong>36.67 MB</strong></span>
+          <span>Size: <strong>57.53 MB</strong></span>
           <span>Version: <strong>v6.1.0</strong></span>
         </div>
-        <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroMCP.exe" class="btn btn-hero-primary">
+        <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroMCP.exe" target="_blank" rel="noopener noreferrer" download class="btn btn-hero-primary" data-name="TZeroMCP.exe">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download MCP Server
         </a>
         <div class="dl-sha">
-          <span>SHA-256: <code>b8ccd52f40ca...</code></span>
-          <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroMCP.exe.sha256" target="_blank" class="sha-link">Verify</a>
+          <span>SHA-256: <code class="sha-copy" data-sha="52ec4c781a55f2744ae75458499f57ca8c35096416f751faa26d47758340ecbf" title="Click to copy full SHA-256">52ec4c781a55... 📋</code></span>
+          <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/TZeroMCP.exe.sha256" target="_blank" rel="noopener noreferrer" class="sha-link">Verify</a>
         </div>
       </div>
 
@@ -591,16 +658,16 @@
         <h3 class="dl-name">AddMCP.exe</h3>
         <p class="dl-desc">1-Click configuration installer that discovers Claude Desktop &amp; Cursor to inject T-Zero automatically.</p>
         <div class="dl-meta">
-          <span>Size: <strong>51.44 MB</strong></span>
+          <span>Size: <strong>72.22 MB</strong></span>
           <span>Version: <strong>v6.1.0</strong></span>
         </div>
-        <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/AddMCP.exe" class="btn btn-dl">
+        <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/AddMCP.exe" target="_blank" rel="noopener noreferrer" download class="btn btn-dl" data-name="AddMCP.exe">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download Installer
         </a>
         <div class="dl-sha">
-          <span>SHA-256: <code>359b1fc9a96c...</code></span>
-          <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/AddMCP.exe.sha256" target="_blank" class="sha-link">Verify</a>
+          <span>SHA-256: <code class="sha-copy" data-sha="8dcfe163ecfb78f81d7622886dbe1e235ceeef03ac91f370f27957710758e476" title="Click to copy full SHA-256">8dcfe163ecfb... 📋</code></span>
+          <a href="https://github.com/toprakahmetaydogmus/TZeroAlgorithm/releases/download/v6.1.0/AddMCP.exe.sha256" target="_blank" rel="noopener noreferrer" class="sha-link">Verify</a>
         </div>
       </div>
     </div>
@@ -684,6 +751,9 @@
       </div>
     </div>
   </footer>
+
+  <!-- Floating Toast Notification System -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
