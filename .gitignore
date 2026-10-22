@@ -41,6 +41,12 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Automation & Session Profiles
+# Node & Video Outputs
+node_modules/
+tzero-showcase/node_modules/
+tzero-showcase/out/*.mp4
+tzero-showcase/out/*.mp3
+# Automation & Profiles
 .reddit_profile/
+
 
