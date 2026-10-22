@@ -1022,3 +1022,146 @@ flowchart LR
 
 *T-Zero Jarvis Master Orchestrator guarantees zero regressions, minimal blast radius, and 100% boundary fidelity.*
 """
+
+    def format_capabilities_catalog(self, profile: Optional[WorkspaceProfile] = None) -> str:
+        """Kullanıcıya veya yapay zeka asistanına Jarvis'in neler yapabileceğini sunan interaktif katalog."""
+        prof = profile or self.profile_workspace()
+        layers_desc = ", ".join(prof.architectural_layers.keys()) or "Standart Katmanlar"
+
+        return f"""# ⚡ T-ZERO JARVIS MASTER WORKSPACE ORCHESTRATOR
+*Executive AI Engineering Manager & Autonomous Multi-Agent Coordinator*
+*Version: 5.1.0 | 100% Offline | $0.00 Cost | 100% Zero-Leak Certified*
+
+---
+
+### 👑 Merhaba! Ben T-Zero Jarvis.
+Bu çalışma alanında (`{prof.project_name}`) bir **Yönetici (Executive Manager) ve Süper-Orkestratör** olarak görev yapıyorum.
+Geliştiriciye veya yapay zeka ajanlarına (Cursor, Claude, Antigravity, Windsurf) adım adım rehberlik edebilir,
+aşağıdaki otonom yetenekleri sunabilir ve projeyi uçtan uca planlayıp yönetebilirim:
+
+#### 📊 Çalışma Alanı Durumu (Workspace Overview)
+- **Proje:** `{prof.project_name}`
+- **Ana Dil:** **{prof.primary_language}**
+- **Çatılar:** `{', '.join(prof.frameworks) or 'Standart Kütüphane'}`
+- **Paket Yöneticisi:** `{', '.join(prof.package_managers)}`
+- **Mimari Desen:** `{prof.architecture_pattern}`
+- **Tespit Edilen Katmanlar:** `{layers_desc}`
+- **Test Komutu:** `{prof.default_test_command}`
+- **Toplam Dosya:** `{prof.total_files}` (Tahmini Token: `{prof.raw_tokens_est:,}` -> Sıkıştırılmış: `{prof.tzero_compressed_tokens_est:,}`, **%{prof.token_savings_pct} Tasarruf**)
+
+---
+
+#### 🛠️ Neler Yapabilirim? (Executive Capabilities)
+
+1. 📐 **Poliglot AI Yönetişim & Kural Dosyaları (.md) Oluşturma:**
+   - Projenin dili ({prof.primary_language}) ve mimarisine ({prof.architecture_pattern}) özel `.cursorrules`, `.cursor/rules/*.mdc`, `AGENT.md`, `ARCHITECTURE.md`, `.clinerules`, `.windsurfrules`, `CLAUDE.md`, `tzero.rules.json` dosyalarını otomatik üretir ve senkronize ederim (`export_agent_rules`).
+
+2. 🗜️ **T-Zero AST Token Sıkıştırma & Akıllı İskeletler (%85-%95 Tasarruf):**
+   - Kod tabanındaki {prof.total_files} dosyayı AST seviyesinde analiz ederek bağlam penceresini %90'a varan oranda rahatlatır ve token maliyetini sıfıra indiririm (`get_project_context_tree`, `get_smart_skeleton_context`).
+
+3. 🐝 **5-Ajanlı PBFT Bizans Sürü Konsensüsü (PBFT Swarm):**
+   - Siber Güvenlik, Donanım, AST Optimizasyonu ve DevOps ajanları ile bağımsız 3-aşamalı Bizans konsensüsü sağlayıp kriptografik onay sertifikası üretirim (`jarvis_bft_swarm_consensus`).
+
+4. 🩺 **Otonom Kendi Kendini İyileştirme (Self-Healing Loop):**
+   - Test (`{prof.default_test_command}`) ve derleme komutlarını çalıştırır, hata anında traceback'i analiz edip AST yamaları uygularım (`jarvis_self_healing_execute`).
+
+5. 🕰️ **4D Nedensellik & Zamansal Çizge (Causal Knowledge Graph):**
+   - Olayların ve hataların kök nedenlerini (root causes) tespit eder, güvenli geri alma (rollback) planı hazırlarım (`jarvis_causal_chain_query`).
+
+6. 🧬 **Shannon Entropili LatentPress Sıkıştırması:**
+   - Uzun log ve bağlamları pre-prefill aşamasında sanal bellek tokenlarına (`<|tzero:mem:...|>`) sıkıştırırım (`jarvis_latent_press_compress`).
+
+7. 🛡️ **%100 Zero-Leak Siber Güvenlik Denetimi:**
+   - Kod tabanını ve `.env` yapılandırmalarını tarayarak hiçbir kimlik bilgisinin dışarıya sızmamasını garanti ederim (`verify_zero_leak_security`).
+
+---
+
+#### 💡 Nasıl Başlatırsınız?
+- Bir hedef veya görev belirtin (Örn: `"Projede kimlik doğrulama modülünü refactor et"`, `"Mimari kuralları ayarla"`, `"Güvenlik denetimi yap"`).
+- Jarvis hedefinize özel **Çok Fazlı Master Eylem Planı (Phased Execution Plan)** sunacaktır!
+"""
+
+    def generate_executive_plan(self, goal: str = "", context: str = "") -> Dict[str, Any]:
+        """Verilen hedefe veya genel çalışma alanına özel çok fazlı mühendislik eylem planı hazırlar."""
+        prof = self.profile_workspace()
+        effective_goal = goal.strip() if goal and goal.strip().lower() not in ("plan", "help", "ne yapabilirsin", "capabilities", "menu", "yetenekler") else f"{prof.project_name} mimarisini incele, kural dosyalarını (.md) ayarla ve sürü denetimi yap"
+
+        phases = [
+            {
+                "phase_id": 1,
+                "name": "Keşif, AST Haritalama & Etki Analizi",
+                "objectives": [
+                    f"Hedef kapsamın ({effective_goal[:60]}...) AST bağımlılıklarını çıkar",
+                    f"Olası değişikliklerin patlama yarıçapını (Blast Radius 0-100) hesapla",
+                    f"T-1'den T-4'e kadar akıllı iskelet bağlamını hazırla (%85+ token tasarrufu)"
+                ],
+                "recommended_mcp_tools": ["get_project_context_tree", "query_module_dependencies", "analyze_change_impact"],
+                "safety_gate": "Zero-Leak ve minimal blast radius doğrulaması"
+            },
+            {
+                "phase_id": 2,
+                "name": "Yönetişim & Ajan Kural Sözleşmeleri Senkronizasyonu",
+                "objectives": [
+                    f"Çalışma alanına özel `.cursorrules`, `AGENT.md` ve `ARCHITECTURE.md` dosyalarını güncelle",
+                    f"Mimari katman sınırlarını kilitle (`tzero.rules.json`)",
+                    f"Tüm IDE ajanları (Cursor, Claude, Antigravity, Windsurf) için ortak kuralları yay"
+                ],
+                "recommended_mcp_tools": ["export_agent_rules", "enforce_architecture_boundaries", "generate_architecture_blueprint"],
+                "safety_gate": "Katman izolasyonu ve döngüsel bağımlılık engelleme"
+            },
+            {
+                "phase_id": 3,
+                "name": "Cerrahi Mühendislik & 5-Ajanlı PBFT Sürü Konsensüsü",
+                "objectives": [
+                    f"Hedefe yönelik kod düzenlemelerini veya geliştirmeyi minimal etki yarıçapıyla uygula",
+                    f"5-Ajanlı Bizans Sürüsü (Security, Hardware, AST, DevOps, Prime) ile onay al",
+                    f"Semantik çıkarımı anlamsal bellek kod defterine (<|tzero:mem:...|>) kaydet"
+                ],
+                "recommended_mcp_tools": ["jarvis_bft_swarm_consensus", "jarvis_compress_semantic_memory", "verify_zero_leak_security"],
+                "safety_gate": "PBFT 2/3 ağırlıklı konsensüs ve Kriptografik Sertifika"
+            },
+            {
+                "phase_id": 4,
+                "name": "Otonom Doğrulama & Kendi Kendini İyileştirme (Self-Healing)",
+                "objectives": [
+                    f"Çalışma alanı test komutunu çalıştır: `{prof.default_test_command}`",
+                    f"Linter ve stil kontrolünü çalıştır: `{prof.default_lint_command}`",
+                    f"Olası hatalarda cerrahi AST yamalarıyla kendi kendini iyileştir (Self-Healing Loop)"
+                ],
+                "recommended_mcp_tools": ["jarvis_self_healing_execute", "audit_codebase_quality"],
+                "safety_gate": "Sıfır regresyon ve %100 yeşil test sonucu"
+            }
+        ]
+
+        markdown = self._format_plan_markdown(effective_goal, prof, phases)
+        return {
+            "goal": effective_goal,
+            "project_name": prof.project_name,
+            "primary_language": prof.primary_language,
+            "phases": phases,
+            "markdown": markdown
+        }
+
+    def _format_plan_markdown(self, goal: str, prof: WorkspaceProfile, phases: List[Dict[str, Any]]) -> str:
+        lines = [
+            f"# 🗺️ T-ZERO JARVIS MASTER MÜHENDİSLİK EYLEM PLANI",
+            f"- **Hedef:** **{goal}**",
+            f"- **Çalışma Alanı:** `{prof.project_name}` ({prof.primary_language}) | **Desen:** `{prof.architecture_pattern}`",
+            f"- **Doğrulama Komutu:** `{prof.default_test_command}` | **Maliyet:** `$0.00 (Zero-Key)`",
+            "",
+            "---",
+            ""
+        ]
+
+        for p in phases:
+            lines.append(f"### 📌 Faz {p['phase_id']}: {p['name']}")
+            lines.append("**Hedefler:**")
+            for obj in p["objectives"]:
+                lines.append(f"- [ ] {obj}")
+            lines.append(f"**Önerilen T-Zero MCP Araçları:** `{', '.join(p['recommended_mcp_tools'])}`")
+            lines.append(f"**Güvenlik / Doğrulama Kapısı:** *{p['safety_gate']}*\n")
+
+        lines.append("---")
+        lines.append("#### 🚀 İcra Başlatma:")
+        lines.append("Bu planı otonom olarak icra etmek için `jarvis_orchestrate_goal` aracını doğrudan bu hedefle çağırabilirsiniz.")
+        return "\n".join(lines)

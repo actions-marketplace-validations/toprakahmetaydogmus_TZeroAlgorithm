@@ -193,6 +193,50 @@ class TestWorkspaceOrchestrator(unittest.TestCase):
         self.assertIn("WORKSPACE_ORCHESTRATION", stages)
 
 
+    def test_jarvis_planning_and_capabilities(self):
+        jarvis = JarvisOrchestrator(workspace_root=self.temp_dir)
+        
+        # Test capabilities presentation
+        caps = jarvis.present_capabilities()
+        self.assertIn("T-ZERO JARVIS MASTER WORKSPACE ORCHESTRATOR", caps)
+        self.assertIn("Neler Yapabilirim?", caps)
+        self.assertIn("get_project_context_tree", caps)
+
+        # Test executive plan generation
+        plan = jarvis.generate_plan("Refactor authentication module")
+        self.assertIn("phases", plan)
+        self.assertEqual(len(plan["phases"]), 4)
+        self.assertIn("Faz 1:", plan["markdown"])
+        self.assertIn("get_project_context_tree", plan["markdown"])
+
+    def test_mcp_tool_jarvis_orchestrate_goal_planning_mode(self):
+        import tzero_mcp
+        import asyncio
+        server = tzero_mcp.create_mcp_server()
+
+        # 1. Plan request via goal="plan"
+        res_plan = asyncio.run(server.call_tool(
+            "jarvis_orchestrate_goal",
+            {"goal": "plan", "project_root": self.temp_dir}
+        ))
+        res_text = res_plan[0].text if isinstance(res_plan, list) else str(res_plan)
+        self.assertIn("T-ZERO JARVIS MASTER WORKSPACE ORCHESTRATOR", res_text)
+        self.assertIn("Faz 1:", res_text)
+
+        # 2. What can you do request
+        res_what = asyncio.run(server.call_tool(
+            "jarvis_orchestrate_goal",
+            {"goal": "ne yapabilirsin", "project_root": self.temp_dir}
+        ))
+        res_what_text = res_what[0].text if isinstance(res_what, list) else str(res_what)
+        self.assertIn("Neler Yapabilirim?", res_what_text)
+
+        # 3. Test prompt jarvis_workspace_copilot
+        prompts = asyncio.run(server.list_prompts())
+        p_names = [p.name for p in prompts]
+        self.assertIn("jarvis_workspace_copilot", p_names)
+
+
 class TestAgentRulesGeneratorExtended(unittest.TestCase):
     """Verifies AgentRulesGenerator in tzero_features now outputs AGENT.md and ARCHITECTURE.md."""
 

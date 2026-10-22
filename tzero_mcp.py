@@ -1371,29 +1371,48 @@ def create_mcp_server():
     @server.tool(
         name="jarvis_orchestrate_goal",
         description=(
-            "Executes an autonomous multi-agent engineering workflow using T-Zero's AST context reduction, "
-            "3-Layer semantic memory compression, zero-cost intelligence routing, and self-healing loop.\n\n"
+            "Autonomous Master Workspace Orchestrator & Executive AI Pair-Programming Manager.\n\n"
+            "Capabilities:\n"
+            "- Planning & Presentation ('plan', 'help', 'what can you do', 'ne yapabilirsin'): Formulates phased engineering execution plans and presents full capability directory.\n"
+            "- Workspace Governance: Automatically configures .cursorrules, AGENT.md, ARCHITECTURE.md, tzero.rules.json.\n"
+            "- Autonomous Execution: 3-Layer semantic memory compression, T-Zero AST context reduction, 5-agent PBFT swarm consensus, zero-cost intelligence routing, and self-healing loop.\n\n"
             "Behavior:\n"
-            "- Analyzes goal and extracts semantic graph triplets.\n"
-            "- Prunes codebase context using T-Zero AST TokenReducer (80-95% token savings).\n"
-            "- Queries Zero-Key AI router (Ollama Local / Pollinations Free) with 0.00$ cost.\n"
-            "- Enforces 100% Zero-Leak security verification before completion.\n\n"
-            "Returns: Multi-stage execution report with verification logs and token metrics."),
+            "- When goal is 'plan', 'help', 'menu', 'capabilities', or empty: presents the executive capabilities and multi-phase engineering plan.\n"
+            "- When goal is a specific engineering task: executes autonomously with self-healing verification.\n"
+            "- 100% Offline, $0.00 Cost, and 100% Zero-Leak security.\n\n"
+            "Returns: Formatted Markdown plan or multi-stage execution report with verification logs."),
         annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=True)
     )
     def jarvis_orchestrate_goal(
-        goal: Annotated[str, Field(description="Autonomous engineering task, refactoring goal, or implementation directive to orchestrate.")],
-        project_root: Annotated[str, Field(default=".", description="Target workspace directory to orchestrate within (default: current directory).")] = "."
+        goal: Annotated[str, Field(default="plan", description="Autonomous engineering task, refactoring directive, or 'plan'/'help' to view capabilities and executive plan.")] = "plan",
+        project_root: Annotated[str, Field(default=".", description="Target workspace directory to orchestrate within (default: current directory).")] = ".",
+        mode: Annotated[str, Field(default="auto", description="Execution mode: 'auto', 'plan', 'execute', or 'capabilities'.")] = "auto"
     ) -> str:
-        """Executes an autonomous engineering goal with zero API keys and self-healing verification.
-        
-        Args:
-            goal: High-level engineering directive.
-            project_root: Workspace root directory.
-        """
+        """Executes autonomous workspace orchestration or presents an executive engineering plan."""
         from tzero_jarvis import JarvisOrchestrator
         orchestrator = JarvisOrchestrator(workspace_root=project_root)
-        result = orchestrator.orchestrate_goal(goal)
+
+        goal_clean = (goal or "").strip()
+        goal_lower = goal_clean.lower()
+
+        # Check if the user is requesting capabilities or a plan
+        is_plan_request = (
+            mode.lower() in ("plan", "capabilities") or
+            goal_lower in ("", "help", "plan", "ne yapabilirsin", "capabilities", "menu", "yetenekler", "özellikler") or
+            any(k in goal_lower for k in ("plan sun", "neler yapabilirsin", "what can you do", "yeteneklerini göster", "show capabilities"))
+        )
+
+        if is_plan_request and mode.lower() != "execute":
+            # Present Jarvis capabilities and workspace action plan
+            cap_catalog = orchestrator.present_capabilities()
+            plan_res = orchestrator.generate_plan(goal_clean if goal_lower not in ("", "help", "plan", "menu", "capabilities") else "")
+            return (
+                f"{cap_catalog}\n\n"
+                f"{plan_res['markdown']}"
+            )
+
+        # Autonomous Goal Execution Mode
+        result = orchestrator.orchestrate_goal(goal_clean)
 
         lines = [
             f"### 🚀 T-Zero Jarvis Autonomous Goal Orchestration",
@@ -1406,6 +1425,11 @@ def create_mcp_server():
         ]
         for step in result.steps:
             lines.append(f"- `[{step['timestamp']}]` **[{step['stage']}]**: {step['message']}")
+
+        if result.success:
+            lines.append("\n#### 🎯 Master Plan / Sonraki Önerilen Adımlar:")
+            lines.append("- Doğrulama için test paketini çalıştırın.")
+            lines.append("- Mimari sınırları korumak için `enforce_architecture_boundaries` kullanın.")
 
         return "\n".join(lines)
 
@@ -1922,6 +1946,53 @@ def create_mcp_server():
             "2. Enforce 100% Zero-Leak security: NEVER commit or log raw API keys or personal credentials.\n"
             "3. Adhere to modular separation of concerns and avoid introducing cyclic dependencies.\n"
             "4. Verify code quality using `audit_codebase_quality` before marking tasks complete."
+        )
+
+    # -------------------------------------------------------------------------
+    # RESOURCES: tzero://jarvis/plan, tzero://jarvis/capabilities
+    # -------------------------------------------------------------------------
+    @server.resource(
+        "tzero://jarvis/plan",
+        name="Jarvis Workspace Master Plan",
+        description="Actionable multi-phase engineering plan and capability assessment synthesized by Jarvis",
+        mime_type="text/markdown"
+    )
+    def resource_jarvis_plan() -> str:
+        from tzero_jarvis import JarvisOrchestrator
+        orch = JarvisOrchestrator(workspace_root=".")
+        plan = orch.generate_plan("")
+        return plan["markdown"]
+
+    @server.resource(
+        "tzero://jarvis/capabilities",
+        name="Jarvis Executive Capability Catalog",
+        description="Comprehensive catalog of Jarvis autonomous workspace management capabilities",
+        mime_type="text/markdown"
+    )
+    def resource_jarvis_capabilities() -> str:
+        from tzero_jarvis import JarvisOrchestrator
+        orch = JarvisOrchestrator(workspace_root=".")
+        return orch.present_capabilities()
+
+    # -------------------------------------------------------------------------
+    # PROMPT: jarvis_workspace_copilot
+    # -------------------------------------------------------------------------
+    @server.prompt(
+        name="jarvis_workspace_copilot",
+        description="Invokes Jarvis as the Master Executive Pair-Programmer to formulate a phased action plan."
+    )
+    def prompt_jarvis_workspace_copilot(goal: str = "", project_root: str = ".") -> str:
+        from tzero_jarvis import JarvisOrchestrator
+        orch = JarvisOrchestrator(workspace_root=project_root)
+        plan = orch.generate_plan(goal)
+        cap = orch.present_capabilities()
+        return (
+            f"{cap}\n\n"
+            f"{plan['markdown']}\n\n"
+            "CO-PILOT EXECUTION DIRECTIVES:\n"
+            "1. Present the phased plan to the user clearly.\n"
+            "2. Execute Phase 1 first using AST reduction tools (`get_project_context_tree`).\n"
+            "3. Enforce 100% Zero-Leak security at all times."
         )
 
     return server

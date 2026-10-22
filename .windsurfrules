@@ -1,8 +1,8 @@
-# Windsurf Cascade Rules: TZeroAlgorithm
+# Windsurf AI Rules for TZeroAlgorithm
 # Enforced by Siber Akademi T-Zero Context Engine
 
 ## Core Directives
-1. **Zero-Leak Security:** Never output credentials or expose production tokens.
-2. **Context-Aware Refactoring:** Respect `Autonomous CLI / Tool Architecture` layer boundaries.
-3. **Preserve Documentation:** Do not delete existing comments or docstrings.
-4. **Mandatory Test Verification:** Always verify changes using `python -m unittest discover -s tests -p "test_*.py"`.
+1. **Zero-Leak Guarantee:** NEVER hardcode credentials or expose production secrets.
+2. **Context-Driven Edits:** Always verify architectural layer boundaries and dependencies.
+3. **Preserve Documentation:** Do not strip comments, docstrings, or type hints unless requested.
+4. **Verification:** Ensure tests pass cleanly before concluding tasks.

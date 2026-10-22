@@ -248,6 +248,14 @@ class JarvisOrchestrator:
         """Çalışma alanı test/derleme komutunu çalıştırır ve otonom cerrahi yamalar uygular."""
         return self.workspace_orchestrator.run_workspace_diagnostics_and_heal(command)
 
+    def generate_plan(self, goal: str = "", context: str = "") -> Dict[str, Any]:
+        """Hedefe veya projeye özel çok fazlı mühendislik eylem planı hazırlar."""
+        return self.workspace_orchestrator.generate_executive_plan(goal, context)
+
+    def present_capabilities(self) -> str:
+        """Jarvis'in çalışma alanındaki yetenek kataloğunu sunar."""
+        return self.workspace_orchestrator.format_capabilities_catalog()
+
 
 AutonomousGoalOrchestrator = JarvisOrchestrator
 
@@ -261,11 +269,15 @@ def main():
     parser.add_argument("--no-swarm", action="store_true", help="PBFT Sürü denetimini atla")
     parser.add_argument("--diagnose", action="store_true", help="Çalışma alanı testlerini çalıştır ve kendi kendini iyileştir")
     parser.add_argument("--goal", "-g", help="Otonom mühendislik hedefi")
+    parser.add_argument("--plan", "-p", action="store_true", help="Yönetici eylem planı ve yetenek kataloğunu sun")
 
     args = parser.parse_args()
     orch = JarvisOrchestrator(workspace_root=args.workspace)
 
-    if args.goal:
+    if args.plan:
+        plan = orch.generate_plan(args.goal or "")
+        print(plan["markdown"])
+    elif args.goal:
         res = orch.orchestrate_goal(args.goal)
         print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
     else:
