@@ -476,7 +476,7 @@ from decimal import Decimal
 import time
 import heapq
 
-OPENAI_KEY = "sk-proj-49204910294019204910294019204910294019204"
+OPENAI_KEY = os.getenv("OPENAI_API_KEY", "")
 
 class Order:
     """Market or Limit Order Representation."""

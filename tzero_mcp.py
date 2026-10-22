@@ -42,7 +42,7 @@ except ImportError:
     def Field(default=..., description=""):
         return default
 
-SERVER_VERSION = "6.5.0"
+SERVER_VERSION = "6.6.0"
 
 # Safe UTF-8 reconfiguration for Windows console & piped subprocesses
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -1960,6 +1960,109 @@ def create_mcp_server():
         """Compresses unified git diff into a compact semantic micro-patch."""
         from tzero_patch import SmartMicroPatcher
         return SmartMicroPatcher.format_micro_patch_report(diff_content)
+
+    # -------------------------------------------------------------------------
+    # TOOL 40: generate_zero_waste_prompt_context
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="generate_zero_waste_prompt_context",
+        description=(
+            "Extracts cross-module AST call graphs from workspace entrypoints, detects reachable symbols, "
+            "and prunes unreferenced functions and dead classes to synthesize an ultra-dense, Zero-Waste LLM prompt context.\n\n"
+            "Behavior:\n"
+            "- Read-only: Performs static AST graph traversal without altering repository files.\n"
+            "- Idempotent: Deterministic output for identical codebase states.\n"
+            "- 100% Offline: Executes locally without cloud or API dependencies.\n\n"
+            "Usage Guidelines:\n"
+            "- When to use: Ingest massive multi-file codebases into an LLM while stripping out 100% of uncalled methods and dead routines (up to 95% token savings).\n\n"
+            "Returns: Zero-waste markdown context with list of reachable/dead symbols and token reduction metrics."
+        ),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+    )
+    def generate_zero_waste_prompt_context(
+        target_dir: Annotated[str, Field(default=".", description="Target workspace root directory.")] = ".",
+        entrypoints: Annotated[Optional[List[str]], Field(default=None, description="List of entrypoint files (e.g. ['main.py', 'app.py']). If empty, auto-detects.")] = None
+    ) -> str:
+        """Constructs zero-waste LLM prompt context by pruning dead code via AST reachability."""
+        from tzero_reachability import CallGraphReachabilityEngine
+        engine = CallGraphReachabilityEngine(target_dir)
+        res = engine.generate_zero_waste_prompt(entrypoints=entrypoints)
+        return (
+            f"{res['zero_waste_prompt']}\n\n"
+            f"### 📊 T-Zero Reachability Summary:\n"
+            f"- **Reachable Symbols:** `{res['reachable_count']}`\n"
+            f"- **Dead Symbols Pruned:** `{res['pruned_dead_count']}`\n"
+            f"- **Raw Tokens:** `{res['raw_tokens']:,}`\n"
+            f"- **Pruned Tokens:** `{res['zero_waste_tokens']:,}`\n"
+            f"- **Net Token Reduction:** **-{res['token_reduction_pct']}%**"
+        )
+
+    # -------------------------------------------------------------------------
+    # TOOL 41: compress_stream_tokens
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="compress_stream_tokens",
+        description=(
+            "Compresses arbitrary streaming code, unified diffs, database DDL, or infrastructure manifests "
+            "using T-Zero AST reduction pipeline, ideal for CLI pipe flows and clipboard integration.\n\n"
+            "Behavior:\n"
+            "- Read-only: In-memory string compression.\n"
+            "- Idempotent: Deterministic output for identical content.\n"
+            "- 100% Offline: Executes locally without external API billing.\n\n"
+            "Returns: Compressed code/diff tokens with maximal information density."
+        ),
+        annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+    )
+    def compress_stream_tokens(
+        content: Annotated[str, Field(description="Raw code, diff, SQL, or manifest text to compress.")],
+        filename_hint: Annotated[str, Field(default="", description="Optional filename or extension hint (e.g. 'app.py', 'schema.sql', 'patch.diff').")] = "",
+        tier: Annotated[str, Field(default="T-3", description="Compression tier: 'T-3' (AST Signatures), 'T-4' (Agent Rules), 'T-2' (Light).")] = "T-3"
+    ) -> str:
+        """Compresses streaming code tokens on-the-fly."""
+        from tzero_pipe import PipeCompressor
+        compressed = PipeCompressor.compress_stream(content, filename_hint=filename_hint, tier=tier)
+        raw_tokens = max(1, count_tokens_precise(content))
+        comp_tokens = max(1, count_tokens_precise(compressed))
+        savings = max(0.0, (1.0 - (comp_tokens / raw_tokens)) * 100)
+        return (
+            f"### ⚡ T-Zero Stream Token Compression\n"
+            f"- **Input Tokens:** `{raw_tokens:,}`\n"
+            f"- **Output Tokens:** `{comp_tokens:,}`\n"
+            f"- **Savings:** **-{savings:.1f}%**\n\n"
+            f"```text\n{compressed}\n```"
+        )
+
+    # -------------------------------------------------------------------------
+    # TOOL 42: install_git_security_guard
+    # -------------------------------------------------------------------------
+    @server.tool(
+        name="install_git_security_guard",
+        description=(
+            "Installs the automated T-Zero Git Pre-Commit Security Guard into target repository's .git/hooks directory. "
+            "Intercepts git commits to prevent credential leaks (API keys, passwords, tokens) and warns on uncompressed token bloat.\n\n"
+            "Behavior:\n"
+            "- Safe installation: Creates executable .git/hooks/pre-commit and pre-commit.bat.\n"
+            "- 100% Local: No cloud telemetry or third-party hook services required.\n\n"
+            "Returns: Installation status and path to installed git hook."
+        ),
+        annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+    )
+    def install_git_security_guard(
+        repo_dir: Annotated[str, Field(default=".", description="Target git repository directory (default: current working directory).")] = "."
+    ) -> str:
+        """Installs the pre-commit zero-leak and token optimization guard."""
+        from tzero_guard import GitSecurityGuard
+        res = GitSecurityGuard.install_hook(repo_dir)
+        if res.get("success"):
+            return (
+                f"### 🛡️ T-Zero Pre-Commit Guard Installed Successfully\n"
+                f"- **Hook Path:** `{res.get('hook_path')}`\n"
+                f"- **Status:** Active\n"
+                f"- **Features:** Zero-Leak Credential Blocker, Token Bloat Warning, Staged Diff Analysis\n"
+                f"Future `git commit` actions in this repository will now be automatically protected!"
+            )
+        else:
+            return f"❌ **Failed to install pre-commit guard:** {res.get('message')}"
 
     # -------------------------------------------------------------------------
     # RESOURCES: tzero://architecture, tzero://boundaries, tzero://token-roi

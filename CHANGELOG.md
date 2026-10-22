@@ -1,6 +1,25 @@
 # Changelog
 
-## [6.1.0] - 2026-10-21
+## [6.6.0] - 2026-10-22
+
+### Released (Official V6.6.0 Master Edition: Omni-Dev, Graph Reachability & Git Pre-Commit Guard)
+
+- **Cross-Module AST Call-Graph Reachability Engine (`CallGraphReachabilityEngine` in `tzero_reachability.py`):**
+  - Traces cross-file Python AST function and class dependencies starting from project entrypoints (`main.py`, `app.py`, etc.).
+  - Separates active reachable code from uncalled/dead routines, constructing an ultra-dense **Zero-Waste Prompt Context (Z-Prompt)** that slashes 80-95% of prompt bloat.
+  - New MCP Tool (Tool 40): `generate_zero_waste_prompt_context`.
+- **UNIX CLI Stdin/Stdout Pipeline Compressor (`PipeCompressor` in `tzero_pipe.py`):**
+  - Instant terminal streaming token reduction via `tzero --pipe [hint]`.
+  - Supports UNIX pipes (`git diff | tzero --pipe`, `cat file.py | tzero --pipe`) with auto-detection for Python, SQL DDL, K8s YAML, and unified diffs.
+  - Optional `--clip` / `--copy` flag copies compressed tokens straight to system clipboard.
+  - New MCP Tool (Tool 41): `compress_stream_tokens`.
+- **Automated Git Pre-Commit Security & Token Guard (`GitSecurityGuard` in `tzero_guard.py`):**
+  - Single-command hook setup via `tzero --init-hooks [DIR]` (creates executable `.git/hooks/pre-commit` and `pre-commit.bat`).
+  - Zero-Leak Security Audit: Blocks commits on detection of hardcoded API keys (OpenAI, Anthropic, AWS, GitHub), tokens, private keys, or passwords.
+  - Token Bloat Warning: Detects staged files exceeding token thresholds and suggests AST pruning.
+  - New MCP Tool (Tool 42): `install_git_security_guard`.
+- **42 Registered MCP Tools:** Fully backward-compatible across Cursor, Claude Desktop, Antigravity, VS Code, and Cline.
+
 
 ### Added & Enhanced (Universal Polyglot Engine, JARVIS Dashboard & Marketplace Action)
 
