@@ -7748,7 +7748,10 @@ def main():
     parser.add_argument("--info", "--quickstart", action="store_true", help="Show quickstart guide and simplest installation/usage steps")
     parser.add_argument("--gui", "-g", action="store_true", help="Launch the GUI Dashboard")
     parser.add_argument("--doctor", action="store_true", help="Check Python, dependencies, tkinter, git and keyring (installs missing packages)")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v6.5.0 Master Edition (engine v4.1.0)")
+    parser.add_argument("--pipe", nargs="?", const="", default=None, metavar="FILENAME_HINT", help="Read code/diff/schema from stdin, compress tokens, and output to stdout")
+    parser.add_argument("--clip", "--copy", action="store_true", help="Copy output of --pipe or command directly to system clipboard")
+    parser.add_argument("--init-hooks", nargs="?", const=".", default=None, metavar="REPO_DIR", dest="init_hooks", help="Install zero-leak & token security pre-commit hook into .git/hooks")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v6.6.0 Master Edition (engine v4.1.0)")
 
     def print_quickstart_guide():
         print("""
@@ -7825,6 +7828,19 @@ def main():
     elif args.mcp:
         import tzero_mcp
         tzero_mcp.main()
+    elif args.pipe is not None:
+        from tzero_pipe import PipeCompressor
+        PipeCompressor.run_cli_pipe(filename_hint=args.pipe, copy_to_clipboard=getattr(args, "clip", False))
+        sys.exit(0)
+    elif args.init_hooks is not None:
+        from tzero_guard import GitSecurityGuard
+        res = GitSecurityGuard.install_hook(args.init_hooks)
+        if res.get("success"):
+            print(f"\033[32m[SUCCESS] {res['message']}\033[0m")
+            sys.exit(0)
+        else:
+            print(f"\033[31m[ERROR] {res.get('message', 'Failed to install git hook')}\033[0m")
+            sys.exit(1)
     elif args.web is not None:
         try:
             from tzero_dashboard import start_dashboard_server
