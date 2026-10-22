@@ -520,20 +520,28 @@ function initCounterAnimation() {
 // DOM INIT
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-  initParticleSystem();
-  initScrollAnimations();
-  initNavbarScroll();
-  initCounterAnimation();
-  renderBenchmarkTable();
-  renderVisualBars();
-  initInspector();
-  initCalculator();
-  initCopyButtons();
-  initSandbox();
-  initCausalHUD();
-  initMCPTools();
-  initAgentSetupTabs();
-  initDownloadCenter();
+  const safeInit = (fn, name) => {
+    try {
+      fn();
+    } catch (err) {
+      console.warn(`[T-Zero Init] ${name} caught non-fatal exception:`, err);
+    }
+  };
+
+  safeInit(initParticleSystem, "ParticleSystem");
+  safeInit(initScrollAnimations, "ScrollAnimations");
+  safeInit(initNavbarScroll, "NavbarScroll");
+  safeInit(initCounterAnimation, "CounterAnimation");
+  safeInit(renderBenchmarkTable, "BenchmarkTable");
+  safeInit(renderVisualBars, "VisualBars");
+  safeInit(initInspector, "Inspector");
+  safeInit(initCalculator, "Calculator");
+  safeInit(initCopyButtons, "CopyButtons");
+  safeInit(initSandbox, "Sandbox");
+  safeInit(initCausalHUD, "CausalHUD");
+  safeInit(initMCPTools, "MCPTools");
+  safeInit(initAgentSetupTabs, "AgentSetupTabs");
+  safeInit(initDownloadCenter, "DownloadCenter");
 });
 
 // ==========================================
@@ -585,7 +593,7 @@ function renderVisualBars() {
 }
 
 // ==========================================
-// AST INSPECTOR
+// AST INSPECTOR (OPTIONAL LEGACY)
 // ==========================================
 let currentFile = "tzero_v3.py";
 let currentMode = "ultra";
@@ -593,6 +601,8 @@ let currentMode = "ultra";
 function initInspector() {
   const fileTabs = document.querySelectorAll("#file-tabs .tab-btn");
   const modeTabs = document.querySelectorAll("#mode-tabs .mode-btn");
+
+  if (!fileTabs.length && !modeTabs.length) return;
 
   fileTabs.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -616,13 +626,15 @@ function initInspector() {
 }
 
 function updateInspectorView() {
-  const data = BENCHMARK_DATA.find(d => d.file === currentFile) || BENCHMARK_DATA[0];
   const display = document.getElementById("code-display");
   const filenameEl = document.getElementById("active-filename");
   const tokensEl = document.getElementById("active-tokens");
   const reductionEl = document.getElementById("active-reduction");
   const titleEl = document.getElementById("editor-title");
 
+  if (!display || !filenameEl || !tokensEl || !reductionEl || !titleEl) return;
+
+  const data = BENCHMARK_DATA.find(d => d.file === currentFile) || BENCHMARK_DATA[0];
   filenameEl.textContent = data.file;
 
   if (currentMode === "ultra") {
@@ -1123,23 +1135,22 @@ function initCausalHUD() {
   const nodeSub = document.getElementById("node-info-sub");
   const nodeTags = document.getElementById("node-info-tags");
 
-  // Resize canvas to match display width
+  // Resize canvas to match display width with rock-solid fallback
   function resize() {
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width > 0) {
-      canvas.width = rect.width;
-      canvas.height = 360;
-    }
+    const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+    const w = parentWidth > 50 ? parentWidth : (window.innerWidth ? Math.min(window.innerWidth - 64, 1200) : 1000);
+    canvas.width = w;
+    canvas.height = 420;
   }
   window.addEventListener("resize", resize);
   resize();
 
   const nodes = [
-    { id: "ast", label: "AST-Optimizer", role: "AST Structure & Symbol Graph Engine", x: 0.20, y: 0.35, color: "#00f0ff", icon: "⚡", health: "100%", latency: "0.21ms", weight: "0.98", active: true },
-    { id: "sec", label: "Security-Sentinel", role: "100% Zero-Leak OS Keyring & Secret Scanner", x: 0.45, y: 0.22, color: "#10b981", icon: "🛡️", health: "100%", latency: "0.14ms", weight: "1.00", active: true },
-    { id: "dev", label: "Autonomous-DevOps", role: "Self-Healing Execution & Deployment Watcher", x: 0.80, y: 0.38, color: "#a855f7", icon: "🚀", health: "99.8%", latency: "0.45ms", weight: "0.92", active: true },
-    { id: "mem", label: "Memory-Hippocampus", role: "4D Causal-Temporal Chain & Latent Compression", x: 0.65, y: 0.75, color: "#f59e0b", icon: "🧠", health: "100%", latency: "0.32ms", weight: "0.95", active: true },
-    { id: "veto", label: "Consensus-Veto", role: "Byzantine Fault Tolerant Zero-Hallucination Gate", x: 0.30, y: 0.72, color: "#ec4899", icon: "⚖️", health: "100%", latency: "0.19ms", weight: "1.00", active: true }
+    { id: "ast", label: "AST-Optimizer", role: "AST Structure & Symbol Graph Engine", x: 0.18, y: 0.35, color: "#00f0ff", icon: "⚡", health: "100%", latency: "0.21ms", weight: "0.98", active: true },
+    { id: "sec", label: "Security-Sentinel", role: "100% Zero-Leak OS Keyring & Secret Scanner", x: 0.42, y: 0.22, color: "#10b981", icon: "🛡️", health: "100%", latency: "0.14ms", weight: "1.00", active: true },
+    { id: "dev", label: "Autonomous-DevOps", role: "Self-Healing Execution & Deployment Watcher", x: 0.82, y: 0.38, color: "#a855f7", icon: "🚀", health: "99.8%", latency: "0.45ms", weight: "0.92", active: true },
+    { id: "mem", label: "Memory-Hippocampus", role: "4D Causal-Temporal Chain & Latent Compression", x: 0.65, y: 0.72, color: "#f59e0b", icon: "🧠", health: "100%", latency: "0.32ms", weight: "0.95", active: true },
+    { id: "veto", label: "Consensus-Veto", role: "Byzantine Fault Tolerant Zero-Hallucination Gate", x: 0.28, y: 0.72, color: "#ec4899", icon: "⚖️", health: "100%", latency: "0.19ms", weight: "1.00", active: true }
   ];
 
   const edges = [
@@ -1168,12 +1179,13 @@ function initCausalHUD() {
 
   function getNodePos(node) {
     return {
-      x: node.x * canvas.width,
-      y: node.y * canvas.height
+      x: Math.max(50, Math.min(canvas.width - 50, node.x * canvas.width)),
+      y: Math.max(40, Math.min(canvas.height - 40, node.y * canvas.height))
     };
   }
 
   function renderHUD() {
+    if (canvas.width < 100) resize();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Subtle background grid
