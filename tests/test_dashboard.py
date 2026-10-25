@@ -25,16 +25,16 @@ class TestTZeroDashboard(unittest.TestCase):
         with urllib.request.urlopen(url) as resp:
             self.assertEqual(resp.status, 200)
             body = resp.read().decode("utf-8")
-            self.assertIn("T-ZERO // JARVIS", body)
-            self.assertIn("ALL 37 MCP TOOLS OPERATIONAL", body)
+            self.assertIn("T-Zero Developer Console", body)
+            self.assertIn("48 MCP TOOLS OPERATIONAL", body)
 
     def test_get_api_stats(self):
         url = f"http://localhost:{self.test_port}/api/stats"
         with urllib.request.urlopen(url) as resp:
             self.assertEqual(resp.status, 200)
             data = json.loads(resp.read().decode("utf-8"))
-            self.assertEqual(data["version"], "6.1.0")
-            self.assertEqual(data["tools_count"], 37)
+            self.assertEqual(data["version"], "8.0.1")
+            self.assertEqual(data["tools_count"], 49)
 
     def test_post_api_reduce(self):
         url = f"http://localhost:{self.test_port}/api/reduce"
@@ -45,6 +45,16 @@ class TestTZeroDashboard(unittest.TestCase):
             data = json.loads(resp.read().decode("utf-8"))
             self.assertIn("reduced", data)
             self.assertIn("pub fn hello()", data["reduced"])
+
+    def test_post_api_superdesign(self):
+        url = f"http://localhost:{self.test_port}/api/superdesign/generate"
+        payload = json.dumps({"design_type": "component", "prompt": "metric card"}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertIn("files_to_create", data["data"])
 
 if __name__ == "__main__":
     unittest.main()

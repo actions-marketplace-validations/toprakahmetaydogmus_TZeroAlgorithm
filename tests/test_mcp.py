@@ -18,17 +18,28 @@ def tool_result_text(result):
 class TestMCPServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls._old_tool_mode = os.environ.get("TZERO_MCP_TOOL_MODE")
+        os.environ["TZERO_MCP_TOOL_MODE"] = "all"
         cls.server = tzero_mcp.create_mcp_server()
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._old_tool_mode is not None:
+            os.environ["TZERO_MCP_TOOL_MODE"] = cls._old_tool_mode
+        else:
+            os.environ.pop("TZERO_MCP_TOOL_MODE", None)
 
     def run_async(self, coro):
         return asyncio.run(coro)
 
     def test_mcp_tools_and_prompts_registration(self):
-        """Verifies that all 25 MCP tools and grounding prompt are properly registered."""
+        """Verifies that all 47 specialized MCP tools and grounding prompt are properly registered."""
         tools = self.run_async(self.server.list_tools())
         tool_names = [t.name for t in tools]
-        self.assertEqual(len(tool_names), 42)
+        self.assertEqual(len(tool_names), 49)
+        self.assertIn("execute_codebase_workflow", tool_names)
         expected_tools = [
+            "execute_codebase_workflow",
             "get_project_context_tree",
             "query_module_dependencies",
             "query_architecture_boundaries",
@@ -71,6 +82,12 @@ class TestMCPServer(unittest.TestCase):
             "generate_zero_waste_prompt_context",
             "compress_stream_tokens",
             "install_git_security_guard",
+            "suggest_reusable_helpers",
+            "superdesign_generate",
+            "superdesign_iterate",
+            "superdesign_extract_system",
+            "superdesign_list",
+            "superdesign_gallery",
         ]
         for exp in expected_tools:
             self.assertIn(exp, tool_names)
@@ -197,6 +214,37 @@ class TestMCPServer(unittest.TestCase):
             self.assertIn("Code Duplicity Report", out)
             self.assertIn("mod1.py", out)
             self.assertIn("mod2.py", out)
+
+    def test_tool_suggest_reusable_helpers(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            util_f = os.path.join(temp_dir, "my_utils.py")
+            with open(util_f, "w", encoding="utf-8") as f:
+                f.write(
+                    "def format_iso_timestamp(ts: int) -> str:\n"
+                    "    \"\"\"Converts timestamp to ISO 8601 string.\"\"\"\n"
+                    "    return str(ts)\n"
+                )
+
+            res = self.run_async(self.server.call_tool(
+                "suggest_reusable_helpers",
+                {"project_root": temp_dir, "query": "timestamp format"}
+            ))
+            out = tool_result_text(res)
+            self.assertIn("Reusable Repository Helpers", out)
+            self.assertIn("format_iso_timestamp", out)
+            self.assertIn("from my_utils import format_iso_timestamp", out)
+
+            # Test reinvention guard
+            res_guard = self.run_async(self.server.call_tool(
+                "suggest_reusable_helpers",
+                {
+                    "project_root": temp_dir,
+                    "code_snippet": "def format_timestamp(ts):\n    \"\"\"Converts timestamp to string\"\"\"\n    pass\n"
+                }
+            ))
+            out_guard = tool_result_text(res_guard)
+            self.assertIn("Anti-Reinvention Guard Alert", out_guard)
+            self.assertIn("format_iso_timestamp", out_guard)
 
     def test_tool_estimate_token_cost(self):
         res = self.run_async(self.server.call_tool(
@@ -599,6 +647,139 @@ diff --git a/core.py b/core.py
             ))
             out = tool_result_text(res)
             self.assertIn("Pre-Commit Guard", out)
+
+    def test_canonical_tools_execution(self):
+        """Verifies that all 14 canonical tools execute properly via call_tool."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sample_file = os.path.join(temp_dir, "calc.py")
+            with open(sample_file, "w", encoding="utf-8") as fp:
+                fp.write("def add(a: int, b: int) -> int:\n    return a + b\n")
+
+            # 1. build_project_context
+            res = self.run_async(self.server.call_tool("build_project_context", {"project_root": temp_dir, "context_type": "tree"}))
+            self.assertIn("Architecture Overview", tool_result_text(res))
+
+            # 2. prune_code_snippet
+            res = self.run_async(self.server.call_tool("prune_code_snippet", {"code": "def foo():\n    x = 1\n    return x\n", "file_name_or_lang": "foo.py"}))
+            self.assertIn("def foo()", tool_result_text(res))
+
+            # 3. manage_architecture_rules (CRUD)
+            res_q = self.run_async(self.server.call_tool("manage_architecture_rules", {"action": "query", "project_root": temp_dir}))
+            self.assertIn("Architecture", tool_result_text(res_q))
+
+            res_u = self.run_async(self.server.call_tool("manage_architecture_rules", {
+                "action": "update", "project_root": temp_dir, "rule_name": "custom_layer", "rule_definition": '{"layers": {"api": ["api/*"]}}'
+            }))
+            self.assertIn("successfully updated", tool_result_text(res_u))
+
+            res_d = self.run_async(self.server.call_tool("manage_architecture_rules", {
+                "action": "delete", "project_root": temp_dir, "rule_name": "custom_layer"
+            }))
+            self.assertIn("successfully removed", tool_result_text(res_d))
+
+            res_r = self.run_async(self.server.call_tool("manage_architecture_rules", {"action": "reset", "project_root": temp_dir}))
+            self.assertIn("reset to enterprise defaults", tool_result_text(res_r))
+
+            # 4. enforce_architecture_rules
+            res = self.run_async(self.server.call_tool("enforce_architecture_rules", {"project_root": temp_dir}))
+            self.assertTrue("ARCH PASS" in tool_result_text(res) or "T-002" in tool_result_text(res) or "architectural" in tool_result_text(res).lower())
+
+            # 5. generate_architecture_blueprint
+            res = self.run_async(self.server.call_tool("generate_architecture_blueprint", {"project_root": temp_dir}))
+            self.assertIn("mermaid", tool_result_text(res).lower())
+
+            # 6. analyze_code_dependencies
+            res = self.run_async(self.server.call_tool("analyze_code_dependencies", {"project_root": temp_dir, "analysis_type": "dependencies"}))
+            self.assertIn("Workspace Dependency Topology", tool_result_text(res))
+
+            # 7. analyze_change_impact
+            res = self.run_async(self.server.call_tool("analyze_change_impact", {"target_symbol": "add", "project_root": temp_dir}))
+            self.assertIn("Blast Radius", tool_result_text(res))
+
+            # 8. search_codebase
+            res = self.run_async(self.server.call_tool("search_codebase", {"query": "add", "project_root": temp_dir}))
+            self.assertTrue("Search" in tool_result_text(res) or "Found Matches" in tool_result_text(res))
+
+            # 9. audit_code_quality
+            res = self.run_async(self.server.call_tool("audit_code_quality", {"project_root": temp_dir, "check_type": "all"}))
+            self.assertIn("Code Quality & Security Audit", tool_result_text(res))
+
+            # 10. verify_security_guard
+            res = self.run_async(self.server.call_tool("verify_security_guard", {"action": "scan", "project_root": temp_dir}))
+            self.assertIn("Zero-Leak", tool_result_text(res))
+
+            # 11. estimate_token_cost
+            res = self.run_async(self.server.call_tool("estimate_token_cost", {"text": "print('hello')", "project_root": temp_dir}))
+            self.assertIn("API Cost Estimation", tool_result_text(res))
+
+            # 12. query_memory_store
+            res = self.run_async(self.server.call_tool("query_memory_store", {"query": "test", "query_mode": "semantic"}))
+            self.assertTrue(len(tool_result_text(res)) > 0)
+
+            # 13. manage_memory_store (CRUD)
+            res_l = self.run_async(self.server.call_tool("manage_memory_store", {"operation": "list"}))
+            self.assertIn("T-Zero Persistent Memory Stores", tool_result_text(res_l))
+
+            res_c = self.run_async(self.server.call_tool("manage_memory_store", {"operation": "compress", "content": "TZero compresses AST."}))
+            self.assertIn("Semantic Memory Compression", tool_result_text(res_c))
+
+            res_con = self.run_async(self.server.call_tool("manage_memory_store", {"operation": "consolidate"}))
+            self.assertIn("Consolidation", tool_result_text(res_con))
+
+            res_exp = self.run_async(self.server.call_tool("manage_memory_store", {"operation": "export", "content": os.path.join(temp_dir, "mem.json")}))
+            self.assertIn("Exported", tool_result_text(res_exp))
+
+            res_rst = self.run_async(self.server.call_tool("manage_memory_store", {"operation": "reset"}))
+            self.assertIn("cleared and reset", tool_result_text(res_rst))
+
+            # 14. orchestrate_agent_swarm
+            res = self.run_async(self.server.call_tool("orchestrate_agent_swarm", {"goal": "help", "orchestration_mode": "goal_execute"}))
+            self.assertIn("T-Zero", tool_result_text(res))
+
+    def test_legacy_mode_environment_variable(self):
+        """Verifies that default registers 15 canonical/auto tools, and TZERO_MCP_TOOL_MODE=all registers 48 tools."""
+        # Clean env to test true default behavior
+        old_val = os.environ.pop("TZERO_MCP_TOOL_MODE", None)
+        try:
+            default_server = tzero_mcp.create_mcp_server()
+            tools_def = self.run_async(default_server.list_tools())
+            tool_names = [t.name for t in tools_def]
+            self.assertEqual(len(tool_names), 15)
+            self.assertIn("execute_codebase_workflow", tool_names)
+            self.assertIn("build_project_context", tool_names)
+            self.assertIn("manage_memory_store", tool_names)
+
+            os.environ["TZERO_MCP_TOOL_MODE"] = "all"
+            full_server = tzero_mcp.create_mcp_server()
+            tools_all = self.run_async(full_server.list_tools())
+            self.assertEqual(len(tools_all), 49)
+            self.assertIn("execute_codebase_workflow", [t.name for t in tools_all])
+        finally:
+            if old_val is not None:
+                os.environ["TZERO_MCP_TOOL_MODE"] = old_val
+            else:
+                os.environ.pop("TZERO_MCP_TOOL_MODE", None)
+
+    def test_execute_codebase_workflow_actions(self):
+        """Verifies that the execute_codebase_workflow omni-tool routes and executes all actions cleanly."""
+        # Test 1: Action = 'auto'
+        res = self.run_async(self.server.call_tool("execute_codebase_workflow", {"action": "auto", "target": "."}))
+        text = tool_result_text(res)
+        self.assertIn("T-Zero Autonomous Codebase Intelligence Report", text)
+        self.assertIn("Zero-Leak Security Audit", text)
+        self.assertIn("System Architecture & Topology", text)
+
+        # Test 2: Action = 'security'
+        res_sec = self.run_async(self.server.call_tool("execute_codebase_workflow", {"action": "security", "target": "."}))
+        self.assertIn("Zero-Leak", tool_result_text(res_sec))
+
+        # Test 3: Action = 'blueprint'
+        res_bp = self.run_async(self.server.call_tool("execute_codebase_workflow", {"action": "blueprint", "target": "."}))
+        self.assertIn("Architecture", tool_result_text(res_bp))
+
+        # Test 4: Unknown action error handling
+        res_err = self.run_async(self.server.call_tool("execute_codebase_workflow", {"action": "invalid_unknown_action"}))
+        self.assertIn("Unknown action", tool_result_text(res_err))
 
 
 if __name__ == "__main__":

@@ -48,6 +48,9 @@ tzero-showcase/out/
 tzero-showcase/public/*.mp4
 *.mp4
 *.mp3
+!assets/*.mp4
+!assets/*.jpg
+!assets/*.gif
 # Automation & Profiles
 .reddit_profile/
 # Private B2B Gateway & Outreach Engine (Strictly Private - Never Push)
@@ -63,5 +66,10 @@ auto_onprem_outreach.py
 onprem_outreach_status.json
 .tzero_cache.db
 *.db
+used_permalinks.json
+.superpowers/
+scripts/reddit_poster.py
+*reddit*.py
+.reddit_profile/
 
 
