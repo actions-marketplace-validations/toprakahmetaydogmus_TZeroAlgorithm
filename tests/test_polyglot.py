@@ -354,6 +354,82 @@ class HeavySwiftManager {
         self.assertIn("class HeavySwiftManager", reduced_swift)
         self.assertNotIn("let item_50", reduced_swift)
 
+        # Test Ruby reduction via TokenReducer
+        long_ruby = """
+require 'json'
+
+class HeavyRubyWorker
+    def execute
+""" + "\n".join([f"        run_step_{i}()" for i in range(100)]) + """
+    end
+end
+"""
+        reduced_rb, savings_rb = TokenReducer.reduce_content("HeavyRubyWorker.rb", long_ruby)
+        self.assertGreater(savings_rb, 50.0)
+        self.assertIn("class HeavyRubyWorker", reduced_rb)
+        self.assertNotIn("run_step_50", reduced_rb)
+
+        # Test PHP reduction via TokenReducer
+        long_php = """<?php
+namespace App\\Jobs;
+
+class HeavyPhpJob {
+    public function handle(): void {
+""" + "\n".join([f"        $this->processItem({i});" for i in range(100)]) + """
+    }
+}
+"""
+        reduced_php, savings_php = TokenReducer.reduce_content("HeavyPhpJob.php", long_php)
+        self.assertGreater(savings_php, 50.0)
+        self.assertIn("class HeavyPhpJob", reduced_php)
+        self.assertNotIn("processItem(50)", reduced_php)
+
+        # Test Dart reduction via TokenReducer
+        long_dart = """import 'package:flutter/material.dart';
+
+class HeavyDartWidget {
+    void buildComplexUI() {
+""" + "\n".join([f"        renderNode({i});" for i in range(100)]) + """
+    }
+}
+"""
+        reduced_dart, savings_dart = TokenReducer.reduce_content("HeavyDartWidget.dart", long_dart)
+        self.assertGreater(savings_dart, 50.0)
+        self.assertIn("class HeavyDartWidget", reduced_dart)
+        self.assertNotIn("renderNode(50)", reduced_dart)
+
+        # Test Scala reduction via TokenReducer
+        long_scala = """package com.app.pipeline
+
+import scala.concurrent.Future
+
+object HeavyPipeline {
+    def execute() {
+""" + "\n".join([f"        runJob({i})" for i in range(100)]) + """
+    }
+}
+"""
+        reduced_scala, savings_scala = TokenReducer.reduce_content("HeavyPipeline.scala", long_scala)
+        self.assertGreater(savings_scala, 50.0)
+        self.assertIn("object HeavyPipeline", reduced_scala)
+        self.assertNotIn("runJob(50)", reduced_scala)
+
+        # Test Elixir reduction via TokenReducer
+        long_elixir = """defmodule HeavyElixirWorker do
+    use GenServer
+
+    def perform_all() do
+""" + "\n".join([f"        dispatch({i})" for i in range(100)]) + """
+    end
+end
+"""
+        reduced_elixir, savings_elixir = TokenReducer.reduce_content("worker.ex", long_elixir)
+        self.assertGreater(savings_elixir, 50.0)
+        self.assertIn("defmodule HeavyElixirWorker do", reduced_elixir)
+        self.assertNotIn("dispatch(50)", reduced_elixir)
+
 
 if __name__ == '__main__':
     unittest.main()
+
+

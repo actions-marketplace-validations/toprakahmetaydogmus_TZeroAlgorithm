@@ -99,6 +99,143 @@ public:
         self.assertIn("void Start()", res)
         self.assertNotIn("init_hardware", res)
 
+    def test_ruby_reduction(self):
+        code = """require 'json'
+require_relative 'config'
+
+class PaymentGateway
+    include Loggable
+    attr_reader :api_key
+
+    def process(amount)
+        do_heavy_crypto(amount)
+        return true
+    end
+end
+"""
+        res = PolyglotTokenReducer.reduce_code(code, "gateway.rb")
+        self.assertIn("require 'json'", res)
+        self.assertIn("class PaymentGateway", res)
+        self.assertIn("attr_reader :api_key", res)
+        self.assertIn("def process(amount)", res)
+        self.assertNotIn("do_heavy_crypto", res)
+
+    def test_php_reduction(self):
+        code = """<?php
+namespace App\\Services;
+use App\\Models\\User;
+
+class UserService {
+    public function findUser(int $id): ?User {
+        $raw = $this->db->query("SELECT * FROM users");
+        return new User($raw);
+    }
+}
+"""
+        res = PolyglotTokenReducer.reduce_code(code, "UserService.php")
+        self.assertIn("<?php", res)
+        self.assertIn("namespace App\\Services;", res)
+        self.assertIn("class UserService", res)
+        self.assertIn("public function findUser", res)
+        self.assertNotIn("SELECT * FROM users", res)
+
+    def test_swift_reduction(self):
+        code = """import Foundation
+
+protocol DataStore {
+    func save(key: String) -> Bool
+}
+
+class CloudManager {
+    func sync() {
+        let backgroundQueue = DispatchQueue.global()
+        backgroundQueue.async { print("syncing") }
+    }
+}
+"""
+        res = PolyglotTokenReducer.reduce_code(code, "CloudManager.swift")
+        self.assertIn("import Foundation", res)
+        self.assertIn("protocol DataStore", res)
+        self.assertIn("class CloudManager", res)
+        self.assertIn("func sync()", res)
+        self.assertNotIn("DispatchQueue.global()", res)
+
+    def test_kotlin_reduction(self):
+        code = """package com.example.service
+
+import kotlinx.coroutines.flow.Flow
+
+class UserService {
+    fun getUser(id: String): String {
+        val entity = repo.find(id)
+        return entity.name
+    }
+}
+"""
+        res = PolyglotTokenReducer.reduce_code(code, "UserService.kt")
+        self.assertIn("package com.example.service", res)
+        self.assertIn("class UserService", res)
+        self.assertIn("fun getUser", res)
+        self.assertNotIn("repo.find(id)", res)
+
+    def test_dart_reduction(self):
+        code = """import 'package:flutter/material.dart';
+
+class CustomCard {
+    Widget build(BuildContext context) {
+        return Container(child: Text("Hello"));
+    }
+}
+"""
+        res = PolyglotTokenReducer.reduce_code(code, "card.dart")
+        self.assertIn("import 'package:flutter/material.dart';", res)
+        self.assertIn("class CustomCard", res)
+        self.assertIn("Widget build(BuildContext context)", res)
+        self.assertNotIn("Container(child: Text", res)
+
+    def test_scala_reduction(self):
+        code = """package com.example.analytics
+
+import scala.concurrent.Future
+
+case class Metric(name: String, value: Double)
+
+object AnalyticsService {
+    def process(data: List[Metric]): Future[Unit] = {
+        heavyCompute(data)
+        Future.unit
+    }
+}
+"""
+        res = PolyglotTokenReducer.reduce_code(code, "Analytics.scala")
+        self.assertIn("package com.example.analytics", res)
+        self.assertIn("import scala.concurrent.Future", res)
+        self.assertIn("case class Metric", res)
+        self.assertIn("object AnalyticsService", res)
+        self.assertIn("def process(data: List[Metric])", res)
+        self.assertNotIn("heavyCompute(data)", res)
+
+    def test_elixir_reduction(self):
+        code = """defmodule App.Payment do
+  @moduledoc "Handles crypto payments"
+  use GenServer
+
+  @spec process(integer()) :: :ok
+  def process(amount) do
+    do_heavy_crypto(amount)
+    :ok
+  end
+end
+"""
+        res = PolyglotTokenReducer.reduce_code(code, "payment.ex")
+        self.assertIn("defmodule App.Payment do", res)
+        self.assertIn("use GenServer", res)
+        self.assertIn("@spec process(integer()) :: :ok", res)
+        self.assertIn("def process(amount)", res)
+        self.assertNotIn("do_heavy_crypto(amount)", res)
+
 
 if __name__ == "__main__":
     unittest.main()
+
+

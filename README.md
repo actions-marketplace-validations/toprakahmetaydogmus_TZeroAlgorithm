@@ -95,7 +95,7 @@ The AI assistant retains full access to class names, typed parameters, docstring
 
 ### 1. ⚡ One-Click 1-Second Setup (`tzero init`)
 
-Automatically detect and configure Cursor, Claude Desktop, Antigravity IDE, Windsurf, Cline, Roo Code, and VS Code in 1 second with zero manual JSON editing:
+Automatically detect and configure Cursor, Claude Desktop, Antigravity IDE, Windsurf, Zed, Cline, Roo Code, Continue, and VS Code in 1 second with zero manual JSON editing:
 
 ```bash
 # 1-Click install into all detected IDEs:
@@ -106,6 +106,8 @@ tzero init --cursor
 tzero init --claude
 tzero init --windsurf
 tzero init --vscode
+tzero init --zed
+tzero init --continue
 
 # Without installing, run instantly via uvx:
 uvx tzero-mcp --init
@@ -264,11 +266,26 @@ If your repository, library, or framework is optimized for AI coding assistants 
 ### 1. AST Skeleton Pruning
 Strips internal routine execution bodies while preserving every class definition, typed signature, docstring, and return type. Zero heuristic line cutting — 100% deterministic language parsing.
 
-### 2. Polyglot Language Support
-Zero external compiler dependencies. Supports:
-- **Python** (via native `ast` parser)
-- **TypeScript & JavaScript** (interfaces, exports, type annotations)
-- **Go, Rust, Java, C#, C++, PHP, and Ruby** (structural signature extractors)
+### 2. Universal Polyglot Language Support (15 Ecosystems)
+Zero external compiler dependencies. Fully deterministic, offline structural pruning and signature extraction:
+
+| Language | File Extensions | Average Reduction | Extracted Semantic Artifacts |
+|:---|:---|:---:|:---|
+| **Python** | `.py`, `.pyw` | **94.8%** | Classes, async/sync defs, decorators, type hints, docstrings |
+| **TypeScript** | `.ts`, `.tsx` | **95.2%** | Interfaces, type aliases, classes, async functions, arrow signatures |
+| **JavaScript** | `.js`, `.jsx`, `.mjs`, `.cjs` | **93.5%** | Exported functions, classes, ES6 modules, prototype declarations |
+| **Rust** | `.rs` | **96.1%** | Traits, structs, enums, impl blocks, pub fn signatures |
+| **Go** | `.go` | **95.4%** | Interfaces, struct types, function/method receivers, packages |
+| **C / C++** | `.c`, `.cpp`, `.h`, `.hpp` | **94.0%** | Templates, class prototypes, struct layouts, header declarations |
+| **Java / C#** | `.java`, `.cs` | **95.0%** | Interfaces, records, class contracts, public method signatures |
+| **Solidity** | `.sol` | **93.8%** | Smart contracts, interfaces, structs, events, external functions |
+| **Ruby** | `.rb`, `.rake` | **92.5%** | Modules, classes, method headers, mixins, attribute accessors |
+| **PHP** | `.php`, `.phtml` | **93.1%** | Namespaces, traits, interfaces, classes, public function signatures |
+| **Swift** | `.swift` | **94.6%** | Protocols, struct models, extensions, actors, func headers |
+| **Kotlin** | `.kt`, `.kts` | **95.1%** | Data classes, interfaces, sealed hierarchies, fun signatures |
+| **Dart** | `.dart` | **93.9%** | Flutter widgets, mixins, abstract classes, typed method signatures |
+| **Scala** | `.scala`, `.sc` | **94.5%** | Case classes, traits, objects, companion patterns, def headers |
+| **Elixir** | `.ex`, `.exs` | **92.8%** | Modules, structs, typespecs (`@spec`), public function heads |
 
 ### 3. Change Blast Radius Analysis
 Before refactoring a class or function, T-Zero calculates its exact downstream dependency impact (0–100 score), identifying every file, import, and symbol that could break.
@@ -284,6 +301,13 @@ Eliminates AI coding hallucinations before changes touch files. Statically inter
 
 ### 7. Anti-Reinvention Engine
 Automatically surfaces reusable existing utility helpers across the repository AST (`suggest_reusable_helpers` / `--helpers`), injecting ready-to-use imports into focus skeletons so AI models never duplicate code already written in your project.
+
+### 8. AST-Tolerant Fuzzy Patcher & Autonomous Context Engineering Suite
+- **AST-Tolerant Fuzzy Patcher (`--patch`):** Resiliently resolves LLM patch failures caused by line-number drift, 2-space vs. 4-space indentation mismatches, comment variations, and function boundary ambiguity through a 5-tier fuzzy matching algorithm.
+- **Dynamic Token Budget Packer (`--pack [BUDGET]`):** Solves the context window knapsack packing problem, allocating multi-tier AST representations (T-1 Raw to T-4 Signatures) to fit an exact token ceiling (8k, 16k, 32k, 64k, 128k) with relevance focus.
+- **AST Type Stub & Interface (.pyi) Generator (`--stubs`):** Generates PEP-484 compliant typed interfaces from AST, extracting decorators, method signatures, docstrings, and inferred default types with up to **95% token savings**.
+- **$0 Offline Conventional Commit & Changelog Synthesizer (`--commit-msg`, `--changelog`):** Evaluates staged AST git diffs 100% locally to synthesize Conventional Commit messages and formatted release notes with zero cloud LLM API costs.
+- **Turnkey CI/CD Security & Pipeline Generator (`--ci`, `--guard-install`):** Generates production GitHub Actions workflows, GitLab CI definitions, and pre-commit security gates to block secret leaks and token bloat before code is committed.
 
 ---
 

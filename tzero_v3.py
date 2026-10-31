@@ -1119,6 +1119,24 @@ class PolyglotSignatureExtractor:
             return cls.reduce_kotlin(code, mode)
         elif ext == ".swift":
             return cls.reduce_swift(code, mode)
+        elif ext in (".rb", ".rake", ".gemspec"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_ruby(code, mode)
+        elif ext in (".php", ".phtml"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_php(code, mode)
+        elif ext in (".dart",):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_dart(code, mode)
+        elif ext in (".sol",):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_solidity(code, mode)
+        elif ext in (".scala", ".sc"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_scala(code, mode)
+        elif ext in (".ex", ".exs"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_elixir(code, mode)
         return code
 
     @staticmethod
@@ -1582,6 +1600,21 @@ class TokenReducer:
         elif ext == ".sol":
             from tzero_polyglot import PolyglotTokenReducer
             return PolyglotTokenReducer.reduce_solidity(code, mode)
+        elif ext in (".rb", ".rake", ".gemspec"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_ruby(code, mode)
+        elif ext in (".php", ".phtml"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_php(code, mode)
+        elif ext in (".dart",):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_dart(code, mode)
+        elif ext in (".scala", ".sc"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_scala(code, mode)
+        elif ext in (".ex", ".exs"):
+            from tzero_polyglot import PolyglotTokenReducer
+            return PolyglotTokenReducer.reduce_elixir(code, mode)
             
         return TokenReducer._default_trim(code)
 
@@ -8291,6 +8324,22 @@ def main():
     parser.add_argument("--helpers", "--suggest-helpers", metavar="QUERY", help="Discover reusable helpers/utilities across repository AST to avoid duplicate code")
     parser.add_argument("--guard", "--verify-code", metavar="CODE_OR_FILE", help="Validate code against AST contracts to eliminate hallucinations before applying")
     parser.add_argument("--grounding-contract", action="store_true", help="Generate immutable AST grounding contract for LLM prompt pinning")
+    parser.add_argument("--patch", "--apply-patch", dest="apply_patch", metavar="DIFF_FILE_OR_STR", help="Apply patch with AST-tolerant fuzzy matching (whitespace & line drift agnostic)")
+    parser.add_argument("--target", default=None, metavar="TARGET_FILE", help="Target file for --patch (optional if patch specifies file header)")
+    parser.add_argument("--fuzzy", action="store_true", default=True, help="Enable fuzzy AST and whitespace matching for patch application (default: True)")
+    parser.add_argument("--no-fuzzy", dest="fuzzy", action="store_false", help="Disable fuzzy matching and enforce exact line matches only")
+    parser.add_argument("--dry-run-patch", action="store_true", help="Validate patch applicability without modifying files on disk")
+    parser.add_argument("--reverse-patch", action="store_true", help="Un-apply / revert patch changes")
+    parser.add_argument("--pack", nargs="?", const=16000, type=int, default=None, metavar="BUDGET", help="Pack codebase into an exact token budget (default: 16000 tokens)")
+    parser.add_argument("--focus", default="", metavar="TARGET", help="Focus file or semantic search query for context budget packing")
+    parser.add_argument("--pack-out", default=None, metavar="FILE", help="Output file for packed context bundle (default: stdout)")
+    parser.add_argument("--commit-msg", action="store_true", help="Generate Conventional Commit message from local AST git diff ($0 local engine)")
+    parser.add_argument("--changelog", nargs="?", const="v8.2.0", default=None, metavar="VERSION", help="Generate release CHANGELOG markdown from git history")
+    parser.add_argument("--ci", choices=["github", "gitlab", "pre-commit", "all"], default=None, help="Install turnkey CI/CD security and verification workflow")
+    parser.add_argument("--stubs", nargs="?", const=".", default=None, metavar="PATH", help="Generate PEP-484 AST type stubs (.pyi) for target file or workspace")
+    parser.add_argument("--stubs-out", default=None, metavar="DIR", help="Output directory for generated type stubs (default: alongside .py files)")
+    parser.add_argument("--guard-install", action="store_true", help="Install local git pre-commit zero-leak and token security hook")
+    parser.add_argument("--tui", "--monitor", "--cockpit", action="store_true", help="Launch live ANSI terminal cockpit and interactive executive dashboard")
     parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v8.0.1 Master Edition (engine v4.1.0)")
 
     def print_quickstart_guide():
@@ -8307,6 +8356,8 @@ def main():
     $ tzero init --cursor
     $ tzero init --claude
     $ tzero init --windsurf
+    veya:
+    $ tzero-add-mcp
 
 2️⃣  Terminal Sihirbazını Başlat:
     $ tzero --cli
@@ -8478,6 +8529,97 @@ def main():
         print(res["markdown"])
     elif args.pr_report is not None:
         run_pr_report_cli(args.dir, args.pr_report)
+    elif args.apply_patch is not None:
+        from tzero_patch import ASTFuzzyPatcher, patch_file
+        patch_arg = args.apply_patch
+        target = args.target
+
+        patch_text = patch_arg
+        if os.path.isfile(patch_arg):
+            with open(patch_arg, "r", encoding="utf-8", errors="replace") as pf:
+                patch_text = pf.read()
+
+        if not target:
+            file_patches = ASTFuzzyPatcher.parse_patch(patch_text)
+            if file_patches and file_patches[0].target_file:
+                target = file_patches[0].target_file
+
+        if not target:
+            print("\033[31m[ERROR] No target file specified. Use --target <path/to/file.py>\033[0m")
+            sys.exit(1)
+
+        target_path = os.path.join(args.dir, target) if not os.path.isabs(target) and not os.path.exists(target) else target
+        res = patch_file(
+            target_path,
+            patch_text,
+            in_place=True,
+            fuzzy=args.fuzzy,
+            dry_run=args.dry_run_patch,
+            backup=True
+        )
+        if res.get("success"):
+            strat_list = ", ".join(res.get("strategies_used", []))
+            print(f"\033[32m[SUCCESS] Applied {res['applied_hunks']}/{res['total_hunks']} hunks to {target_path} (Tolerances: {strat_list})\033[0m")
+            if res.get("backup_created"):
+                print(f"  Backup preserved at: {res['backup_created']}")
+        else:
+            print(f"\033[31m[FAILED] Could not apply patch to {target_path}: {res.get('error', 'Hunk match failed')}\033[0m")
+            sys.exit(1)
+    elif args.pack is not None:
+        from tzero_packer import pack_workspace
+        budget = args.pack
+        focus = getattr(args, "focus", "")
+        out_f = getattr(args, "pack_out", None)
+        res = pack_workspace(workspace_dir=args.dir, budget_tokens=budget, focus=focus, out_file=out_f)
+        if out_f:
+            print(f"\033[32m[SUCCESS] Packed context bundle ({res.total_tokens:,} tokens, {res.utilization_pct}% capacity) saved to: {out_f}\033[0m")
+        else:
+            print(res.bundle_text)
+    elif args.commit_msg:
+        from tzero_commit import LocalSemanticCommitSynthesizer
+        msg = LocalSemanticCommitSynthesizer.generate_commit_message(repo_dir=args.dir, staged=True)
+        print(msg)
+    elif args.changelog is not None:
+        from tzero_commit import LocalSemanticCommitSynthesizer
+        entry = LocalSemanticCommitSynthesizer.generate_changelog_entry(version=args.changelog, repo_dir=args.dir)
+        print(entry)
+    elif args.ci is not None:
+        from tzero_ci import CIPipelineGenerator
+        target = args.ci
+        installed = []
+        if target in ("github", "all"):
+            _, p = CIPipelineGenerator.install_github_workflow(args.dir)
+            installed.append(p)
+        if target in ("gitlab", "all"):
+            _, p = CIPipelineGenerator.install_gitlab_ci(args.dir)
+            installed.append(p)
+        if target in ("pre-commit", "all"):
+            _, p = CIPipelineGenerator.install_pre_commit(args.dir)
+            installed.append(p)
+        print("\033[32m[SUCCESS] Turnkey CI/CD pipelines installed:\033[0m")
+        for p in installed:
+            print(f"  - {os.path.relpath(p, args.dir)}")
+    elif args.stubs is not None:
+        from tzero_stubs import TypeStubGenerator
+        target = args.stubs
+        out_dir = getattr(args, "stubs_out", None)
+        if os.path.isfile(target):
+            _, raw_t, stub_t, sav = TypeStubGenerator.generate_stub_file(target, dst_path=out_dir)
+            print(f"\033[32m[SUCCESS] Generated type stub for {target} ({stub_t:,} tokens vs {raw_t:,} raw tokens - {sav:.1f}% reduction)\033[0m")
+        else:
+            res = TypeStubGenerator.generate_workspace_stubs(workspace_dir=target, output_dir=out_dir)
+            print(f"\033[32m[SUCCESS] Generated {res['total_files']} type stubs in {res['output_dir']} (~{res['stub_tokens']:,} tokens vs {res['raw_tokens']:,} raw tokens - {res['overall_savings_pct']}% reduction)\033[0m")
+    elif getattr(args, "guard_install", False):
+        from tzero_guard import GitSecurityGuard
+        res = GitSecurityGuard.install_hook(args.dir)
+        if res.get("success"):
+            print(f"\033[32m[SUCCESS] {res.get('message', 'Pre-commit zero-leak guard installed.')}\033[0m")
+        else:
+            print(f"\033[31m[FAILED] {res.get('message')}\033[0m")
+            sys.exit(1)
+    elif getattr(args, "tui", False):
+        from tzero_tui import TZeroTerminalCockpit
+        TZeroTerminalCockpit.run_interactive(args.dir)
     elif args.gui:
         launch_gui()
     elif args.scan is not None:
