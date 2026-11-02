@@ -468,7 +468,7 @@ def calculate_token_cost(token_count: int, provider_name: str) -> float:
 # i18n Translations
 TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "en": {
-        "title": "T-Zero Developer Console & Context Architect v8.0.1",
+        "title": "T-Zero Developer Console & Context Architect v9.9.0",
         "subtitle": f"Developer: {DEV_NAME} | {DEV_URL_MAIN} | {DEV_URL_BIO}",
         "overview_tab": "🏠 Overview Dashboard",
         "setup_tab": "⚡ Setup & AI Models",
@@ -505,7 +505,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "audit_btn": "🛡️ SECURITY AUDIT"
     },
     "tr": {
-        "title": "T-Zero Geliştirici Konsolu & Bağlam Mimarı v8.0.1",
+        "title": "T-Zero Geliştirici Konsolu & Bağlam Mimarı v9.9.0",
         "subtitle": f"Geliştirici: {DEV_NAME} | {DEV_URL_MAIN} | {DEV_URL_BIO}",
         "overview_tab": "🏠 Genel Bakış",
         "setup_tab": "⚡ Kurulum & Model",
@@ -8337,18 +8337,125 @@ def main():
     parser.add_argument("--focus", default="", metavar="TARGET", help="Focus file or semantic search query for context budget packing")
     parser.add_argument("--pack-out", default=None, metavar="FILE", help="Output file for packed context bundle (default: stdout)")
     parser.add_argument("--commit-msg", action="store_true", help="Generate Conventional Commit message from local AST git diff ($0 local engine)")
-    parser.add_argument("--changelog", nargs="?", const="v8.2.0", default=None, metavar="VERSION", help="Generate release CHANGELOG markdown from git history")
+    parser.add_argument("--changelog", nargs="?", const="v9.9.0", default=None, metavar="VERSION", help="Generate release CHANGELOG markdown from git history")
     parser.add_argument("--ci", choices=["github", "gitlab", "pre-commit", "all"], default=None, help="Install turnkey CI/CD security and verification workflow")
     parser.add_argument("--stubs", nargs="?", const=".", default=None, metavar="PATH", help="Generate PEP-484 AST type stubs (.pyi) for target file or workspace")
     parser.add_argument("--stubs-out", default=None, metavar="DIR", help="Output directory for generated type stubs (default: alongside .py files)")
     parser.add_argument("--guard-install", action="store_true", help="Install local git pre-commit zero-leak and token security hook")
     parser.add_argument("--tui", "--monitor", "--cockpit", action="store_true", help="Launch live ANSI terminal cockpit and interactive executive dashboard")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v8.0.1 Master Edition (engine v4.1.0)")
+    parser.add_argument("--neural", "--cortex", action="store_true", help="Launch T-Zero Neural Cortex & Autonomous Multi-Agent OS")
+    parser.add_argument("--swarm", nargs="?", const=".", default=None, metavar="MISSION", help="Run 12-agent autonomous neural swarm evaluation on workspace")
+    parser.add_argument("--forge", nargs=2, metavar=("ROLE", "TASK"), help="Synthesize domain-specific subagent persona (e.g. --forge SecurityAuditor 'Audit API routes')")
+    parser.add_argument("--matrix", action="store_true", help="Display full 105 T-Zero Enterprise AI Capability Matrix")
+    parser.add_argument("--pillar", type=int, choices=range(1, 8), default=None, help="Filter --matrix by Pillar number (1 to 7)")
+    parser.add_argument("--hallucination-check", "--hc", metavar="FILE_OR_CODE", dest="hallucination_check", help="Run pre-flight AST reality-lock to verify imports and method calls")
+    parser.add_argument("--tutorial", "--guide", action="store_true", help="Launch interactive step-by-step master tutorial for T-Zero Neural Cortex & IDE setups")
+    parser.add_argument("--benchmark", nargs="?", const=".", default=None, metavar="PATH", help="Run multi-model token reduction, latency & ROI benchmark (Claude, GPT-4o, Gemini, DeepSeek)")
+    parser.add_argument("--benchmark-svg", action="store_true", help="Generate animated macOS terminal SVG recording of benchmark for README")
+    parser.add_argument("--task-benchmark", action="store_true", help="Run empirical task-completion & BPE tokenizer benchmark (tiktoken)")
+    parser.add_argument("--huggingface", "--hf", action="store_true", help="Launch local Hugging Face Space Gradio app or display deployment guide")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v9.9.0 Master Edition (engine v4.1.0)")
+
+
+    def print_master_tutorial():
+        print("""\033[36m================================================================================
+🧠 T-ZERO MASTER TUTORIAL: THE WORLD'S #1 AST CONTEXT ARCHITECT & AGENT-OS
+================================================================================\033[0m
+🎯 OVERVIEW:
+T-Zero is the world's most advanced context engineering engine and autonomous
+multi-agent operating system. It cuts up to 95% of LLM prompt tokens while preserving
+100% of typed signatures, interface contracts, and dependency topologies.
+
+\033[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 MODULE 1: THE TOKEN CRISIS & AST SKELETONIZATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+Problem: When AI assistants read full codebases, 85-95% of prompt tokens are wasted
+on routine loop bodies, intermediate math, and internal variable reassignments.
+Solution: T-Zero extracts compact AST signatures (Class contracts, typed params,
+docstrings) and collapses implementation bodies ({...}) to save tokens.
+
+Try it now:
+  $ tzero --scan .
+  $ tzero --tree . --out skeleton_tree.txt
+  $ tzero --pack 16000 --focus auth.py
+
+\033[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 MODULE 2: UNIVERSAL 1-CLICK IDE SETUP (1 SECOND)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+T-Zero connects natively to any AI code editor via the Model Context Protocol (MCP):
+  • Cursor:          $ tzero init --cursor
+  • Claude Desktop:  $ tzero init --claude
+  • Antigravity IDE: $ tzero init --antigravity
+  • Windsurf:        $ tzero init --windsurf
+  • Cline:           $ tzero init --cline
+  • All at once:     $ tzero init
+
+\033[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 MODULE 3: THE 105 ENTERPRISE CAPABILITY MATRIX (7 PILLARS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+T-Zero provides 105 modular capabilities divided into 7 grand pillars:
+  1. Pillar I:   Compiler, AST & Program Analysis (CAP-001 to CAP-015)
+  2. Pillar II:  Matryoshka Context & Token Economy (CAP-016 to CAP-030)
+  3. Pillar III: Shadow Workspace & Simulation (CAP-031 to CAP-045)
+  4. Pillar IV:  Runtime & Deep Telemetry (CAP-046 to CAP-060)
+  5. Pillar V:   Zero-Latency Orchestration & Meta-Tools (CAP-061 to CAP-075)
+  6. Pillar VI:  Cognitive Memory & Enterprise Knowledge Graph (CAP-076 to CAP-090)
+  7. Pillar VII: Hardware Bridge, Security & Core Performance (CAP-091 to CAP-105)
+
+Inspect by pillar:
+  $ tzero --matrix
+  $ tzero --matrix --pillar 1
+  $ tzero --matrix --pillar 7
+
+\033[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 MODULE 4: THE 12 AUTONOMOUS FLEET SUBAGENTS & SWARM MISSIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+T-Zero contains 12 built-in autonomous fleet subagents:
+  🛡️  SecuritySentinelAgent     - 100% Zero-Leak OS Keyring & Entropy Scrubber
+  ⚡  ASTArchitectAgent         - AST Skeletonization & 95% Token Pruning
+  🧹  DeadCodePurgerAgent        - Orphan Symbol & Unreachable Branch Purging
+  🧪  TestSynthesizerAgent       - Property-Based Mutation Unit Tests
+  🌐  PolyglotTranspilerAgent    - Cross-Language Boundary & FFI Resolution
+  🔍  BugHunterAgent             - AST Causal Trace & Stack Dump Autopsy
+  ⏱️  PerformanceProfilerAgent   - Live CPU Flamegraphs & Complexity Profiler
+  📝  DocstringGeneratorAgent    - AST Type Inlining & PEP-257 Synchronization
+  📦  DependencyAuditorAgent     - Lockfile Drift & Conflict Simulator
+  🛠️  RefactorModernizerAgent    - Surgical AST Patching & Clone Deduplication
+  ⚖️  HallucinationValidatorAgent- Pre-Flight Reality-Lock AST Validation
+  🚀  DevOpsReleaseAgent         - Zero-Roundtrip DAG Execution & CI/CD Guard
+
+Execute a multi-agent swarm mission across workspace:
+  $ tzero --swarm "Full Workspace AST & Security Audit"
+
+\033[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 MODULE 5: PRE-FLIGHT REALITY-LOCK (HALLUCINATION ANNIHILATOR)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+Eliminate hallucinated method calls and phantom imports before code is executed:
+  $ tzero --hallucination-check "import math; x = math.sqrt(25)"
+  $ tzero --hallucination-check path/to/ai_generated_patch.py
+
+\033[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 MODULE 6: AGENTFORGE CUSTOM SUBAGENT PERSONA SYNTHESIZER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
+  $ tzero --forge SecurityAuditor "Audit API routes for zero-leak compliance"
+  $ tzero --forge DbOptimizer "Optimize SQL queries and N+1 call sites"
+
+\033[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 MODULE 7: INTERACTIVE COCKPITS, TUI & 3D NEURAL WEB STUDIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+  • ANSI Terminal Cockpit:  $ tzero --tui
+  • Desktop GUI Studio:      $ tzero-gui (or $ tzero --gui)
+  • 3D Synaptic Web Lab:     $ python benchmark-site/serve.py (Opens on http://localhost:8080)
+
+⭐ Star T-Zero on GitHub: https://github.com/toprakahmetaydogmus/TZeroAlgorithm
+================================================================================
+""")
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v8.0.1 MASTER (engine v4.1.0)
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v9.9.0 MASTER (engine v4.1.0)
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 
@@ -8387,6 +8494,9 @@ def main():
     $ tzero --diff
     veya:
     $ tzero --diff HEAD~1
+
+9️⃣  Hugging Face Space & Canlı Web Paneli:
+    $ tzero hf
 
 ⭐ GitHub'da projeyi yıldızlayarak destek olun:
     https://github.com/toprakahmetaydogmus/TZeroAlgorithm
@@ -8428,6 +8538,20 @@ def main():
             "cost": "--cost",
             "drift": "--drift",
             "clip": "--clip",
+            "neural": "--neural",
+            "cortex": "--neural",
+            "swarm": "--swarm",
+            "forge": "--forge",
+            "matrix": "--matrix",
+            "tutorial": "--tutorial",
+            "guide": "--tutorial",
+            "benchmark": "--benchmark",
+            "bench": "--benchmark",
+            "task-benchmark": "--task-benchmark",
+            "task-bench": "--task-benchmark",
+            "hf": "--huggingface",
+            "huggingface": "--huggingface",
+            "space": "--huggingface",
         }
         if sub in sub_map:
             sys.argv[1] = sub_map[sub]
@@ -8515,6 +8639,80 @@ def main():
         else:
             DriftAnalyzer.render_cli(rep)
         sys.exit(0)
+    elif getattr(args, "tutorial", False) or getattr(args, "guide", False):
+        print_master_tutorial()
+        sys.exit(0)
+    elif getattr(args, "neural", False):
+        from tzero_neural_cortex import CapabilityRegistry, TZeroAgentFleet
+        reg = CapabilityRegistry()
+        fleet = TZeroAgentFleet()
+        print("\033[36m================================================================================")
+        print("🧠 T-ZERO NEURAL CORTEX & AGENT-OS v9.0.0 (100+ CAPABILITIES & 12 FLEET AGENTS)")
+        print("================================================================================\033[0m")
+        print(f"✅ Active Capabilities: {len(reg.list_all())} modular capabilities registered")
+        print(f"🤖 Autonomous Fleet:    {len(fleet.list_agents())} specialized subagents ready")
+        print("🌐 Neural Web Studio:   Run 'python benchmark-site/serve.py' for 3D Neural Canvas (port 8080)")
+        sys.exit(0)
+    elif getattr(args, "matrix", False):
+        from tzero_neural_cortex import CapabilityRegistry
+        reg = CapabilityRegistry()
+        p_filter = getattr(args, "pillar", None)
+        all_caps = reg.search(pillar_num=p_filter) if p_filter else reg.list_all()
+        header = "⚡ T-ZERO 105 ENTERPRISE AI CAPABILITY MATRIX"
+        if p_filter:
+            header += f" (Pillar {p_filter} - {len(all_caps)} Capabilities)"
+        else:
+            header += f" ({len(all_caps)} Total across 7 Pillars)"
+        print(f"\n\033[36m{header}\033[0m\n")
+        current_cat = None
+        for cap in all_caps:
+            if cap.category.value != current_cat:
+                current_cat = cap.category.value
+                print(f"\n\033[33m=== {current_cat} ===\033[0m")
+            print(f"  \033[32m[{cap.id}]\033[0m \033[1m{cap.name}\033[0m ({cap.tier}) - {cap.description}")
+        sys.exit(0)
+    elif getattr(args, "swarm", None) is not None:
+        from tzero_neural_cortex import NeuralSwarmCoordinator
+        coordinator = NeuralSwarmCoordinator()
+        mission_text = args.swarm if args.swarm != "." else "Full Workspace AST & Security Audit"
+        plan = coordinator.create_mission_plan(
+            mission_title=mission_text,
+            tasks=[{"agent": a["name"], "scope": [args.dir]} for a in coordinator.fleet.list_agents()]
+        )
+        report = coordinator.execute_mission(plan)
+        print(f"\n\033[36m🐝 T-ZERO NEURAL SWARM MISSION: {mission_text}\033[0m")
+        print(f"Conflict-Free Isolation: {'✅ Active' if report['conflict_free'] else '⚠️ Overlapping'}")
+        print("================================================================================")
+        for res in report["agent_results"]:
+            status_color = "\033[32m" if res.get("verdict") == "APPROVED" else "\033[33m"
+            print(f"  {status_color}[{res.get('verdict')}]\033[0m \033[1m{res.get('agent_name')}\033[0m: {res.get('findings', [''])[0]}")
+        sys.exit(0)
+    elif getattr(args, "forge", None) is not None:
+        from tzero_neural_cortex import AgentForge
+        role, task = args.forge
+        forge = AgentForge()
+        res = forge.synthesize_subagent(role=role, task=task, workspace_dir=args.dir)
+        print(f"\033[32m[SUCCESS] Synthesized Autonomous Subagent '{res['role']}' for task: '{res['task']}'\033[0m")
+        print(f"  - Config: {res['generated_files']['agent.json']}")
+        print(f"  - Skill:  {res['generated_files']['SKILL.md']}")
+        sys.exit(0)
+    elif getattr(args, "hallucination_check", None) is not None:
+        from tzero_neural_cortex import HallucinationGuard
+        target = args.hallucination_check
+        code_str = target
+        if os.path.isfile(target):
+            with open(target, "r", encoding="utf-8", errors="replace") as f:
+                code_str = f.read()
+        guard = HallucinationGuard()
+        res = guard.validate_code(code_str)
+        if res.is_clean:
+            print(f"\033[32m[REALITY-LOCK PASS] No hallucinated methods or phantom imports detected ({res.scanned_calls} calls, {res.scanned_imports} imports).\033[0m")
+            sys.exit(0)
+        else:
+            print(f"\033[31m[HALLUCINATION DETECTED] Found {len(res.hallucinations)} hallucinated symbols:\033[0m")
+            for h in res.hallucinations:
+                print(f"  - Line {h.line_number}: {h.diagnosis}")
+            sys.exit(1)
     elif args.init_hooks is not None:
         from tzero_guard import GitSecurityGuard
         res = GitSecurityGuard.install_hook(args.init_hooks)
@@ -8698,6 +8896,39 @@ def main():
         else:
             print(f"\033[31m[FAILED] {res.get('message')}\033[0m")
             sys.exit(1)
+    elif getattr(args, "benchmark", None) is not None or getattr(args, "benchmark_svg", False):
+        from tzero_benchmark import TZeroBenchmarkEngine
+        target = args.benchmark if (args.benchmark and args.benchmark != ".") else args.dir
+        rep = TZeroBenchmarkEngine.run_benchmark(target)
+        if getattr(args, "benchmark_svg", False):
+            out_p = TZeroBenchmarkEngine.generate_animated_svg(rep)
+            print(f"\033[32m[SUCCESS] Generated vector-animated macOS terminal SVG recording: {out_p}\033[0m")
+        else:
+            TZeroBenchmarkEngine.render_cli(rep)
+            out_p = TZeroBenchmarkEngine.generate_animated_svg(rep)
+            print(f"\033[32m[SUCCESS] Vector-animated macOS terminal recording saved to: {out_p}\033[0m")
+    elif getattr(args, "task_benchmark", False):
+        from tzero_task_benchmark import TaskCompletionBenchmark
+        rep = TaskCompletionBenchmark.evaluate_all()
+        print(TaskCompletionBenchmark.format_terminal_summary(rep))
+    elif getattr(args, "huggingface", False):
+        app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "huggingface-space", "app.py")
+        if not os.path.exists(app_path):
+            app_path = os.path.join(os.getcwd(), "huggingface-space", "app.py")
+        print("\033[36m" + "=" * 80)
+        print("🤗 SİBER AKADEMİ — T-ZERO HUGGING FACE SPACE & GRADIO COCKPIT (v9.9.0)")
+        print("=" * 80 + "\033[0m")
+        print("🌐 Official Live Space : https://huggingface.co/spaces/toprakke4/tzero-token-reducer")
+        print(f"📁 Local Application   : {app_path}")
+        print("\n🚀 Launching local Gradio Web Cockpit on http://localhost:7860 ...")
+        if os.path.exists(app_path):
+            try:
+                import subprocess
+                subprocess.run([sys.executable, app_path])
+            except KeyboardInterrupt:
+                print("\n[Hugging Face Space stopped by user]")
+        else:
+            print("[INFO] Directory 'huggingface-space/' not found in current folder.")
     elif getattr(args, "tui", False):
         from tzero_tui import TZeroTerminalCockpit
         TZeroTerminalCockpit.run_interactive(args.dir)
