@@ -11,6 +11,7 @@ Developer: Toprak Ahmet Aydoğmuş (Siber Akademi)
 import argparse
 import hashlib
 import json
+import re
 import os
 import shutil
 import sys
@@ -21,7 +22,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
 
-APP_VERSION = "9.9.0"
+APP_VERSION = "10.0.0"
 SERVER_NAME = "tzero"
 SERVER_FILENAME = "TZeroMCP.exe"
 
@@ -247,7 +248,13 @@ def merge_server_config(
     config: Dict[str, object] = {}
     if target.config_path.exists():
         with target.config_path.open("r", encoding="utf-8-sig") as config_file:
-            loaded = json.load(config_file)
+            raw_text = config_file.read()
+        try:
+            loaded = json.loads(raw_text)
+        except Exception:
+            cleaned = re.sub(r"//.*", "", raw_text)
+            cleaned = re.sub(r",\s*([\]}])", r"\1", cleaned)
+            loaded = json.loads(cleaned)
         if not isinstance(loaded, dict):
             raise ValueError("Configuration root must be a JSON object")
         config = loaded
@@ -1045,7 +1052,7 @@ def run_cli() -> int:
         print(f"\n[T-Zero MCP Installer v{APP_VERSION}] Installing to {len(selected)} target(s)...")
         successes, failures = install_targets(selected, log_fn=lambda m: print(f"  -> {m}"))
         print(f"[T-Zero MCP] Completed: {successes} configured, {failures} failed.")
-        print("⭐ Enjoying T-Zero? Please star the project on GitHub: https://github.com/toprakahmetaydogmus/TZeroAlgorithm\n")
+        print("[*] Enjoying T-Zero? Please star the project on GitHub: https://github.com/toprakahmetaydogmus/TZeroAlgorithm\n")
         return 0 if failures == 0 else 1
 
     # Default action: launch GUI if display available, otherwise list targets
@@ -1061,7 +1068,7 @@ def run_cli() -> int:
         if not selected:
             selected = all_targets
         successes, failures = install_targets(selected, log_fn=lambda m: print(f"  -> {m}"))
-        print("⭐ Enjoying T-Zero? Please star the project on GitHub: https://github.com/toprakahmetaydogmus/TZeroAlgorithm\n")
+        print("[*] Enjoying T-Zero? Please star the project on GitHub: https://github.com/toprakahmetaydogmus/TZeroAlgorithm\n")
         return 0 if failures == 0 else 1
 
 
@@ -1104,7 +1111,7 @@ def run_init(argv: Optional[List[str]] = None) -> int:
     # Print banner
     print("""
 \033[1;36m================================================================================
-⚡ SİBER AKADEMİ — T-ZERO 1-CLICK MCP INITIALIZATION (v9.9.0)
+⚡ SİBER AKADEMİ — T-ZERO 1-CLICK MCP INITIALIZATION (v10.0.0)
 ================================================================================\033[0m
 \033[32m🎯 Zero-Config AST Codebase Context & 100% Zero-Leak Security Guard\033[0m
 """)
