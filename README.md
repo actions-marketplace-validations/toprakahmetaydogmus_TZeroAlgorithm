@@ -6,8 +6,9 @@
 ### *Empirically Proven Token Optimization Engine, 14 Canonical MCP Tools, Real BPE Tokenizer Benchmarks & Pre-Flight Reality-Lock for AI Coding Assistants.*
 
 [![Glama MCP Badge](https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/score.svg)](https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm)
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Zero--GPU%20Live%20Demo-ffd21e?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/spaces/toprakke4/tzero-token-reducer)
+[![Live Vercel Hub](https://img.shields.io/badge/%E2%9A%A1%20Live%20Benchmark-Vercel%20Gateway-000000?style=for-the-badge&logo=vercel)](https://tzero-indol.vercel.app)
 [![TDQS 5.0/5.0](https://img.shields.io/badge/TDQS-5.0%20%2F%205.0%20Anchor%20Certified-10b981?style=flat-square&logo=checkmarx&logoColor=white)](#tdqs-certification)
-[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Web%20Demo-ffd21e?style=flat-square&logo=huggingface)](https://huggingface.co/spaces/toprakke4/tzero-token-reducer)
 [![PyPI Version](https://img.shields.io/pypi/v/tzero-mcp?color=38bdf8&style=flat-square&logo=pypi)](https://pypi.org/project/tzero-mcp/)
 [![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue?style=flat-square)](https://github.com/toprakahmetaydogmus/TZeroAlgorithm/actions)
 [![Tests](https://img.shields.io/badge/tests-313%20passing-34d399?style=flat-square&logo=githubactions)](https://github.com/toprakahmetaydogmus/TZeroAlgorithm/actions)
@@ -24,6 +25,8 @@
     <img src="https://glama.ai/mcp/servers/toprakahmetaydogmus/TZeroAlgorithm/badges/card.svg" alt="tzero-mcp MCP server on Glama" width="460">
   </a>
 </p>
+
+> 🚀 **Live Interactive Web Studio:** Test T-Zero AST compression, Zero-Leak security auditing, and token savings in real time on Hugging Face Spaces (powered by NVIDIA RTX 6000 Zero-GPU): **[huggingface.co/spaces/toprakke4/tzero-token-reducer](https://huggingface.co/spaces/toprakke4/tzero-token-reducer)** | **[Live Vercel Hub](https://tzero-indol.vercel.app)**
 
 <p align="center">
   <a href="#reproducible-benchmarks">
@@ -381,7 +384,7 @@ pip install tzero-mcp
 tzero init
 
 # (İsteğe bağlı) VS Code & Cursor Eklentisini (.vsix) yükle:
-code --install-extension dist/tzero-vscode-10.0.0.vsix
+code --install-extension dist/tzero-vscode-10.5.0.vsix
 
 # Kod tabanını sıkıştır ve ağaç çıkar:
 tzero --tree . --out context.txt
@@ -389,6 +392,44 @@ tzero --tree . --out context.txt
 # Canlı web demosunu yerel başlat:
 tzero space
 ```
+
+---
+
+<a id="tzero-pc-fixer"></a>
+## 🩺 T-Zero PC-Fixer & Codebase Doctor: The 12,600+ Line Autonomous Self-Healing Monolith
+
+<div align="center">
+
+<a href="https://github.com/toprakahmetaydogmus/tzero-pc-fixer">
+  <img src="assets/tzero_pc_fixer_banner.svg" alt="T-Zero PC-Fixer & Codebase Doctor Banner" width="100%" style="max-width: 960px; border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.8);">
+</a>
+
+[![T-Zero PC-Fixer Standalone Repo](https://img.shields.io/badge/Standalone%20Repo-toprakahmetaydogmus%2Ftzero--pc--fixer-purple?style=for-the-badge&logo=github)](https://github.com/toprakahmetaydogmus/tzero-pc-fixer)
+[![Release v1.0.0](https://img.shields.io/badge/Release-v1.0.0%20Verified-blue?style=for-the-badge&logo=tag)](https://github.com/toprakahmetaydogmus/tzero-pc-fixer/releases)
+[![Zero-Dependency](https://img.shields.io/badge/Dependencies-Zero%20(Pure%20Python%20AST)-10b981?style=for-the-badge&logo=python)](https://github.com/toprakahmetaydogmus/tzero-pc-fixer)
+
+</div>
+
+**T-Zero PC-Fixer** is an autonomous, zero-dependency operating system doctor and static AST self-healing engine compiled into a single 12,600+ line Python monolith (`tzero_pc_fixer.py`). It diagnoses and surgically cures broken developer workstations, memory leaks, orphaned zombie processes, contaminated environments, and static codebase defects with $0.00 cloud cost.
+
+### 🚀 1-Click Zero-Dependency Installers
+
+**Windows (PowerShell 5.1+ / 7+):**
+```powershell
+irm https://raw.githubusercontent.com/toprakahmetaydogmus/tzero-pc-fixer/main/install.ps1 | iex
+```
+
+**macOS / Linux (Bash):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/toprakahmetaydogmus/tzero-pc-fixer/main/install.sh | bash
+```
+
+### 🧰 Autonomous Healing Capabilities:
+- **🖥️ Hardware & Process Surgeon:** Hunts runaway compiler/Node.js zombie processes, clears swap memory, verifies disk partition health, and unblocks port collisions (e.g. 8000, 3000, 5000, 8080).
+- **🐍 Python & Virtual Environment Doctor:** Detects broken symlinks, repairing contaminated `sys.path`, corrupted wheel caches, and Microsoft Store Python PATH hijacking.
+- **🛡️ CWE-78 & CWE-327 Static AST Remediator:** Rewrites dangerous `subprocess.Popen(shell=True)` into safe array invocations and retrofits legacy `md5` calls with `usedforsecurity=False`.
+- **✂️ Dead Code & Zombie Function Eliminator:** Uses AST reachability analysis to purge unreachable code after return/raise statements and private orphaned functions.
+- **⚡ Async/IO Event Loop Modernizer:** Detects blocking `time.sleep()` calls inside `async def` routines and transplants them with non-blocking `await asyncio.sleep()`.
 
 ---
 
