@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
 
-APP_VERSION = "10.2.0"
+APP_VERSION = "10.8.0"
 SERVER_NAME = "tzero"
 SERVER_FILENAME = "TZeroMCP.exe"
 
@@ -1169,7 +1169,18 @@ def run_init(argv: Optional[List[str]] = None) -> int:
    \033[36m"Use T-Zero to get the project skeleton and analyze the blast radius."\033[0m
    \033[36m"Use tzero reduce_tokens to prune noise and audit zero-leak security."\033[0m
 
-\033[90m⭐ Star T-Zero on GitHub: https://github.com/toprakahmetaydogmus/TZeroAlgorithm\033[0m
+\033[1;36m┌──────────────────────────────────────────────────────────────────────────────┐
+│  ⚡ SIBER AKADEMI T-ZERO CONTEXT ARCHITECT & MCP ENGINE                      │
+│                                                                              │
+│  Engineered by Toprak Ahmet Aydoğmuş & Siber Akademi to eliminate token     │
+│  bloat, token costs, and AI hallucinations for programmers worldwide.        │
+│                                                                              │
+│  If this open-source tool saved you tokens or improved your coding flow:     │
+│  👉 Please consider giving it a ⭐ on GitHub:                                │
+│     https://github.com/toprakahmetaydogmus/TZeroAlgorithm                    │
+│                                                                              │
+│  100% Free & Open-Source under MIT License. Thank you! 🚀                   │
+└──────────────────────────────────────────────────────────────────────────────┘\033[0m
 """)
     return 0 if failures == 0 else 1
 

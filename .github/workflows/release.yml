@@ -26,7 +26,13 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
+          python -m pip install build
           python -m pip install .
+          python -m build
+          Get-ChildItem dist\*.whl, dist\*.tar.gz | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)" | Out-File -Encoding ascii "$($_.FullName).sha256"
+          }
 
       - name: Run tests
         shell: pwsh
@@ -48,6 +54,25 @@ jobs:
             Write-Host "$name OK, size: $((Get-Item "dist\$name").Length) bytes"
           }
 
+      - name: Set up Node.js for VS Code Extension
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Package VS Code & Cursor Extension (.vsix)
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp LICENSE extensions/vscode/ 2>/dev/null || true
+          cd extensions/vscode
+          npx --yes @vscode/vsce package --no-dependencies -o ../../dist/
+          cd ../..
+          VSIX=$(ls dist/*.vsix 2>/dev/null | head -n 1)
+          if [ -n "$VSIX" ]; then
+            sha256sum "$VSIX" | awk '{print $1 "  " $2}' > "${VSIX}.sha256"
+            echo "VSIX Packaged: $VSIX"
+          fi
+
       - name: Compute SHA-256 checksums
         shell: pwsh
         run: |
@@ -68,6 +93,12 @@ jobs:
             dist/TZeroMCP.exe.sha256
             dist/AddMCP.exe
             dist/AddMCP.exe.sha256
+            dist/*.vsix
+            dist/*.vsix.sha256
+            dist/*.whl
+            dist/*.whl.sha256
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -80,4 +111,10 @@ jobs:
             dist/TZeroMCP.exe.sha256
             dist/AddMCP.exe
             dist/AddMCP.exe.sha256
+            dist/*.vsix
+            dist/*.vsix.sha256
+            dist/*.whl
+            dist/*.whl.sha256
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
           generate_release_notes: true

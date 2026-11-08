@@ -90,6 +90,11 @@ class TestCLI(unittest.TestCase):
         self.assertIn("QUICKSTART", res.stdout)
         self.assertIn("tzero-add-mcp", res.stdout)
 
+    def test_watch_mode(self):
+        import tzero_v3
+        res = tzero_v3.run_watch_mode("tests", once_test=True)
+        self.assertTrue(res)
+
     def test_natural_subcommands_without_dashes(self):
         # 1. 'tzero audit' should map to '--audit'
         res_audit = subprocess.run(
@@ -134,6 +139,84 @@ class TestCLI(unittest.TestCase):
         )
         self.assertEqual(res_drift.returncode, 0)
         self.assertIn("INSTRUCTION & ARCHITECTURAL DRIFT ANALYZER", res_drift.stdout)
+
+        # 5. 'tzero review' should run autonomous code review gate
+        res_rev = subprocess.run(
+            [sys.executable, "tzero_v3.py", "review"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+        self.assertEqual(res_rev.returncode, 0)
+        self.assertIn("T-ZERO AUTONOMOUS CODE REVIEW & REALITY-LOCK GATE", res_rev.stdout)
+
+        # 6. 'tzero demo' should run live instant demo
+        res_demo = subprocess.run(
+            [sys.executable, "tzero_v3.py", "demo"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+        self.assertEqual(res_demo.returncode, 0)
+        self.assertIn("LIVE INSTANT DEMONSTRATION", res_demo.stdout)
+        self.assertIn("AST Token Reduction", res_demo.stdout)
+
+        # 7. 'tzero check-arch' should run architecture live audit
+        res_arch = subprocess.run(
+            [sys.executable, "tzero_v3.py", "check-arch"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+        self.assertEqual(res_arch.returncode, 0)
+        self.assertIn("T-ZERO ARCH-AUDIT PASS", res_arch.stdout)
+
+        # 8. 'tzero contracts' should run public API contract guardian
+        res_contracts = subprocess.run(
+            [sys.executable, "tzero_v3.py", "contracts", "HEAD"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+        self.assertEqual(res_contracts.returncode, 0)
+        self.assertIn("T-ZERO CONTRACT GUARDIAN", res_contracts.stdout)
+
+        # 9. 'tzero debt' should run code health and technical debt index
+        res_debt = subprocess.run(
+            [sys.executable, "tzero_v3.py", "debt", "tests/test_cli.py"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+        self.assertEqual(res_debt.returncode, 0)
+        self.assertIn("T-Zero Code Health & Technical Debt Index", res_debt.stdout)
+
+        # 10. 'tzero budget' should run context budget optimizer and compression certifier
+        res_budget = subprocess.run(
+            [sys.executable, "tzero_v3.py", "budget", "tests/test_cli.py", "--target-tokens", "5000"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+        self.assertEqual(res_budget.returncode, 0)
+        self.assertIn("T-Zero Context Budget & Compression Certificate", res_budget.stdout)
+
+        # 11. 'tzero golden' should generate golden baseline
+        res_golden = subprocess.run(
+            [sys.executable, "tzero_v3.py", "golden", "generate"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+        self.assertEqual(res_golden.returncode, 0)
+        self.assertIn("T-ZERO GOLDEN ENGINE", res_golden.stdout)
 
 
 if __name__ == "__main__":

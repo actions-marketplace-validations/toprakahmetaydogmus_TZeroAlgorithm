@@ -1,0 +1,88 @@
+{
+  "name": "tzero-mcp",
+  "version": "10.8.0",
+  "description": "Deterministic AST Context Compressor, 95% Token Reducer & 20-Tool MCP Server for Cursor, Claude Desktop & Copilot",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "preferGlobal": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    "test",
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "bin": {
+    "tzero": "bin/tzero.js",
+    "tzero-mcp": "bin/tzero-mcp.js"
+  },
+  "scripts": {
+    "test": "node --test test/package.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toprakahmetaydogmus/TZeroAlgorithm.git"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/toprakahmetaydogmus"
+    },
+    {
+      "type": "individual",
+      "url": "https://github.com/toprakahmetaydogmus/TZeroAlgorithm"
+    }
+  ],
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "cursor",
+    "claude",
+    "claude-desktop",
+    "token-reduction",
+    "ast-pruning",
+    "context-window",
+    "ai-coding",
+    "antigravity",
+    "windsurf"
+  ],
+  "author": "Toprak Ahmet Aydoğmuş (Siber Akademi) <siberakademi@org.tr> (https://github.com/toprakahmetaydogmus)",
+  "contributors": [
+    {
+      "name": "Toprak Ahmet Aydoğmuş",
+      "email": "siberakademi@org.tr",
+      "url": "https://github.com/toprakahmetaydogmus"
+    },
+    {
+      "name": "Siber Akademi Core Team",
+      "email": "contact@siberakademi.org.tr",
+      "url": "https://github.com/toprakahmetaydogmus"
+    }
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toprakahmetaydogmus/TZeroAlgorithm/issues"
+  },
+  "homepage": "https://github.com/toprakahmetaydogmus/TZeroAlgorithm#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

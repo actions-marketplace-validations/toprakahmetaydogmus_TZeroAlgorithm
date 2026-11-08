@@ -56,5 +56,109 @@ class TestTZeroDashboard(unittest.TestCase):
             self.assertTrue(data.get("success"))
             self.assertIn("files_to_create", data["data"])
 
+    def test_get_api_blackboard(self):
+        url = f"http://localhost:{self.test_port}/api/blackboard"
+        with urllib.request.urlopen(url) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertIn("markdown", data)
+            self.assertIn("T-Zero Multi-Agent Blackboard State", data["markdown"])
+
+    def test_post_api_bridge_reverse(self):
+        url = f"http://localhost:{self.test_port}/api/bridge/reverse"
+        payload = json.dumps({
+            "code": "interface User { id: number; name: string; }",
+            "lang": "ts",
+            "flavor": "dataclass"
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertIn("class User:", data["python_code"])
+
+    def test_post_api_merge_heal(self):
+        url = f"http://localhost:{self.test_port}/api/merge/heal"
+        conflict_code = (
+            "<<<<<<< HEAD\n"
+            "def foo():\n"
+            "    return 1\n"
+            "=======\n"
+            "def bar():\n"
+            "    return 2\n"
+            ">>>>>>> branch\n"
+        )
+        payload = json.dumps({"code": conflict_code}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertIn("def foo():", data["merged_code"])
+            self.assertIn("def bar():", data["merged_code"])
+
+    def test_post_api_mutation_test(self):
+        url = f"http://localhost:{self.test_port}/api/mutation/test"
+        # Test on a small file with 0 or 1 mutants
+        payload = json.dumps({"file": "siber_akademi_icon.py", "max_mutants": 1}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertIn("score", data)
+            self.assertIn("markdown", data)
+
+    def test_post_api_contracts_compare(self):
+        url = f"http://localhost:{self.test_port}/api/contracts/compare"
+        payload = json.dumps({
+            "old_code": "def query(term: str) -> list:\n    return []\n",
+            "new_code": "def query(term: str, limit: int = 10) -> list:\n    return []\n",
+            "file_path": "search.py"
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertEqual(data.get("semver_bump"), "MINOR")
+            self.assertFalse(data.get("is_breaking"))
+            self.assertIn("markdown", data)
+
+    def test_post_api_debt_analyze(self):
+        url = f"http://localhost:{self.test_port}/api/debt/analyze"
+        payload = json.dumps({"path": "tests/test_debt.py"}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertEqual(data.get("type"), "file")
+            self.assertIn("maintainability_index", data)
+            self.assertIn("rating", data)
+
+    def test_post_api_budget_optimize(self):
+        url = f"http://localhost:{self.test_port}/api/budget/optimize"
+        payload = json.dumps({"path": "tests", "target_tokens": 10000, "model": "gpt-4o"}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            self.assertEqual(data.get("target_model"), "gpt-4o")
+            self.assertIn("tier_applied", data)
+            self.assertIn("markdown", data)
+
+    def test_post_api_golden_verify(self):
+        url = f"http://localhost:{self.test_port}/api/golden/verify"
+        payload = json.dumps({"path": "tests"}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertIn("markdown", data)
+
 if __name__ == "__main__":
     unittest.main()

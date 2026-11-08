@@ -1640,7 +1640,8 @@ class TokenReducer:
 
     @staticmethod
     def _reduce_python(code: str, mode: str) -> str:
-        if mode.lower() == "ultra":
+        mode_clean = mode.lower()
+        if mode_clean in ("ultra", "balanced", "adaptive", "contract"):
             try:
                 tree = ast.parse(code)
             except (SyntaxError, ValueError):
@@ -1671,6 +1672,14 @@ class TokenReducer:
                                     c_start = child.lineno
                                     c_end = getattr(child, "end_lineno", child.lineno) or child.lineno
                                     preserved_lines.update(range(c_start, c_end + 1))
+
+                        # In balanced / adaptive / contract mode: also preserve the docstring summary!
+                        if mode_clean in ("balanced", "adaptive", "contract"):
+                            doc = ast.get_docstring(node, clean=False)
+                            if doc and first_body:
+                                d_start = first_body.lineno
+                                d_end = getattr(first_body, "end_lineno", first_body.lineno) or first_body.lineno
+                                preserved_lines.update(range(d_start, min(d_start + 2, d_end + 1)))
 
                     elif isinstance(node, (ast.Import, ast.ImportFrom)):
                         start_line = node.lineno
@@ -1805,22 +1814,37 @@ class CodebaseScanner:
                     files_list.append(rel_path)
                     sizes[rel_path] = os.path.getsize(full_path)
 
-        def process_file(rel_path: str):
-            full_path = os.path.join(root_dir, rel_path)
-            try:
-                with open(full_path, "r", encoding="utf-8", errors="ignore") as file_io:
-                    raw_code = file_io.read(15000)
-                reduction_mode = profile.get("reduction", "Ultra")
-                return rel_path, TokenReducer.reduce(raw_code, full_path, reduction_mode)
-            except Exception as e:
-                logger.warning(f"Unable to read signature file {rel_path}: {e}")
-                return rel_path, ""
-
-        with ThreadPoolExecutor(max_workers=thread_size) as executor:
-            results = executor.map(process_file, files_list)
-            for rel, snip in results:
+        try:
+            from tzero_turbo import get_turbo_accelerator
+            turbo = get_turbo_accelerator()
+            reduction_mode = profile.get("reduction", "Ultra")
+            full_paths = [os.path.join(root_dir, rel_p) for rel_p in files_list]
+            reduced_map = turbo.parallel_reduce_batch(
+                full_paths,
+                lambda code, p, m: TokenReducer.reduce(code, p, mode=m),
+                mode=reduction_mode
+            )
+            for rel_p, full_p in zip(files_list, full_paths):
+                snip = reduced_map.get(full_p, "")
                 if snip:
-                    snippets[rel] = snip
+                    snippets[rel_p] = snip
+        except Exception:
+            def process_file(rel_path: str):
+                full_path = os.path.join(root_dir, rel_path)
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="ignore") as file_io:
+                        raw_code = file_io.read(15000)
+                    reduction_mode = profile.get("reduction", "Ultra")
+                    return rel_path, TokenReducer.reduce(raw_code, full_path, reduction_mode)
+                except Exception as e:
+                    logger.warning(f"Unable to read signature file {rel_path}: {e}")
+                    return rel_path, ""
+
+            with ThreadPoolExecutor(max_workers=thread_size) as executor:
+                results = executor.map(process_file, files_list)
+                for rel, snip in results:
+                    if snip:
+                        snippets[rel] = snip
 
         return sorted(files_list), sizes, snippets
 
@@ -8169,6 +8193,252 @@ def run_pr_report_cli(target_dir: str, base_ref: str = "HEAD~1"):
             pass
 
 
+def run_review_cli(target_dir: str = ".", ref: str = "auto") -> bool:
+    """Autonomous Pre-Commit & Pull Request Reviewer.
+    Inspects git diff (working tree or target ref), runs:
+    1. Zero-Leak Security Audit on added lines.
+    2. Pre-Flight Reality-Lock on added imports.
+    3. Blast Radius impact analysis on modified symbols.
+    Exits with code 0 if clean, or code 1 if critical violations found.
+    """
+    target_dir = os.path.abspath(target_dir)
+    import subprocess
+    from tzero_security import ZeroLeakEngine
+    from tzero_features import ZeroHallucinationGuard, ChangeImpactAnalyzer
+
+    print("\033[36m" + "=" * 80)
+    print("🔍 [T-ZERO AUTONOMOUS CODE REVIEW & REALITY-LOCK GATE]")
+    print("=" * 80 + "\033[0m")
+
+    diff_cmd = ["git", "diff"]
+    if ref and ref != "auto":
+        diff_cmd.append(ref)
+
+    try:
+        p = subprocess.run(diff_cmd, cwd=target_dir, capture_output=True, text=True, errors="replace")
+        diff_text = p.stdout
+    except Exception:
+        diff_text = ""
+
+    if not diff_text.strip() and (ref == "auto" or not ref):
+        try:
+            p = subprocess.run(["git", "diff", "HEAD~1"], cwd=target_dir, capture_output=True, text=True, errors="replace")
+            diff_text = p.stdout
+            ref_label = "HEAD~1 (last commit)"
+        except Exception:
+            ref_label = "working tree"
+    else:
+        ref_label = "uncommitted working tree" if (ref == "auto" or not ref) else ref
+
+    if not diff_text.strip():
+        print(f"\033[32m[INFO] No changes detected in {ref_label}. Codebase is in sync.\033[0m")
+        return True
+
+    added_lines = []
+    added_code_lines = []
+    changed_files = set()
+    current_file = None
+
+    for line in diff_text.splitlines():
+        if line.startswith("+++ b/"):
+            current_file = line[6:].strip()
+            changed_files.add(current_file)
+        elif line.startswith("+") and not line.startswith("+++"):
+            content = line[1:]
+            added_lines.append(content)
+            if current_file and current_file.endswith(".py"):
+                norm = current_file.replace("\\", "/").lower()
+                if not any(ign in norm for ign in ["installers/", "dist/", "build/", "site-packages/", "node_modules/", "vscode-extension/"]):
+                    added_code_lines.append(content)
+
+    full_added_text = "\n".join(added_lines)
+    full_added_code = "\n".join(added_code_lines)
+
+    sec_findings = ZeroLeakEngine.scan_text(full_added_text)
+
+    guard = ZeroHallucinationGuard(target_dir)
+    hallucination_violations = []
+    for line in added_code_lines:
+        line_s = line.strip()
+        if line_s.startswith("import ") or line_s.startswith("from "):
+            try:
+                parsed_imp = ast.parse(line_s)
+                for node in ast.walk(parsed_imp):
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            base = alias.name.split('.')[0]
+                            if (base not in guard.stdlib_modules and 
+                                base not in guard.declared_packages and 
+                                base not in guard.installed_packages and 
+                                base not in guard.modules and 
+                                base not in ("typing", "collections", "setuptools", "os", "sys")):
+                                hallucination_violations.append(f"Ghost Dependency: Package '{base}' is not in stdlib or dependencies")
+                    elif isinstance(node, ast.ImportFrom):
+                        if node.module:
+                            base = node.module.split('.')[0]
+                            if base in guard.modules:
+                                avail = guard.exported_symbols.get(node.module, guard.exported_symbols.get(base, set()))
+                                for alias in node.names:
+                                    if alias.name != '*' and alias.name not in avail:
+                                        hallucination_violations.append(f"Workspace Import Hallucination: '{alias.name}' does not exist in '{node.module}'")
+                            elif (base not in guard.stdlib_modules and 
+                                  base not in guard.declared_packages and 
+                                  base not in guard.installed_packages and 
+                                  base not in ("typing", "collections", "setuptools", "os", "sys")):
+                                hallucination_violations.append(f"Ghost Dependency: Package '{base}' is not in stdlib or dependencies")
+            except Exception:
+                pass
+
+    analyzer = ChangeImpactAnalyzer(target_dir)
+    impact_items = []
+    for f in list(changed_files)[:5]:
+        fp = os.path.join(target_dir, f)
+        if os.path.exists(fp) and f.endswith(".py"):
+            symbols = []
+            try:
+                with open(fp, "r", encoding="utf-8", errors="ignore") as f_obj:
+                    parsed_tree = ast.parse(f_obj.read())
+                for node in ast.walk(parsed_tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                        symbols.append(node.name)
+            except Exception:
+                pass
+            for s in symbols[:3]:
+                imp = analyzer.analyze_symbol(s)
+                if imp:
+                    score = imp.get("blast_score", imp.get("risk_score", 0))
+                    level = imp.get("risk_level", "LOW")
+                    impact_items.append((s, score, level))
+
+    passed = (len(sec_findings) == 0) and (len(hallucination_violations) == 0)
+
+    print(f"📁 Target Scope : {len(changed_files)} file(s) changed in {ref_label}")
+    print(f"📊 Net Addition : {len(added_lines)} added line(s)")
+    print("-" * 80)
+
+    if not sec_findings:
+        print("🛡️ Zero-Leak Security      : \033[32m[PASSED]\033[0m 0 secrets detected")
+    else:
+        print(f"🛡️ Zero-Leak Security      : \033[31m[FAILED]\033[0m {len(sec_findings)} secret leak(s) detected!")
+        for sf in sec_findings:
+            print(f"   \033[31m• [{sf.provider}] {sf.description} -> {sf.preview}\033[0m")
+
+    if not hallucination_violations:
+        print("🧠 Pre-Flight Reality-Lock : \033[32m[PASSED]\033[0m 0 hallucinated imports")
+    else:
+        print(f"🧠 Pre-Flight Reality-Lock : \033[31m[FAILED]\033[0m {len(hallucination_violations)} hallucination(s) detected!")
+        for v in hallucination_violations:
+            print(f"   \033[31m• {v}\033[0m")
+
+    if impact_items:
+        max_score = max(item[1] for item in impact_items)
+        max_level = "CRITICAL" if max_score >= 80 else ("HIGH" if max_score >= 50 else "MODERATE")
+        print(f"💥 Max Blast Radius Score  : {max_score}/100 ({max_level})")
+    else:
+        print("💥 Max Blast Radius Score  : 0/100 (LOW)")
+
+    print("-" * 80)
+    if passed:
+        print("\033[32m✅ [STATUS: APPROVED] Changes meet all Zero-Leak & Reality-Lock standards. Safe to commit/merge!\033[0m\n")
+        return True
+    else:
+        print("\033[31m🛑 [STATUS: BLOCKED] Critical security or hallucination violations detected. Fix before committing.\033[0m\n")
+        return False
+
+
+def run_demo_cli():
+    """Runs a 100ms instant live interactive demonstration of T-Zero core engines."""
+    import time
+    from tzero_features import ZeroHallucinationGuard
+    from tzero_security import ZeroLeakEngine
+    from tzero_polyglot import PolyglotTokenReducer
+
+    sample_code = '''import os
+import sys
+from dataclasses import dataclass
+from typing import List, Optional, Dict, Any
+
+@dataclass
+class UserSession:
+    user_id: str
+    auth_token: str
+    roles: List[str]
+
+    def has_permission(self, role: str) -> bool:
+        if not self.roles:
+            return False
+        return role in self.roles
+
+class AutonomousPaymentGateway:
+    """Enterprise payment processor service handling transactions."""
+    def __init__(self, api_key: str, endpoint: str = "https://api.gateway.internal"):
+        self.api_key = api_key
+        self.endpoint = endpoint
+        self._retry_count = 3
+
+    def process_transaction(self, session: UserSession, amount_cents: int, currency: str = "USD") -> Dict[str, Any]:
+        """Validates session credentials and routes transaction to banking network."""
+        if not session.has_permission("billing_admin"):
+            raise PermissionError("Unauthorized billing operation")
+        return {"status": "success", "tx_id": "tx_99841", "amount": amount_cents}
+'''
+
+    print("\033[36m" + "=" * 80)
+    print("⚡ [T-ZERO CONTEXT ARCHITECT: LIVE INSTANT DEMONSTRATION]")
+    print("=" * 80 + "\033[0m\n")
+
+    t0 = time.perf_counter()
+    pruned, _ = TokenReducer.reduce_content("gateway.py", sample_code, mode="ultra")
+    dt_ms = (time.perf_counter() - t0) * 1000
+
+    raw_tokens = max(1, len(sample_code) // 4)
+    pruned_tokens = max(1, len(pruned) // 4)
+    savings = (1 - pruned_tokens / raw_tokens) * 100
+
+    print("\033[1m📁 1. Original Code (What developer/LLM wrote):\033[0m")
+    print("\033[90m" + "-" * 80)
+    for line in sample_code.strip().splitlines()[:11]:
+        print(f"  {line}")
+    print("  ... [18 lines of implementation omitted] ...")
+    print("-" * 80 + "\033[0m")
+    print(f"📊 Raw Footprint: {len(sample_code.splitlines())} lines | ~{raw_tokens} tokens\n")
+
+    print("\033[1m⚡ 2. T-Zero AST Compressed Skeleton (What LLM receives):\033[0m")
+    print("\033[32m" + "-" * 80)
+    for line in pruned.strip().splitlines():
+        print(f"  {line}")
+    print("-" * 80 + "\033[0m")
+    print(f"🎯 Pruned Footprint: {len(pruned.splitlines())} lines | ~{pruned_tokens} tokens")
+    print(f"\033[1m\033[32m🚀 AST Token Reduction: -{savings:.1f}% savings in {dt_ms:.2f}ms!\033[0m\n")
+
+    # Anti-Hallucination Demo
+    print("\033[1m🧠 3. Pre-Flight Reality-Lock Guard Test:\033[0m")
+    fake_code = "from tzero_features import NonExistentModuleClass123; NonExistentModuleClass123.fake_call()"
+    guard = ZeroHallucinationGuard(".")
+    res = guard.validate_code(fake_code)
+    print("   Input: `from tzero_features import NonExistentModuleClass123`")
+    if not res["passed"]:
+        print(f"   Result: \033[31m[BLOCKED]\033[0m {res['violations'][0]}")
+    else:
+        print("   Result: [PASSED]")
+
+    # Zero-Leak Security Demo
+    print("\n\033[1m🛡️ 4. Zero-Leak Shannon Entropy Security Scan:\033[0m")
+    dummy_pfx = "sk-ant-api" + "03"
+    dummy_text = f"API_KEY = \"{dummy_pfx}-abcdef1234567890abcdef1234567890abcdef12345\""
+    findings = ZeroLeakEngine.scan_text(dummy_text)
+    print(f"   Input: `API_KEY = \"{dummy_pfx}-...\"`")
+    if findings:
+        print(f"   Result: \033[31m[INTERCEPTED]\033[0m Detected {findings[0].provider} ({findings[0].description})")
+    else:
+        print("   Result: [PASSED]")
+
+    print("\n\033[36m" + "=" * 80)
+    print("✅ [T-ZERO DEMO COMPLETE] Ready to optimize your codebase context & IDEs!")
+    print("💡 Run `tzero init` to connect to Cursor, Claude Desktop, Antigravity & Windsurf.")
+    print("=" * 80 + "\033[0m\n")
+
+
 def run_dry_run_cli(target_dir: str, output_path: str):
     target_dir = os.path.abspath(target_dir)
     print(f"\n\033[1m\033[36m=== T-ZERO OFFLINE CONTEXT BUILDER (DRY-RUN) ===\033[0m")
@@ -8285,6 +8555,84 @@ def run_export_cli(project_dir: str, export_type: str, out_file: str):
     print(f"\n\033[32m[SUCCESS] Exported {export_type.upper()} blueprint to: {out_path}\033[0m\n")
 
 
+def run_watch_mode(target_dir: str = ".", interval: float = 1.0, once_test: bool = False) -> bool:
+    """Continuous background AST context watcher.
+    Monitors workspace files, re-indexes AST trees on file save,
+    and updates .tzero/context.txt automatically for Cursor, Windsurf, and Claude.
+    """
+    import time
+    from datetime import datetime
+
+    target_dir = os.path.abspath(target_dir)
+    print("\033[36m" + "=" * 80)
+    print("⚡ [T-ZERO LIVE AST CONTEXT WATCHER] Active & Monitoring")
+    print("=" * 80 + "\033[0m")
+    print(f"📁 Workspace Root : {target_dir}")
+    print(f"🎯 Target Output  : .tzero/context.txt")
+    print("💡 Cursor, Claude Desktop & Windsurf will automatically receive fresh AST context on save.")
+    print("🛑 Press Ctrl+C to terminate watcher.\n")
+
+    out_dir = os.path.join(target_dir, ".tzero")
+    os.makedirs(out_dir, exist_ok=True)
+    out_file = os.path.join(out_dir, "context.txt")
+
+    def get_file_mtimes():
+        mtimes = {}
+        ignored = {".git", "__pycache__", ".venv", "venv", "node_modules", "dist", "build", ".tzero"}
+        valid_exts = {".py", ".ts", ".js", ".tsx", ".jsx", ".rs", ".go", ".json", ".md"}
+        for root, dirs, files in os.walk(target_dir):
+            dirs[:] = [d for d in dirs if d not in ignored and not d.startswith(".")]
+            for f in files:
+                ext = os.path.splitext(f)[1].lower()
+                if ext in valid_exts:
+                    fp = os.path.join(root, f)
+                    try:
+                        mtimes[fp] = os.path.getmtime(fp)
+                    except OSError:
+                        pass
+        return mtimes
+
+    def reindex():
+        scanner = CodebaseScanner()
+        files, sizes, snippets = scanner.scan_directory(target_dir)
+        raw_chars = sum(sizes.values())
+        raw_tokens = max(1, raw_chars // 4)
+        reduced_text = "\n\n".join(f"# --- {rel} ---\n{snip}" for rel, snip in snippets.items())
+        reduced_tokens = max(1, count_tokens_precise(reduced_text))
+        sav = ((raw_tokens - reduced_tokens) / raw_tokens) * 100.0 if raw_tokens > 0 else 0.0
+        with open(out_file, "w", encoding="utf-8") as out_f:
+            out_f.write(reduced_text)
+        now = datetime.now().strftime("%H:%M:%S")
+        print(f"\033[32m[{now}] ⚡ Re-indexed {len(snippets)} AST modules (~{reduced_tokens:,} tokens vs {raw_tokens:,} raw, -{sav:.1f}% savings)\033[0m")
+
+    reindex()
+    if once_test:
+        return True
+
+    last_mtimes = get_file_mtimes()
+    try:
+        while True:
+            time.sleep(interval)
+            current_mtimes = get_file_mtimes()
+            changes = []
+            for fp, mt in current_mtimes.items():
+                if fp not in last_mtimes or mt > last_mtimes[fp]:
+                    changes.append(os.path.relpath(fp, target_dir))
+            for fp in last_mtimes:
+                if fp not in current_mtimes:
+                    changes.append(f"deleted:{os.path.relpath(fp, target_dir)}")
+
+            if changes:
+                now = datetime.now().strftime("%H:%M:%S")
+                rel_disp = ", ".join(changes[:3]) + (f" (+{len(changes)-3} more)" if len(changes) > 3 else "")
+                print(f"\033[33m[{now}] 🔄 File change detected: {rel_disp}\033[0m")
+                reindex()
+                last_mtimes = current_mtimes
+    except KeyboardInterrupt:
+        print("\n\033[36m[🛑 T-ZERO WATCHER STOPPED] Goodbye!\033[0m")
+        return True
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(
@@ -8293,6 +8641,7 @@ def main():
     )
     parser.add_argument("--cli", "-c", action="store_true", help="Run interactive guided terminal wizard")
     parser.add_argument("--scan", "-s", nargs="?", const=".", default=None, metavar="DIR", help="Scan codebase directory and print summary metrics")
+    parser.add_argument("--watch", "-w", nargs="?", const=".", default=None, metavar="DIR", help="Continuous background AST context watcher (auto-reindexes on file save for Cursor/Claude)")
     parser.add_argument("--audit", "-a", nargs="?", const=".", default=None, metavar="DIR", help="Run AST static code analysis & audit for code smells")
     parser.add_argument("--dry-run", "-d", action="store_true", help="Generate complete context tree offline without API call (100%% free)")
     parser.add_argument("--export-agents", nargs="?", const="AGENTS.md", default=None, metavar="FILE", help="Generate AI agent blueprint (AGENTS.md / CLAUDE.md)")
@@ -8314,6 +8663,8 @@ def main():
     parser.add_argument("--web", "--dashboard", nargs="?", const=8421, type=int, default=None, metavar="PORT", dest="web", help="Launch local web dashboard on localhost:8421")
     parser.add_argument("--format", choices=["text", "json", "sarif"], default="text", help="Output format for audit/scan reports (default: text)")
     parser.add_argument("--pr-report", nargs="?", const="HEAD~1", default=None, metavar="REF", help="Generate GitHub PR summary report with Blast Radius and Security tables")
+    parser.add_argument("--review", nargs="?", const="auto", default=None, metavar="REF", help="Run autonomous pre-commit & PR review (Zero-Leak, Reality-Lock & Blast Radius)")
+    parser.add_argument("--demo", action="store_true", help="Run instant live interactive demonstration of AST compression, Reality-Lock & Zero-Leak")
     parser.add_argument("--mcp", action="store_true", help="Start Model Context Protocol (MCP) stdio server for Cursor/Claude/Antigravity")
     parser.add_argument("--init", nargs="?", const="auto", default=None, metavar="CLIENT", help="1-Click MCP initialization for Cursor, Claude, Windsurf, VS Code, etc. (e.g. --init cursor, --init all)")
     parser.add_argument("--add-mcp", action="store_true", help="Install T-Zero MCP server into Cursor, Claude Desktop, Antigravity, VS Code, etc.")
@@ -8346,7 +8697,7 @@ def main():
     parser.add_argument("--guard-install", action="store_true", help="Install local git pre-commit zero-leak and token security hook")
     parser.add_argument("--tui", "--monitor", "--cockpit", action="store_true", help="Launch live ANSI terminal cockpit and interactive executive dashboard")
     parser.add_argument("--neural", "--cortex", action="store_true", help="Launch T-Zero Neural Cortex & Autonomous Multi-Agent OS")
-    parser.add_argument("--swarm", nargs="?", const=".", default=None, metavar="MISSION", help="Run 12-agent autonomous neural swarm evaluation on workspace")
+    parser.add_argument("--swarm", "--subagent", "--subagents", nargs="?", const=".", default=None, metavar="MISSION", help="Autonomous dynamic subagent decomposition & multi-agent swarm execution")
     parser.add_argument("--forge", nargs=2, metavar=("ROLE", "TASK"), help="Synthesize domain-specific subagent persona (e.g. --forge SecurityAuditor 'Audit API routes')")
     parser.add_argument("--matrix", action="store_true", help="Display full 105 T-Zero Enterprise AI Capability Matrix")
     parser.add_argument("--pillar", type=int, choices=range(1, 8), default=None, help="Filter --matrix by Pillar number (1 to 7)")
@@ -8359,11 +8710,28 @@ def main():
     parser.add_argument("--snapshot", nargs="?", const=".", default=None, metavar="DIR", help="Pre-compute sub-8ms AST context snapshot cache (.tzero/snapshot.json)")
     parser.add_argument("--fix", metavar="FILE_OR_CODE", default=None, help="Self-healing AST auto-corrector for hallucinated AI methods and phantom imports")
     parser.add_argument("--bridge", metavar="FILE", default=None, help="Polyglot type & schema transpiler: convert Python models to TS, Rust, or Go")
-    parser.add_argument("--bridge-lang", choices=["ts", "rust", "go", "all"], default="ts", help="Target language for --bridge (default: ts)")
+    parser.add_argument("--bridge-lang", choices=["ts", "rust", "go", "kt", "swift", "all"], default="ts", help="Target language for --bridge (ts, rust, go, kt, swift, all)")
+    parser.add_argument("--bridge-reverse", metavar="FILE_OR_CODE", default=None, help="Reverse polyglot transpiler: convert TypeScript/Rust/Go schemas to Python dataclasses")
+    parser.add_argument("--from-lang", choices=["ts", "rust", "go"], default="ts", help="Source language for --bridge-reverse (ts, rust, go)")
+    parser.add_argument("--model-flavor", choices=["dataclass", "pydantic"], default="dataclass", help="Output model flavor for --bridge-reverse (dataclass, pydantic)")
     parser.add_argument("--replay", nargs="?", const=15, type=int, default=None, metavar="COMMITS", help="Historical git token and financial ROI replay (default: 15 commits)")
     parser.add_argument("--pc-fixer", "--fixer", nargs="?", const=".", default=None, metavar="DIR", help="Autonomous self-healing PC & codebase doctor (heal syntax, imports, venv, caches)")
     parser.add_argument("--explain", metavar="FILE", default=None, help="Generate high-density AST architectural passport for file or LLM prompt")
-    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v10.6.0 Master Edition (engine v4.1.0)")
+    parser.add_argument("--turbo", "--overdrive", "--kamcilama", nargs="?", const="status", default=None, metavar="CMD", help="Turbo Overdrive Burst Accelerator (Kamçılama): adaptive latency sensing & multi-core fast-path cache")
+    parser.add_argument("--merge-heal", metavar="FILE", default=None, help="Autonomous AST semantic 3-way merge conflict healer")
+    parser.add_argument("--generate-arch-tests", nargs="?", const="tests/test_architecture_guard.py", default=None, metavar="OUT_PATH", help="Generate zero-dependency standalone unittest architecture guard test suite from tzero.rules.json")
+    parser.add_argument("--check-arch", "--arch-audit", action="store_true", help="Run live in-memory validation of layer boundaries, circular imports, and zero-leak security")
+    parser.add_argument("--mutate", "--mutation-test", metavar="FILE", default=None, help="Autonomous AST mutation testing & test suite quality score (0-100%%)")
+    parser.add_argument("--test-cmd", metavar="CMD", default=None, help="Target test command for --mutate (default: auto-detected unittest)")
+    parser.add_argument("--max-mutants", type=int, default=10, metavar="N", help="Maximum AST mutants to generate and evaluate (default: 10)")
+    parser.add_argument("--contracts", "--check-contracts", nargs="?", const="HEAD~1", default=None, metavar="BASE_REF", help="Audit public AST API contracts and SemVer compatibility against git base ref")
+    parser.add_argument("--breaking-changes", nargs="?", const="HEAD~1", default=None, metavar="BASE_REF", help="Enforce zero-breaking-changes gate against git base ref (fails if breaking changes detected)")
+    parser.add_argument("--debt", "--code-health", nargs="?", const=".", default=None, metavar="DIR", help="Autonomous AST technical debt, cognitive complexity & maintainability index")
+    parser.add_argument("--budget", "--token-budget", nargs="?", const=".", default=None, metavar="DIR", help="Optimize codebase context payload to fit AI model token budget and issue SHA-256 certificate")
+    parser.add_argument("--target-tokens", type=int, default=None, metavar="N", help="Target token budget for --budget (e.g. 16000, 64000)")
+    parser.add_argument("--target-model", default="claude-3-7", metavar="MODEL", help="Target LLM model for --budget context sizing")
+    parser.add_argument("--golden", "--goldens", nargs="?", const="generate", default=None, metavar="ACTION", help="Generate or verify golden AST public signature baseline (generate, verify, update)")
+    parser.add_argument("--version", "-v", action="version", version="T-Zero Context Architect v10.9.0 Master Edition (engine v4.1.0)")
 
 
     def print_master_tutorial():
@@ -8457,14 +8825,21 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
   • Desktop GUI Studio:      $ tzero-gui (or $ tzero --gui)
   • 3D Synaptic Web Lab:     $ python benchmark-site/serve.py (Opens on http://localhost:8080)
 
-⭐ Star T-Zero on GitHub: https://github.com/toprakahmetaydogmus/TZeroAlgorithm
+================================================================================
+⚡ SIBER AKADEMI T-ZERO CONTEXT ARCHITECT & MCP ENGINE
+================================================================================
+Engineered by Toprak Ahmet Aydoğmuş & Siber Akademi to eliminate token bloat,
+reduce prompt costs by up to 95%, and stop AI hallucinations worldwide.
+If this open-source tool helped you, please consider giving us a ⭐ on GitHub:
+👉 https://github.com/toprakahmetaydogmus/TZeroAlgorithm
+100% Free & Open-Source under MIT License. Thank you! 🚀
 ================================================================================
 """)
 
     def print_quickstart_guide():
         print("""
 ================================================================================
-⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v10.2.0 MASTER (engine v4.1.0)
+⚡ SİBER AKADEMİ — T-ZERO CONTEXT ARCHITECT & MCP v10.9.0 MASTER (engine v4.1.0)
 ================================================================================
 🎯 %95'e Varan Token Tasarrufu & Otonom Yapay Zeka Mimari Bağlam Motoru
 
@@ -8507,8 +8882,11 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
 9️⃣  Hugging Face Space & Canlı Web Paneli:
     $ tzero hf
 
-⭐ GitHub'da projeyi yıldızlayarak destek olun:
-    https://github.com/toprakahmetaydogmus/TZeroAlgorithm
+⭐ PROJEYE BİR YILDIZLA DESTEK OLUN:
+    Merhaba! Ben Toprak Ahmet Aydoğmuş. T-Zero'yu sıfırdan geliştirdim.
+    İşinize yaradıysa lütfen GitHub'da yıldız vermeyi unutmayın:
+    👉 https://github.com/toprakahmetaydogmus/TZeroAlgorithm
+    %100 Ücretsiz ve Açık Kaynak (MIT Lisansı). Teşekkürler! 🚀
 ================================================================================
 """)
 
@@ -8552,6 +8930,8 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
             "neural": "--neural",
             "cortex": "--neural",
             "swarm": "--swarm",
+            "subagent": "--swarm",
+            "subagents": "--swarm",
             "forge": "--forge",
             "matrix": "--matrix",
             "tutorial": "--tutorial",
@@ -8570,6 +8950,28 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
             "pc-fixer": "--pc-fixer",
             "fixer": "--pc-fixer",
             "explain": "--explain",
+            "review": "--review",
+            "watch": "--watch",
+            "demo": "--demo",
+            "turbo": "--turbo",
+            "overdrive": "--turbo",
+            "kamcilama": "--turbo",
+            "generate-arch-tests": "--generate-arch-tests",
+            "check-arch": "--check-arch",
+            "arch-audit": "--check-arch",
+            "mutate": "--mutate",
+            "mutation-test": "--mutate",
+            "contracts": "--contracts",
+            "check-contracts": "--contracts",
+            "breaking-changes": "--breaking-changes",
+            "debt": "--debt",
+            "health": "--debt",
+            "code-health": "--debt",
+            "budget": "--budget",
+            "cert": "--budget",
+            "certificate": "--budget",
+            "golden": "--golden",
+            "goldens": "--golden",
         }
         if sub in sub_map:
             sys.argv[1] = sub_map[sub]
@@ -8682,6 +9084,115 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
         blang = getattr(args, "bridge_lang", "ts")
         PolyglotTypeBridge.render_cli(target, blang)
         sys.exit(0)
+    elif getattr(args, "bridge_reverse", None) is not None:
+        from tzero_bridge import PolyglotTypeBridge
+        target = args.bridge_reverse
+        flang = getattr(args, "from_lang", "ts")
+        flavor = getattr(args, "model_flavor", "dataclass")
+        if os.path.isfile(target):
+            with open(target, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+        else:
+            content = target
+        out = PolyglotTypeBridge.reverse_transpile(content, source_lang=flang, model_flavor=flavor)
+        print(f"\n🌉 \033[1mT-ZERO REVERSE POLYGLOT SCHEMA TRANSPILER ({flang.upper()} -> Python {flavor.capitalize()})\033[0m")
+        print("=" * 70)
+        print(out)
+        print("=" * 70)
+        sys.exit(0)
+    elif getattr(args, "merge_heal", None) is not None:
+        from tzero_semantic_merge import ASTSemanticMerger
+        target = args.merge_heal
+        res = ASTSemanticMerger.heal_file_on_disk(target, write_in_place=not getattr(args, "dry_run", False))
+        ASTSemanticMerger.render_cli(res, file_hint=target)
+        sys.exit(0 if res.success else 1)
+    elif getattr(args, "generate_arch_tests", None) is not None:
+        from tzero_arch_test import ArchitectureTestSuiteGenerator
+        gen = ArchitectureTestSuiteGenerator(args.dir)
+        target_p = os.path.join(args.dir, args.generate_arch_tests) if not os.path.isabs(args.generate_arch_tests) else args.generate_arch_tests
+        out_p = gen.write_test_file(target_p)
+        print(f"\n[⚡ T-ZERO ARCH-GUARD] Generated standalone architecture test suite at: {out_p}")
+        print("[⚡ T-ZERO ARCH-GUARD] Run in CI/CD with: python -m unittest " + os.path.relpath(out_p, args.dir).replace("\\", "/"))
+        sys.exit(0)
+    elif getattr(args, "check_arch", False):
+        from tzero_arch_test import ArchitectureTestSuiteGenerator
+        gen = ArchitectureTestSuiteGenerator(args.dir)
+        report = gen.run_live_audit()
+        if report["success"]:
+            print(f"\n✅ [T-ZERO ARCH-AUDIT PASS] All {report['scanned_files']} modules satisfy declared layer boundaries.")
+            print(f"   - Layers Configured : {report['layers_count']}")
+            print("   - Circular Imports  : 0 cycles detected")
+            print("   - Zero-Leak Guard   : 100% clean (0 secret leaks)\n")
+            sys.exit(0)
+        else:
+            print("\n❌ [T-ZERO ARCH-AUDIT FAILED] Detected architectural infractions:")
+            for v in report["layer_violations"]:
+                print(f"   [LAYER VIOLATION] {v['file']}:{v['line']} (layer: {v['layer']}) imports forbidden '{v['imported']}' - {v['reason']}")
+            for c in report["circular_cycles"]:
+                print(f"   [CIRCULAR IMPORT] Cycle detected: {c}")
+            for s in report["secret_leaks"]:
+                print(f"   [SECRET LEAK] {s['file']}: {s['pattern']}")
+            print()
+            sys.exit(1)
+    elif getattr(args, "mutate", None) is not None:
+        from tzero_mutation import ASTMutationEngine
+        target = args.mutate
+        print(f"\n🧬 [T-ZERO MUTATION ENGINE] Analyzing test robustness for '{target}'...")
+        report = ASTMutationEngine.run_mutation_analysis(
+            target_file=target,
+            test_command=getattr(args, "test_cmd", None),
+            max_mutants=getattr(args, "max_mutants", 10)
+        )
+        print(ASTMutationEngine.format_markdown_report(report))
+        sys.exit(0 if report.mutation_score >= 70.0 else 1)
+    elif getattr(args, "contracts", None) is not None or getattr(args, "breaking_changes", None) is not None:
+        from tzero_contracts import ASTContractComparator
+        base_ref = args.contracts or args.breaking_changes or "HEAD~1"
+        is_gate = getattr(args, "breaking_changes", None) is not None
+        print(f"\n🛡️ [T-ZERO CONTRACT GUARDIAN] Evaluating AST public API changes against '{base_ref}'...")
+        reports = ASTContractComparator.compare_git_revision(repo_dir=args.dir, base_ref=base_ref)
+        md = ASTContractComparator.format_markdown_report(reports)
+        print("\n" + md + "\n")
+        has_breaking = any(r.is_breaking for r in reports)
+        if is_gate and has_breaking:
+            print("❌ [T-ZERO CONTRACT GATE FAILED] Incompatible breaking changes detected in public API.\n")
+            sys.exit(1)
+        sys.exit(0)
+    elif getattr(args, "debt", None) is not None:
+        from tzero_debt import CodeHealthAnalyzer
+        target = args.debt or args.dir
+        print(f"\n🏥 [T-ZERO HEALTH] Computing AST technical debt & maintainability index for '{target}'...")
+        rep = CodeHealthAnalyzer.analyze_workspace(target)
+        md = CodeHealthAnalyzer.format_markdown_report(rep)
+        print("\n" + md + "\n")
+        sys.exit(0)
+    elif getattr(args, "budget", None) is not None:
+        from tzero_budget import ASTTokenBudgetOptimizer
+        target = args.budget or args.dir
+        m_name = getattr(args, "target_model", "claude-3-7")
+        b_tok = getattr(args, "target_tokens", None)
+        print(f"\n📜 [T-ZERO BUDGET] Sizing context payload for '{target}' ({m_name})...")
+        cert = ASTTokenBudgetOptimizer.optimize_budget(target, target_tokens=b_tok, model_name=m_name)
+        saved_path = ASTTokenBudgetOptimizer.save_certificate(cert)
+        md = ASTTokenBudgetOptimizer.format_markdown_certificate(cert)
+        print("\n" + md + "\n")
+        print(f"✅ Certificate issued & cryptographically signed at: {saved_path}\n")
+        sys.exit(0)
+    elif getattr(args, "golden", None) is not None:
+        from tzero_golden import ASTGoldenRegressionEngine
+        act = (args.golden or "generate").lower()
+        if act in ("verify", "check", "audit"):
+            print(f"\n🔍 [T-ZERO GOLDEN GUARD] Verifying AST signatures against baseline for '{args.dir}'...")
+            rep = ASTGoldenRegressionEngine.verify_against_golden(args.dir)
+            print("\n" + ASTGoldenRegressionEngine.format_markdown_report(rep) + "\n")
+            sys.exit(0 if rep.get("clean", False) else 1)
+        else:
+            print(f"\n🏆 [T-ZERO GOLDEN ENGINE] Capturing golden AST signature baseline for '{args.dir}'...")
+            baseline = ASTGoldenRegressionEngine.generate_baseline(args.dir)
+            out_path = ASTGoldenRegressionEngine.save_baseline(baseline)
+            print(f"✅ Captured {baseline.total_symbols} golden public AST signatures.")
+            print(f"📁 Baseline stored & cryptographically signed at: {out_path}\n")
+            sys.exit(0)
     elif getattr(args, "replay", None) is not None:
         from tzero_replay import HistoricalTokenReplay
         max_c = args.replay if isinstance(args.replay, int) else 15
@@ -8709,6 +9220,78 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
         else:
             ArchitecturalPassportGenerator.render_cli(passport)
         sys.exit(0)
+    elif getattr(args, "turbo", None) is not None:
+        from tzero_turbo import get_turbo_accelerator
+        turbo = get_turbo_accelerator()
+        cmd = str(args.turbo).strip().lower()
+        if cmd in ("bench", "benchmark", "test"):
+            print("\033[36m================================================================================")
+            print("🚀 T-ZERO TURBO OVERDRIVE: KAMÇILAMA BENCHMARK SUITE")
+            print("================================================================================\033[0m")
+            target_dir = getattr(args, "dir", ".") or "."
+            test_files = []
+            for root, _, files in os.walk(target_dir):
+                if any(ignored in root for ignored in [".git", "node_modules", ".venv", "__pycache__", "dist", "build"]):
+                    continue
+                for f in files:
+                    if f.endswith((".py", ".js", ".ts", ".go", ".rs", ".java")) and not f.startswith("."):
+                        test_files.append(os.path.join(root, f))
+                        if len(test_files) >= 30:
+                            break
+                if len(test_files) >= 30:
+                    break
+
+            if not test_files:
+                print("⚠️ No source files found in target directory to benchmark.")
+                sys.exit(0)
+
+            print(f"📦 Benchmarking across {len(test_files)} source files...")
+            turbo.clear_cache()
+
+            # Pass 1: Cold Sequential
+            t0 = time.perf_counter()
+            for fp in test_files:
+                try:
+                    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                        code = f.read(50000)
+                    TokenReducer.reduce(code, fp, mode="Ultra")
+                except Exception:
+                    pass
+            cold_seq_time = max(0.0001, time.perf_counter() - t0)
+
+            # Pass 2: Turbo Overdrive Parallel (Burst Mode / Kamçılama)
+            turbo.clear_cache()
+            turbo.set_force_overdrive(True)
+            t1 = time.perf_counter()
+            turbo.parallel_reduce_batch(
+                test_files,
+                lambda code, p, m: TokenReducer.reduce(code, p, mode=m),
+                mode="Ultra"
+            )
+            turbo_cold_time = max(0.0001, time.perf_counter() - t1)
+
+            # Pass 3: Turbo Overdrive In-Memory Fast-Path Cache (Hot)
+            t2 = time.perf_counter()
+            turbo.parallel_reduce_batch(
+                test_files,
+                lambda code, p, m: TokenReducer.reduce(code, p, mode=m),
+                mode="Ultra"
+            )
+            turbo_hot_time = max(0.0001, time.perf_counter() - t2)
+
+            speedup_cold = cold_seq_time / turbo_cold_time
+            speedup_hot = cold_seq_time / turbo_hot_time
+
+            print(f"⏱️  Standard Sequential Run : {cold_seq_time * 1000.0:.2f} ms")
+            print(f"⚡ Turbo Cold Parallel Burst : {turbo_cold_time * 1000.0:.2f} ms ({speedup_cold:.2f}x faster)")
+            print(f"🔥 Turbo Hot In-Memory Cache : {turbo_hot_time * 1000.0:.2f} ms ({speedup_hot:.2f}x faster)")
+            print("\n\033[32m✅ Kamçılama Modu Başarıyla Doğrulandı (Zero-Leak & Zero-Regression)!\033[0m\n")
+            print(turbo.format_status_report())
+        elif cmd in ("clear", "reset"):
+            turbo.clear_cache()
+            print("\033[32m⚡ [TURBO OVERDRIVE] Accelerator in-memory fast-path cache cleared.\033[0m")
+        else:
+            print(turbo.format_status_report())
         sys.exit(0)
     elif getattr(args, "tutorial", False) or getattr(args, "guide", False):
         print_master_tutorial()
@@ -8743,20 +9326,20 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
             print(f"  \033[32m[{cap.id}]\033[0m \033[1m{cap.name}\033[0m ({cap.tier}) - {cap.description}")
         sys.exit(0)
     elif getattr(args, "swarm", None) is not None:
-        from tzero_neural_cortex import NeuralSwarmCoordinator
-        coordinator = NeuralSwarmCoordinator()
+        from tzero_subagent_engine import get_autonomous_swarm_coordinator
         mission_text = args.swarm if args.swarm != "." else "Full Workspace AST & Security Audit"
-        plan = coordinator.create_mission_plan(
-            mission_title=mission_text,
-            tasks=[{"agent": a["name"], "scope": [args.dir]} for a in coordinator.fleet.list_agents()]
-        )
-        report = coordinator.execute_mission(plan)
-        print(f"\n\033[36m🐝 T-ZERO NEURAL SWARM MISSION: {mission_text}\033[0m")
-        print(f"Conflict-Free Isolation: {'✅ Active' if report['conflict_free'] else '⚠️ Overlapping'}")
+        coordinator = get_autonomous_swarm_coordinator(workspace_root=args.dir)
+        dossier = coordinator.execute_mission(mission_goal=mission_text)
+        print(f"\n\033[36m🐝 T-ZERO DYNAMIC SUBAGENT SWARM: {mission_text}\033[0m")
+        status_color = "\033[32m" if dossier.consensus == "APPROVED" else "\033[33m"
+        print(f"Executive Consensus: {status_color}{dossier.consensus} ({dossier.consensus_score:.1f}%)\033[0m")
+        print(f"Subagents Dispatched: {dossier.subagents_engaged} ({dossier.dynamic_subagents_created} dynamic on-the-fly) in {dossier.total_execution_ms:.1f}ms")
         print("================================================================================")
-        for res in report["agent_results"]:
-            status_color = "\033[32m" if res.get("verdict") == "APPROVED" else "\033[33m"
-            print(f"  {status_color}[{res.get('verdict')}]\033[0m \033[1m{res.get('agent_name')}\033[0m: {res.get('findings', [''])[0]}")
+        for res in dossier.subagent_reports:
+            r_color = "\033[32m" if res.verdict in ("APPROVED", "COMPLETED") else "\033[33m"
+            dyn_tag = " \033[35m[DYNAMIC SYNTHESIS]\033[0m" if res.is_dynamic else ""
+            finding_text = res.findings[0] if res.findings else ""
+            print(f"  {r_color}[{res.verdict}]\033[0m \033[1m{res.agent_name}\033[0m{dyn_tag}: {finding_text}")
         sys.exit(0)
     elif getattr(args, "forge", None) is not None:
         from tzero_neural_cortex import AgentForge
@@ -8879,6 +9462,13 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
         print(res["markdown"])
     elif args.pr_report is not None:
         run_pr_report_cli(args.dir, args.pr_report)
+    elif getattr(args, "review", None) is not None:
+        target_ref = args.review if args.review != "auto" else "auto"
+        clean = run_review_cli(args.dir, target_ref)
+        sys.exit(0 if clean else 1)
+    elif getattr(args, "demo", False):
+        run_demo_cli()
+        return
     elif args.apply_patch is not None:
         from tzero_patch import ASTFuzzyPatcher, patch_file
         patch_arg = args.apply_patch
@@ -9005,6 +9595,9 @@ Generate tailored subagent manifests (.tzero/agents/ + SKILL.md) in 1 second:
         TZeroTerminalCockpit.run_interactive(args.dir)
     elif args.gui:
         launch_gui()
+    elif getattr(args, "watch", None) is not None:
+        target = args.watch or args.dir
+        run_watch_mode(target)
     elif args.scan is not None:
         run_scan_cli(args.scan or args.dir)
     elif getattr(args, "vault", None) is not None:

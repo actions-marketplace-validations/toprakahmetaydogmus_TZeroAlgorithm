@@ -20,7 +20,7 @@ cat << "EOF"
    | |   / / |  _| | |_) | | | |
    | |  / /_ | |___|  _ <| |_| |
    |_| /____|_____|_| \_\\___/ 
-      CONTEXT ARCHITECT v6.0 MASTER
+      SOVEREIGN MASTER v10.7.0 EDITION
 EOF
 echo -e "${NC}"
 
@@ -45,13 +45,27 @@ $PY_CMD -m tzero_mcp --install || true
 
 echo -e "${GREEN}"
 echo "================================================================================"
-echo "⚡ T-ZERO INSTALLED SUCCESSFULLY!"
+echo "⚡ T-ZERO v10.7.0 INSTALLED SUCCESSFULLY!"
 echo "================================================================================"
 echo -e "${NC}"
-echo "Usage:"
-echo "  - Start MCP stdio server : uvx tzero-mcp"
-echo "  - Launch Web Dashboard   : tzero --dashboard"
-echo "  - Run Codebase Scan      : tzero --scan ."
-echo "  - Zero-Leak Audit        : tzero --audit ."
+echo "Key Capabilities:"
+echo "  - 1-Click Auto-Vault  : tzero --vault --migrate"
+echo "  - Pre-Flight Guard    : tzero --guard <file_or_code>"
+echo "  - Change Blast Radius : tzero --impact <symbol>"
+echo "  - Autonomous Doctor   : tzero pc-fixer"
+echo "  - Zero-GPU Web Studio : tzero space"
+echo "  - Start MCP Server    : uvx tzero-mcp (or tzero --mcp)"
 echo ""
-echo -e "${CYAN}⭐ Don't forget to star the repo: https://github.com/toprakahmetaydogmus/TZeroAlgorithm${NC}"
+echo -e "${CYAN}┌──────────────────────────────────────────────────────────────────────────────┐${NC}"
+echo -e "${CYAN}│  ⚡ SIBER AKADEMI T-ZERO CONTEXT ARCHITECT & MCP ENGINE                      │${NC}"
+echo -e "${CYAN}│                                                                              │${NC}"
+echo -e "${CYAN}│  Engineered by Toprak Ahmet Aydogmus & Siber Akademi to eliminate token     │${NC}"
+echo -e "${CYAN}│  bloat, token costs, and AI hallucinations for programmers worldwide.        │${NC}"
+echo -e "${CYAN}│                                                                              │${NC}"
+echo -e "${CYAN}│  If this open-source tool saved you tokens or improved your coding flow:     │${NC}"
+echo -e "${CYAN}│  👉 Please consider giving it a ⭐ on GitHub:                                │${NC}"
+echo -e "${YELLOW}│     https://github.com/toprakahmetaydogmus/TZeroAlgorithm                    │${NC}"
+echo -e "${CYAN}│                                                                              │${NC}"
+echo -e "${CYAN}│  100% Free & Open-Source under MIT License. Thank you! 🚀                   │${NC}"
+echo -e "${CYAN}└──────────────────────────────────────────────────────────────────────────────┘${NC}"
+echo ""

@@ -30,7 +30,7 @@ try:
 except ImportError:
     ToolAnnotations = None
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 try:
     from typing import Annotated
 except ImportError:
@@ -42,7 +42,7 @@ except ImportError:
     def Field(default=..., description=""):
         return default
 
-SERVER_VERSION = "10.6.0"
+SERVER_VERSION = "10.8.0"
 
 # Safe UTF-8 reconfiguration for Windows console & piped subprocesses
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -305,11 +305,26 @@ def create_mcp_server():
             selected_files = files[:50]
 
         reduced_snippets: Dict[str, str] = {}
-        for f in selected_files:
-            raw_code = snippets.get(f, "")
-            if include_file_contents:
-                reduced_snippets[f] = TokenReducer.reduce(raw_code, f, mode=reduction_mode)
-            else:
+        if include_file_contents:
+            try:
+                from tzero_turbo import get_turbo_accelerator
+                turbo = get_turbo_accelerator()
+                # Turbo Overdrive ("Kamçılama"): multi-core parallel reduction with mtime cache
+                full_paths = [os.path.join(abs_root, f) for f in selected_files]
+                reduced_map = turbo.parallel_reduce_batch(
+                    full_paths,
+                    lambda code, path, mode: TokenReducer.reduce(code, path, mode=mode),
+                    mode=reduction_mode
+                )
+                for f, full_p in zip(selected_files, full_paths):
+                    reduced_snippets[f] = reduced_map.get(full_p, snippets.get(f, ""))
+            except Exception:
+                for f in selected_files:
+                    raw_code = snippets.get(f, "")
+                    reduced_snippets[f] = TokenReducer.reduce(raw_code, f, mode=reduction_mode)
+        else:
+            for f in selected_files:
+                raw_code = snippets.get(f, "")
                 reduced_snippets[f] = f"# File: {f} ({len(raw_code.splitlines())} lines)"
 
         raw_context = generate_offline_context(abs_root, selected_files, reduced_snippets)
@@ -3578,18 +3593,32 @@ def create_mcp_server():
     )
     def orchestrate_agent_swarm(
         goal: Annotated[str, Field(description="High-level goal description, swarm proposal, or failing test traceback to heal.")],
-        orchestration_mode: Annotated[str, Field(default="goal_execute", description="Orchestration mode: 'goal_execute' for autonomous goal planning and execution, 'swarm_consensus' for Byzantine fault-tolerant voting, 'self_healing' for AST error diagnosis and automated patching.")] = "goal_execute",
+        orchestration_mode: Annotated[str, Field(default="goal_execute", description="Orchestration mode: 'goal_execute' for autonomous goal planning and execution, 'swarm_consensus' for Byzantine fault-tolerant voting, 'self_healing' for AST error diagnosis and automated patching, 'dynamic_subagents' for dynamic task decomposition and on-the-fly subagent synthesis.")] = "goal_execute",
         agents: Annotated[str, Field(default="", description="Comma-separated list of agent roles participating in swarm execution (e.g. 'architect,coder,tester').")] = "",
         project_root: Annotated[str, Field(default=".", description="Workspace root for swarm execution (default: current directory).")] = "."
     ) -> str:
         """Coordinates autonomous multi-agent swarms, goal execution, PBFT consensus, and self-healing."""
         o_mode = (orchestration_mode or "goal_execute").lower().strip()
-        if o_mode == "swarm_consensus":
+        if o_mode in ("dynamic_subagents", "dynamic", "subagents", "swarm_dynamic"):
+            from tzero_subagent_engine import get_autonomous_swarm_coordinator
+            coord = get_autonomous_swarm_coordinator(workspace_root=project_root)
+            dossier = coord.execute_mission(mission_goal=goal, workspace_context=agents)
+            return dossier.summary_markdown
+        elif o_mode == "swarm_consensus":
             return _legacy_jarvis_bft_swarm_consensus(mission_goal=goal, context=agents)
         elif o_mode == "self_healing":
             return _legacy_jarvis_self_healing_execute(command=goal, max_retries=3)
         else:
-            return _legacy_jarvis_orchestrate_goal(goal=goal, project_root=project_root, mode="auto")
+            goal_lower = (goal or "").strip().lower()
+            if goal_lower in ("", "help", "plan", "ne yapabilirsin", "menu", "capabilities"):
+                return _legacy_jarvis_orchestrate_goal(goal=goal, project_root=project_root, mode="plan")
+            try:
+                from tzero_subagent_engine import get_autonomous_swarm_coordinator
+                coord = get_autonomous_swarm_coordinator(workspace_root=project_root)
+                dossier = coord.execute_mission(mission_goal=goal, workspace_context=agents)
+                return dossier.summary_markdown
+            except Exception:
+                return _legacy_jarvis_orchestrate_goal(goal=goal, project_root=project_root, mode="auto")
 
     # -------------------------------------------------------------------------
     # SUPERDESIGN ORCHESTRATOR TOOLS (Anchor-5 TDQS Certified)
@@ -4224,12 +4253,14 @@ def create_mcp_server():
         action: Annotated[str, Field(default="auto", description="Workflow operation: 'auto' (comprehensive all-in-one pipeline), 'context', 'audit', 'security', 'blueprint', 'dependencies', 'impact', 'search', 'prune', 'heal', 'memory', 'swarm', 'design'.")] = "auto",
         target: Annotated[str, Field(default=".", description="Target repository path, file path, diff string, or code snippet (default: '.').")] = ".",
         query: Annotated[str, Field(default="", description="Search query, focus symbol name, or task goal prompt.")] = "",
-        options: Annotated[str, Field(default="", description="Optional JSON string of additional configuration parameters.")] = ""
+        options: Annotated[Union[str, Dict[str, Any]], Field(default="", description="Optional JSON string or dictionary of additional configuration parameters.")] = ""
     ) -> str:
         """Autonomous all-in-one T-Zero master tool executing any codebase workflow in a single command."""
         act = (action or "auto").lower().strip()
         opts = {}
-        if options:
+        if isinstance(options, dict):
+            opts = options
+        elif isinstance(options, str) and options.strip():
             try:
                 opts = json.loads(options)
             except Exception:
@@ -4330,8 +4361,8 @@ def create_mcp_server():
         elif act in ("consensus", "bft"):
             return orchestrate_agent_swarm(goal=query or target, orchestration_mode="swarm_consensus", agents=opts.get("agents", ""))
 
-        elif act in ("swarm", "goal", "orchestrate"):
-            return orchestrate_agent_swarm(goal=query or target, orchestration_mode="goal_execute", project_root=target if os.path.isdir(target) else ".")
+        elif act in ("swarm", "goal", "orchestrate", "subagents", "subagent", "decompose"):
+            return orchestrate_agent_swarm(goal=query or target, orchestration_mode="dynamic_subagents", project_root=target if os.path.isdir(target) else ".")
 
         elif act in ("design", "ui", "superdesign"):
             dtype = opts.get("design_type", "ui")
@@ -4370,6 +4401,122 @@ def create_mcp_server():
 
         elif act in ("drift", "drift_analysis", "instruction_drift", "attention_drift"):
             return analyze_instruction_drift(workspace_dir=target if os.path.isdir(target) else ".")
+
+        elif act in ("merge_heal", "semantic_merge", "merge", "conflict_heal"):
+            from tzero_semantic_merge import ASTSemanticMerger
+            target_file = target or query
+            if os.path.isfile(target_file):
+                res = ASTSemanticMerger.heal_file_on_disk(target_file, write_in_place=bool(opts.get("write", True)))
+                return json.dumps({
+                    "success": res.success,
+                    "auto_resolved_conflicts": res.auto_resolved_conflicts,
+                    "unresolved_conflicts": res.unresolved_conflicts,
+                    "details": res.details
+                }, indent=2)
+            else:
+                res = ASTSemanticMerger.heal_conflict_file(query or target)
+                return res.merged_code
+
+        elif act in ("bridge_reverse", "reverse_transpile", "ts_to_py", "rust_to_py", "go_to_py"):
+            from tzero_bridge import PolyglotTypeBridge
+            src_code = query or target
+            if os.path.isfile(src_code):
+                with open(src_code, "r", encoding="utf-8", errors="replace") as f:
+                    src_code = f.read()
+            flang = opts.get("from_lang", "ts")
+            flavor = opts.get("flavor", "dataclass")
+            return PolyglotTypeBridge.reverse_transpile(src_code, source_lang=flang, model_flavor=flavor)
+
+        elif act in ("blackboard", "swarm_memory", "invariants", "locks"):
+            from tzero_blackboard import get_shared_blackboard
+            bb = get_shared_blackboard(workspace_root=target if os.path.isdir(target) else ".")
+            sub_op = opts.get("operation", "status")
+            if sub_op == "post_invariant":
+                inv_id = bb.post_invariant(source_agent=opts.get("agent", "Agent"), description=query or target, severity=opts.get("severity", "HIGH"))
+                return f"✅ Posted invariant: {inv_id}"
+            elif sub_op == "claim_lock":
+                ok = bb.claim_symbol(agent_id=opts.get("agent", "Agent"), file_path=target, symbol_name=query or opts.get("symbol", ""))
+                return f"Lock {'granted' if ok else 'denied'}"
+            elif sub_op == "release_lock":
+                ok = bb.release_symbol(agent_id=opts.get("agent", "Agent"), file_path=target, symbol_name=query or opts.get("symbol", ""))
+                return f"Lock {'released' if ok else 'failed to release'}"
+            else:
+                return bb.export_status_markdown()
+
+        elif act in ("generate_architecture_tests", "generate_arch_tests", "arch_tests"):
+            from tzero_arch_test import ArchitectureTestSuiteGenerator
+            target_dir = target if os.path.isdir(target) else "."
+            gen = ArchitectureTestSuiteGenerator(target_dir)
+            out_path = opts.get("out_path") or (query if query and query.endswith(".py") else None)
+            written = gen.write_test_file(out_path)
+            return f"✅ Standalone Architecture Guard test suite generated at: {written}"
+
+        elif act in ("check_architecture", "check_arch", "arch_audit", "validate_architecture"):
+            from tzero_arch_test import ArchitectureTestSuiteGenerator
+            target_dir = target if os.path.isdir(target) else "."
+            gen = ArchitectureTestSuiteGenerator(target_dir)
+            report = gen.run_live_audit()
+            if report["success"]:
+                return (
+                    f"✅ ARCH-AUDIT PASS: All {report['scanned_files']} modules satisfy declared layer boundaries.\n"
+                    f"- Configured Layers: {report['layers_count']}\n"
+                    f"- Circular Import Cycles: 0\n"
+                    f"- Zero-Leak Violations: 0"
+                )
+            else:
+                lines = [f"❌ ARCH-AUDIT FAILED ({len(report['layer_violations'])} boundary violations, {len(report['circular_cycles'])} cycles, {len(report['secret_leaks'])} leaks):"]
+                for v in report["layer_violations"]:
+                    lines.append(f"  - [BOUNDARY] {v['file']}:{v['line']} (layer: {v['layer']}) imports forbidden '{v['imported']}'")
+                for c in report["circular_cycles"]:
+                    lines.append(f"  - [CYCLE] {c}")
+                for s in report["secret_leaks"]:
+                    lines.append(f"  - [LEAK] {s['file']}: {s['pattern']}")
+                return "\n".join(lines)
+
+        elif act in ("mutation_test", "mutate", "test_quality", "mutation"):
+            from tzero_mutation import ASTMutationEngine
+            file_to_mutate = target if (target and os.path.isfile(target)) else (query if query and os.path.isfile(query) else "tzero_v3.py")
+            t_cmd = opts.get("test_cmd")
+            max_m = int(opts.get("max_mutants", 10))
+            rep = ASTMutationEngine.run_mutation_analysis(
+                target_file=file_to_mutate,
+                test_command=t_cmd,
+                max_mutants=max_m
+            )
+            return ASTMutationEngine.format_markdown_report(rep)
+
+        elif act in ("contracts", "check_contracts", "api_contracts", "semver", "breaking_changes"):
+            from tzero_contracts import ASTContractComparator
+            target_dir = target if os.path.isdir(target) else "."
+            base_ref = opts.get("base_ref") or query or "HEAD~1"
+            reports = ASTContractComparator.compare_git_revision(repo_dir=target_dir, base_ref=base_ref)
+            return ASTContractComparator.format_markdown_report(reports)
+
+        elif act in ("debt", "technical_debt", "code_health", "health", "maintainability"):
+            from tzero_debt import CodeHealthAnalyzer
+            target_dir = target if os.path.isdir(target) else "."
+            rep = CodeHealthAnalyzer.analyze_workspace(target_dir)
+            return CodeHealthAnalyzer.format_markdown_report(rep)
+
+        elif act in ("budget", "certificate", "cert", "token_budget", "fit_context"):
+            from tzero_budget import ASTTokenBudgetOptimizer
+            target_dir = target if os.path.isdir(target) else "."
+            t_tok = opts.get("target_tokens") or (int(query) if query.isdigit() else None)
+            m_name = opts.get("model", "claude-3-7")
+            cert = ASTTokenBudgetOptimizer.optimize_budget(target_dir, target_tokens=t_tok, model_name=m_name)
+            return ASTTokenBudgetOptimizer.format_markdown_certificate(cert)
+
+        elif act in ("golden", "goldens", "verify_golden", "check_golden"):
+            from tzero_golden import ASTGoldenRegressionEngine
+            target_dir = target if os.path.isdir(target) else "."
+            sub_op = opts.get("operation") or query or "verify"
+            if sub_op in ("generate", "update", "capture"):
+                baseline = ASTGoldenRegressionEngine.generate_baseline(target_dir)
+                out_p = ASTGoldenRegressionEngine.save_baseline(baseline)
+                return f"✅ Captured {baseline.total_symbols} golden public AST signatures to: {out_p}"
+            else:
+                rep = ASTGoldenRegressionEngine.verify_against_golden(target_dir)
+                return ASTGoldenRegressionEngine.format_markdown_report(rep)
 
         # Fallback to general dispatch
         handler = _CANONICAL_DISPATCH.get(act) or _LEGACY_DISPATCH.get(act)
@@ -4770,6 +4917,15 @@ def print_welcome_guide():
 
 💡 Bu komutu doğrudan stdio sunucusu olarak test etmek isterseniz:
     $ tzero-mcp --stdio
+
+================================================================================
+⚡ SIBER AKADEMI T-ZERO CONTEXT ARCHITECT & MCP ENGINE
+================================================================================
+Engineered by Toprak Ahmet Aydoğmuş & Siber Akademi to eliminate token bloat,
+reduce prompt costs by up to 95%, and stop AI hallucinations worldwide.
+If this open-source tool helped you, please consider giving us a ⭐ on GitHub:
+👉 https://github.com/toprakahmetaydogmus/TZeroAlgorithm
+100% Free & Open-Source under MIT License. Thank you! 🚀
 ================================================================================
 """)
 

@@ -12,7 +12,7 @@ Write-Host " |_   _|__  /| ____|  _ \ / _ \ " -ForegroundColor Cyan
 Write-Host "   | |   / / |  _| | |_) | | | |" -ForegroundColor Cyan
 Write-Host "   | |  / /_ | |___|  _ <| |_| |" -ForegroundColor Cyan
 Write-Host "   |_| /____|_____|_| \_\\___/ " -ForegroundColor Cyan
-Write-Host "      CONTEXT ARCHITECT v6.0 MASTER" -ForegroundColor Yellow
+Write-Host "      SOVEREIGN MASTER v10.7.0 EDITION" -ForegroundColor Yellow
 Write-Host ""
 
 Write-Host "[1/4] Checking Python environment..." -ForegroundColor Magenta
@@ -41,14 +41,27 @@ try {
 
 Write-Host ""
 Write-Host "================================================================================" -ForegroundColor Green
-Write-Host "⚡ T-ZERO INSTALLED SUCCESSFULLY ON WINDOWS!" -ForegroundColor Green
+Write-Host "⚡ T-ZERO v10.7.0 INSTALLED SUCCESSFULLY ON WINDOWS!" -ForegroundColor Green
 Write-Host "================================================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Quick Commands:" -ForegroundColor White
-Write-Host "  - Start MCP Server    : uvx tzero-mcp" -ForegroundColor Cyan
-Write-Host "  - Launch Web Dashboard: tzero --dashboard" -ForegroundColor Cyan
-Write-Host "  - Scan Workspace      : tzero --scan ." -ForegroundColor Cyan
-Write-Host "  - Zero-Leak Security  : tzero --audit ." -ForegroundColor Cyan
+Write-Host "Key Capabilities:" -ForegroundColor White
+Write-Host "  - 1-Click Auto-Vault  : tzero --vault --migrate" -ForegroundColor Cyan
+Write-Host "  - Pre-Flight Guard    : tzero --guard <file_or_code>" -ForegroundColor Cyan
+Write-Host "  - Change Blast Radius : tzero --impact <symbol>" -ForegroundColor Cyan
+Write-Host "  - Autonomous Doctor   : tzero pc-fixer" -ForegroundColor Cyan
+Write-Host "  - Zero-GPU Web Studio : tzero space" -ForegroundColor Cyan
+Write-Host "  - Start MCP Server    : uvx tzero-mcp (or tzero --mcp)" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "⭐ Don't forget to star the repo: https://github.com/toprakahmetaydogmus/TZeroAlgorithm" -ForegroundColor Yellow
+Write-Host "┌──────────────────────────────────────────────────────────────────────────────┐" -ForegroundColor Cyan
+Write-Host "│  ⚡ SIBER AKADEMI T-ZERO CONTEXT ARCHITECT & MCP ENGINE                      │" -ForegroundColor Cyan
+Write-Host "│                                                                              │" -ForegroundColor Cyan
+Write-Host "│  Engineered by Toprak Ahmet Aydogmus & Siber Akademi to eliminate token     │" -ForegroundColor Cyan
+Write-Host "│  bloat, token costs, and AI hallucinations for programmers worldwide.        │" -ForegroundColor Cyan
+Write-Host "│                                                                              │" -ForegroundColor Cyan
+Write-Host "│  If this open-source tool saved you tokens or improved your coding flow:     │" -ForegroundColor Cyan
+Write-Host "│  👉 Please consider giving it a ⭐ on GitHub:                                │" -ForegroundColor Cyan
+Write-Host "│     https://github.com/toprakahmetaydogmus/TZeroAlgorithm                    │" -ForegroundColor Yellow
+Write-Host "│                                                                              │" -ForegroundColor Cyan
+Write-Host "│  100% Free & Open-Source under MIT License. Thank you! 🚀                   │" -ForegroundColor Cyan
+Write-Host "└──────────────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
 Write-Host ""
